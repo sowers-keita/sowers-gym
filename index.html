@@ -652,12 +652,22 @@ async function cancelFur(furId){
 }
 
 /* ============ マイページ ============ */
+async function changePayment(val){
+  if(!val||val===profile.payment)return;
+  const nm=(PAYMENTS.find(p=>p.k===val)||{}).nm||val;
+  showLoad&&showLoad(true);
+  const r=await db.from('profiles').update({payment:val}).eq('id',me.id);
+  showLoad&&showLoad(false);
+  if(r.error){toast('変更できませんでした：'+r.error.message);renderMy();return;}
+  profile.payment=val;
+  toast('お支払い方法を「'+nm+'」に変更しました');
+}
 function renderMy(){
   const b=document.getElementById('my-body');const cap=3*kids.length;
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
-    <div class="kv"><span class="k">お支払い</span><span class="v">${(PAYMENTS.find(p=>p.k===profile.payment)||{}).nm||'未設定'}</span></div>
+    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${PAYMENTS.map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
     </div>
     <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
     <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
@@ -748,6 +758,7 @@ async function checkPaymentReminder(force){
   const pm=(PAYMENTS.find(p=>p.k===profile.payment)||{}).nm||'';
   openSheet(`<div style="text-align:center"><div style="font-size:46px">💴</div><h3>${now.getMonth()+1}月分のお月謝</h3>
     <p class="muted" style="margin:6px 0 4px">お支払い方法：<b>${pm}</b></p>
+    <p class="muted" style="margin:0 0 4px;color:#1f9d55">お月謝は<b>月末まで</b>のお支払いで大丈夫です。</p>
     ${isEnd?'<div class="note" style="text-align:left;margin:8px 0">20日時点でご入金の確認がとれておりません。月末のため、改めてご確認のお願いです。</div>':''}
     <p style="font-weight:700;margin:10px 0 18px">今月分のお支払いはお済みですか？</p>
     <button class="btn green" onclick="payAnswer(true,'${ym}')">✅ はい、支払いました</button>
@@ -873,8 +884,10 @@ function openStaffDay(y,m,d,schools){
 }
 async function setCancel(room,key,on){
   showLoad(true);
-  if(on){ await db.from('cancellations').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'}); }
-  else { await db.from('cancellations').delete().eq('room',room).eq('date',key); }
+  let r;
+  if(on){ r=await db.from('cancellations').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'}); }
+  else { r=await db.from('cancellations').delete().eq('room',room).eq('date',key); }
+  if(r&&r.error){ showLoad(false); toast('反映できませんでした：'+r.error.message); return; }
   await loadCancels(); showLoad(false);
   toast(on?'休講にしました':'休講を取り消しました');
   const schools=schoolsOn(new Date(key).getDay());
@@ -1107,13 +1120,14 @@ async function postAnn(scope,room){const ta=document.getElementById(scope==='all
   if(r.error){toast('投稿エラー：'+r.error.message);return;}toast('投稿しました');renderStaff();}
 async function delAnn(id){showLoad(true);await db.from('announcements').delete().eq('id',id);await loadAnns();showLoad(false);toast('削除しました');renderStaff();}
 /* --- 連絡（メッセージ返信） --- */
+function parentRooms(pid){const rs=[...new Set(allChildren.filter(c=>c.parent_id===pid).map(c=>c.classroom))].filter(Boolean);return rs.length?'（'+rs.join('・')+'教室）':'';}
 function stMessages(){
   const byP={}; allMsgs.forEach(m=>{(byP[m.parent_id]=byP[m.parent_id]||[]).push(m);});
   const ids=Object.keys(byP);
   let h=`<h2 class="title">保護者からの連絡</h2>`;
   if(ids.length===0)return h+`<div class="card center"><span class="muted">まだメッセージはありません。</span></div>`;
   ids.forEach(pid=>{const ms=byP[pid];const last=ms[ms.length-1];
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}<span style="color:var(--sub);font-weight:600;font-size:11px">${parentRooms(pid)}</span>　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
       <div class="msgwrap" style="margin:8px 0">${ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join('')}</div>
       <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="返信を入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
@@ -1141,6 +1155,21 @@ async function refreshApp(){
   document.addEventListener('touchend',async e=>{ if(!pulling)return; pulling=false; const dy=e.changedTouches[0].clientY-startY;
     if(dy>70){ el.style.top='12px';el.style.opacity='1';el.textContent='更新中…'; try{await refreshApp();}catch(_){} el.style.top='-44px';el.style.opacity='0'; toast('最新の状態に更新しました'); }
     else { el.style.top='-44px';el.style.opacity='0'; } },{passive:true});
+})();
+
+/* ============ アプリに戻ったとき自動更新（休講・欠席などを反映） ============ */
+(function setupAutoRefresh(){
+  let _last=0;
+  function maybe(){
+    if(!READY||!me)return;
+    const mask=document.getElementById('mask');
+    if(mask&&mask.classList.contains('show'))return; // 入力中シート表示中はスキップ
+    if(Date.now()-_last<4000)return;
+    _last=Date.now();
+    refreshApp().catch(()=>{});
+  }
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden)maybe(); });
+  window.addEventListener('focus',maybe);
 })();
 
 /* ============ 起動時：セッション確認 ============ */
