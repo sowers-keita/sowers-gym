@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>体操教室出席管理アプリ</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="theme-color" content="#2f7df6">
+<meta property="og:type" content="website">
+<meta property="og:title" content="体操教室出席管理アプリ">
+<meta property="og:description" content="サワーズ体操教室｜予定確認・お休み/振替・名簿・お知らせ">
+<meta property="og:image" content="https://sowers-keita.github.io/sowers-gym/logo.png">
+<meta property="og:url" content="https://sowers-keita.github.io/sowers-gym/">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="体操教室出席管理アプリ">
+<meta name="twitter:description" content="サワーズ体操教室｜予定確認・お休み/振替・名簿・お知らせ">
+<meta name="twitter:image" content="https://sowers-keita.github.io/sowers-gym/logo.png">
+<style>
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#222b45;--sub:#6b7280;--brand:#2f7df6;--brand-d:#1f5fcf;--accent:#ff8a3d;--green:#1faf73;--red:#e0556b;--line:#e7ebf3;--soft:#eef3ff;--shadow:0 6px 20px rgba(40,60,110,.10)}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0}
+  body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;background:#dfe5f0;color:var(--ink)}
+  .phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.12)}
+  .screen{flex:1;display:none;flex-direction:column;overflow-y:auto;padding-bottom:90px}
+  .screen.active{display:flex}
+  .auth{padding-bottom:24px}
+  header.topbar{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(40,60,110,.15)}
+  header.topbar .logo{font-weight:800;font-size:18px}
+  header.topbar .sub{font-size:12px;opacity:.9;margin-left:auto}
+  .pad{padding:18px}
+  h2.title{font-size:19px;margin:4px 0 14px}
+  .muted{color:var(--sub);font-size:13px;line-height:1.7}
+  .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
+  label.fld{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:#3a4360}
+  input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand)}
+  textarea{resize:vertical;min-height:80px}
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff;transition:.15s;font-family:inherit}
+  .btn:active{transform:scale(.985)}
+  .btn:disabled{background:#c7cfe0;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
+  .btn.soft{background:var(--soft);color:var(--brand-d)}
+  .btn.sm{padding:11px;font-size:14px;border-radius:11px}
+  .btn.red{background:var(--red)}.btn.green{background:var(--green)}
+  .btn.gray{background:#eef1f7;color:#54607a;border:1.5px solid var(--line)}
+  .linkbtn{background:none;border:none;color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;padding:6px;font-family:inherit}
+  .center{text-align:center}
+  .logo-big{text-align:center;margin:30px 0 6px}
+  .logo-big .mark{width:74px;height:74px;border-radius:22px;background:linear-gradient(135deg,var(--brand),#5aa0ff);display:inline-flex;align-items:center;justify-content:center;font-size:38px;box-shadow:var(--shadow)}
+  .logo-big h1{font-size:21px;margin:14px 0 2px}.logo-big p{color:var(--sub);font-size:13px;margin:0}
+  .steps{display:flex;gap:6px;margin-bottom:16px}.steps .dot{flex:1;height:6px;border-radius:4px;background:#dde4f1}.steps .dot.on{background:var(--brand)}
+  .pill{display:inline-block;background:var(--soft);color:var(--brand-d);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;margin-bottom:10px}
+  .opt{display:flex;align-items:center;gap:12px;padding:15px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;background:#fff;transition:.12s}
+  .opt:active{transform:scale(.99)}.opt.sel{border-color:var(--brand);background:var(--soft)}
+  .opt .nm{font-weight:700;font-size:15px}.opt .ds{font-size:12px;color:var(--sub)}
+  .opt .ico{width:42px;height:42px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .opt.disabled{opacity:.55;cursor:not-allowed;background:#f6f7fa}
+  .badge-stop{font-size:11px;background:#ffe2e2;color:#c0392b;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:6px}
+  .childblock{border:1.5px dashed #cdd6ea;border-radius:14px;padding:14px;margin-bottom:12px;background:#fbfcff;position:relative}
+  .childblock .rm{position:absolute;top:8px;right:8px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;padding:4px 8px;cursor:pointer;color:var(--red)}
+  .childblock h4{margin:0 0 4px;font-size:14px}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .calhead button{background:#fff;border:1px solid var(--line);border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer;color:var(--brand)}
+  .calhead .mlabel{font-weight:800;font-size:17px}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal .dow{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:700}
+  .cal .day{aspect-ratio:1/1;border-radius:10px;background:#fff;border:1px solid #eef1f7;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:5px;font-size:13px;position:relative;cursor:default;overflow:hidden}
+  .cal .day.empty{background:transparent;border:none}
+  .cal .day.has{cursor:pointer;border-color:#cfe0ff}
+  .cal .day.sun{color:#e0556b}.cal .day.sat{color:#2f7df6}
+  .cal .day .ev{margin-top:2px;font-size:9px;font-weight:800;color:#fff;background:var(--brand);border-radius:6px;padding:1px 4px;line-height:1.5;max-width:92%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cal .day .ev.cancel{background:#cbd2df;color:#7a8499;text-decoration:line-through}
+  .cal .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
+  .cal .day.past{opacity:.4;pointer-events:none;background:#f1f3f7;filter:grayscale(.6)}
+  .cal .day.past span{color:#aeb6c6}
+  .cal .day.holi{background:#fdecef;border-color:#f7d3da}.cal .day.holi span{color:#cf5f72}
+  .holibar{display:flex;align-items:center;gap:8px;background:#fdecef;border:1px solid #f7d3da;color:#c0455c;font-weight:800;font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:8px}
+  .legend{font-size:12px;color:var(--sub);margin-top:10px;display:flex;align-items:center;gap:6px}
+  .legend .ev{font-size:9px;font-weight:800;color:#fff;border-radius:6px;padding:1px 6px}
+  .ptbig{font-size:30px;font-weight:900;color:var(--accent)}
+  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #eceff6;font-size:14px;gap:10px}
+  .kv:last-child{border:none}.kv .k{color:var(--sub);flex-shrink:0}.kv .v{font-weight:700;text-align:right}
+  .childcard h3{margin:0 0 2px;font-size:16px}
+  .grade{display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;margin-left:6px}
+  .ptchips{display:flex;gap:6px;margin-top:8px}.ptchip{width:22px;height:22px;border-radius:50%;background:#e7ebf3}.ptchip.on{background:var(--accent)}
+  details.acc{margin-top:12px;border-top:1px dashed #eceff6;padding-top:6px}
+  details.acc summary{cursor:pointer;list-style:none;color:var(--brand);font-weight:700;font-size:14px;padding:8px 2px;display:flex;align-items:center;justify-content:space-between}
+  details.acc summary::-webkit-details-marker{display:none}
+  details.acc summary::after{content:"▼";font-size:10px;color:#9aa3b8}
+  details.acc[open] summary::after{content:"▲"}
+  .tane-hero{text-align:center;padding:24px 16px;background:linear-gradient(135deg,#fff4e8,#ffe9f0);border-radius:18px;margin-bottom:14px}
+  .tane-hero .egg{font-size:60px}
+  .codebox{font-size:26px;font-weight:900;letter-spacing:2px;color:var(--brand-d);background:var(--soft);border-radius:14px;padding:16px;text-align:center;border:2px dashed #bcd2ff}
+  .msgwrap{display:flex;flex-direction:column;gap:10px;padding:6px 2px}
+  .msg{max-width:78%;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.5;white-space:pre-wrap}
+  .msg.them{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg .t{display:block;font-size:10px;opacity:.6;margin-top:3px}
+  .msgbar{position:fixed;bottom:74px;left:0;right:0;max-width:430px;margin:0 auto;display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid var(--line)}
+  .msgbar input{flex:1}.msgbar button{width:auto;padding:0 18px;border-radius:12px;border:none;background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:#fff;border-top:1px solid var(--line);display:flex;height:70px;z-index:20}
+  nav.tabbar button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#9aa3b8;font-size:10px;line-height:1.1;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:700;padding:0 2px}
+  nav.tabbar button .ic{font-size:19px}nav.tabbar button.on{color:var(--brand)}
+  .mask{position:fixed;inset:0;background:rgba(20,30,60,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
+  .mask.show{display:flex}
+  .sheet{background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px;max-height:85vh;overflow-y:auto;animation:up .25s ease}
+  @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
+  .sheet h3{margin:2px 0 4px;font-size:18px}
+  .grab{width:42px;height:5px;background:#dde3ef;border-radius:3px;margin:0 auto 14px}
+  .timeitem{display:flex;justify-content:space-between;align-items:center;padding:14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer}
+  .timeitem:active{background:var(--soft)}.timeitem .cn{font-weight:800;font-size:15px}.timeitem .tm{font-size:13px;color:var(--sub)}
+  .toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:#222b45;color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:.3s;z-index:80;max-width:90%;text-align:center}
+  .toast.show{opacity:1}
+  .note{background:#fff8e8;border:1px solid #f5e2a8;border-radius:12px;padding:12px;font-size:13px;color:#8a6d1a;line-height:1.6}
+  .err{background:#ffeaea;border:1px solid #f3c2c2;border-radius:12px;padding:12px;font-size:13px;color:#b3261e;line-height:1.6;margin-bottom:12px}
+  .loading{position:fixed;inset:0;background:rgba(244,246,251,.7);display:none;align-items:center;justify-content:center;z-index:200;font-weight:800;color:var(--brand)}
+  .loading.show{display:flex}
+  .setup{background:#fff3cd;border:1px solid #ffe08a;color:#7a5b00;padding:12px;font-size:13px;line-height:1.7;border-radius:0}
+  table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+  table.tbl th,table.tbl td{text-align:left;padding:8px 6px;border-bottom:1px solid #eef1f7}
+  table.tbl th{color:var(--sub);font-size:11px;font-weight:700}
+  table.tbl td.num,table.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .sumrow{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px dashed #eceff6}
+  .sumrow:last-child{border:none}
+  .tot{font-size:22px;font-weight:900;color:var(--brand)}
+  .roomtitle{font-weight:800;color:#28324c;margin:6px 0;font-size:15px}
+  .paychk{font-size:26px;background:none;border:none;cursor:pointer;line-height:1;padding:0}
+  .rolepill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:10px}
+  .role-admin{background:#ffe9d6;color:#b5530a}.role-staff{background:#e1f0ff;color:#1f5fcf}.role-parent{background:#eef1f7;color:#54607a}.role-parttime{background:#e6f7ee;color:#1faf73}
+</style>
+</head>
+<body>
+<div class="phone" id="phone">
+
+  <div class="setup" id="setup-warn" style="display:none">
+    ⚙️ <b>初期設定が必要です。</b> このファイル冒頭の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> に、Supabaseの値を貼り付けて保存してください。
+  </div>
+
+  <!-- LOGIN -->
+  <section class="screen auth active" id="s-login">
+    <div class="pad">
+      <div class="logo-big"><img src="logo.png" alt="ロゴ" style="width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)"><h1>体操教室出席管理アプリ</h1><p>サワーズ体操教室</p></div>
+      <div class="err" id="login-err" style="display:none"></div>
+      <div class="card">
+        <label class="fld">メールアドレス</label><input id="li-mail" type="email" placeholder="hogehoge@example.com">
+        <label class="fld">パスワード</label><input id="li-pass" type="password" placeholder="••••••••">
+        <div style="height:14px"></div>
+        <button class="btn" onclick="login()">ログイン</button>
+        <div class="center" style="margin-top:10px"><button class="linkbtn" onclick="go('s-forgot')">パスワードを忘れた方</button></div>
+      </div>
+      <button class="btn ghost" onclick="startRegister()">はじめての方（新規登録）</button>
+    </div>
+  </section>
+
+  <!-- FORGOT -->
+  <section class="screen auth" id="s-forgot">
+    <div class="pad">
+      <button class="linkbtn" onclick="go('s-login')">← もどる</button>
+      <h2 class="title">パスワードの再設定</h2>
+      <div class="card">
+        <p class="muted">ご登録のメールアドレスに、再設定用のリンクをお送りします。</p>
+        <label class="fld">メールアドレス</label><input id="fg-mail" type="email" placeholder="hogehoge@example.com">
+        <div style="height:14px"></div>
+        <button class="btn" onclick="forgot()">送信する</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGISTER -->
+  <section class="screen auth" id="s-reg">
+    <div class="pad">
+      <button class="linkbtn" onclick="regBack()">← もどる</button>
+      <div class="steps" id="reg-steps"></div>
+      <div class="err" id="reg-err" style="display:none"></div>
+      <div id="reg-body"></div>
+    </div>
+  </section>
+
+  <!-- HOME -->
+  <section class="screen" id="s-home">
+    <header class="topbar"><span class="logo">体操教室出席管理</span><span class="sub" id="home-fam"></span></header>
+    <div class="pad">
+      <div id="home-ann"></div>
+      <h2 class="title">スケジュール</h2>
+      <div class="card">
+        <div class="calhead"><button onclick="calMove(-1)">‹</button><span class="mlabel" id="cal-label"></span><button onclick="calMove(1)">›</button></div>
+        <div id="cal-holi"></div>
+        <div class="cal" id="cal"></div>
+        <div class="legend" id="cal-legend" style="flex-wrap:wrap;gap:5px"></div>
+        <p class="muted" style="margin-top:6px">活動日（地名）をタップすると時間とクラスが見られます。</p>
+      </div>
+      <div class="note"><b>使い方</b><br>・いつも通り参加される場合は、<b>そのまま何もしなくてOK</b>です。<br>・<b>お休み（欠席）</b>または<b>振替で参加</b>のときだけ、活動日をタップしてクラスを選び「欠席」か「振替参加」を選んでください。</div>
+    </div>
+  </section>
+
+  <!-- MYPAGE -->
+  <section class="screen" id="s-my">
+    <header class="topbar"><span class="logo">マイページ</span><span class="sub" id="my-fam"></span></header>
+    <div class="pad" id="my-body"></div>
+  </section>
+
+  <!-- TANE -->
+  <section class="screen" id="s-tane">
+    <header class="topbar"><span class="logo">🌱 たねもん</span></header>
+    <div class="pad">
+      <div class="tane-hero"><div class="egg">🥚</div><h2 class="title" style="margin:8px 0 4px">サワーズモンスターを育てよう</h2>
+        <p class="muted">練習に参加すると「あいことば」がもらえます。たねもんアプリで入力すると、モンスターの種がもらえます。</p></div>
+      <div class="card">
+        <label class="fld">今日のあいことば（練習で先生がお知らせ）</label>
+        <div class="codebox" style="letter-spacing:1px;color:#9aa3b8">Coming Soon</div>
+        <p class="muted center" style="margin-top:8px">あいことば機能は準備中です。もうしばらくお待ちください。</p>
+      </div>
+      <div class="card center">
+        <p class="muted" style="margin-bottom:12px">育成は、たねもんアプリで行います。</p>
+        <button class="btn" onclick="window.open('https://sowers-monster.vercel.app','_blank')">🌱 たねもんアプリを開く</button>
+        <p class="muted" style="margin-top:8px;font-size:11px">sowers-monster.vercel.app</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- MESSAGE -->
+  <section class="screen" id="s-msg">
+    <header class="topbar"><span class="logo">💬 メッセージ</span>
+      <button class="linkbtn" style="margin-left:auto;color:#fff" onclick="openOther()">⋯ その他</button></header>
+    <div class="pad" style="padding-bottom:140px">
+      <div class="note" style="margin-bottom:14px">お休み・振替のお申し込みは、こちらではなく<b>ホーム画面</b>から行えます。</div>
+      <div class="msgwrap" id="msg-list"></div>
+    </div>
+    <div class="msgbar"><input id="msg-input" placeholder="運営にメッセージを送る…"><button onclick="sendMsg()">送信</button></div>
+  </section>
+
+  <nav class="tabbar" id="tabbar" style="display:none">
+    <button data-s="s-home" class="on" onclick="tab('s-home',this)"><span class="ic">📅</span>ホーム</button>
+    <button data-s="s-my" onclick="tab('s-my',this)"><span class="ic">👤</span>マイページ</button>
+    <button data-s="s-tane" onclick="tab('s-tane',this)"><span class="ic">🌱</span>たねもん</button>
+    <button data-s="s-msg" onclick="tab('s-msg',this)"><span class="ic">💬</span>メッセージ</button>
+  </nav>
+
+  <!-- STAFF / ADMIN -->
+  <section class="screen" id="s-staff">
+    <header class="topbar"><span class="logo" id="staff-title">🛠 管理</span>
+      <button class="linkbtn" style="margin-left:auto;color:#fff" onclick="logout()">ログアウト</button></header>
+    <div class="pad" id="staff-body"></div>
+  </section>
+  <nav class="tabbar" id="staff-tabbar" style="display:none"></nav>
+</div>
+
+<div class="mask" id="mask" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+<div class="loading" id="loading">読み込み中…</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* ============================================================
+   ① ここに Supabase の2つの値を貼り付けてください（コピペ）
+   ============================================================ */
+const SUPABASE_URL = "https://ihdrkukgeqqktzxmlrzy.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_-Q-BiuJ-PqeUG04nOcVnRA_LL9Ri3J3";
+/* ============================================================ */
+
+const READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
+let db = null;
+if (READY) { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage, storageKey: 'sowers-gym-auth' }
+}); }
+else { document.getElementById('setup-warn').style.display='block'; }
+
+/* ============ 教室マスタ（設定） ============ */
+const SCHOOLS = {
+  "論田":["Aクラス","Bクラス","Cクラス","アクロバットクラス"],
+  "北島":["スタートクラス","Aクラス","Bクラス"],
+  "吉野川":["スタートクラス","Aクラス","Bクラス"],
+  "阿南":["スタートクラス","Aクラス","Bクラス"],
+  "上板":["ジュニアクラス","バク転クラス"],
+  "小松島":["ジュニアクラス","バク転クラス"],
+};
+const SCHOOL_INFO = {
+  "論田":{full:"徳島タンブ体操教室（論田）",place:"徳島市B&G海洋センター 体育館・武道館（徳島市論田町中開47番地の2）",day:"毎週土曜日",teachers:"木原敬太"},
+  "北島":{full:"北島ステップ体操教室",place:"サンライフ北島（徳島県板野郡北島町中村字川田9-1）",day:"毎週火曜日",teachers:"木原敬太"},
+  "吉野川":{full:"吉野川ホップ体操教室",place:"吉野川市交流センター",day:"毎週金曜日",teachers:"木原敬太"},
+  "阿南":{full:"阿南ジャンプ体操教室",place:"阿南B&G海洋センター 体育館",day:"毎週水曜日",teachers:"木原敬太"},
+  "上板":{full:"上板フレッシュ体操教室",place:"上板町立東光小学校 体育館",day:"日曜・月3回程度（時間確認中）",teachers:"谷崎日向"},
+  "小松島":{full:"小松島フレッシュ体操教室",place:"小松島市立体育館",day:"木曜・月3回",teachers:"谷崎日向"},
+};
+const SCHOOL_COLOR={"論田":{bg:"#8b5cf6",fg:"#fff"},"北島":{bg:"#f4b400",fg:"#5a4300"},"阿南":{bg:"#e0556b",fg:"#fff"},"上板":{bg:"#ff8a3d",fg:"#fff"},"小松島":{bg:"#1faf73",fg:"#fff"},"吉野川":{bg:"#38bdf8",fg:"#06384f"}};
+function scolor(s){return SCHOOL_COLOR[s]||{bg:'#2f7df6',fg:'#fff'};}
+// クラス定員（満員想定）と、満員時の月謝合計目標
+const CLASS_CAP={"スタートクラス":15,"Aクラス":20,"Bクラス":20,"Cクラス":20,"アクロバットクラス":20,"ジュニアクラス":13,"バク転クラス":13};
+const TARGET_REVENUE=1413000;
+const SCHEDULE = {
+  "論田":{6:[{c:"Aクラス",t:"10:30–11:30",g:"5歳〜小学生"},{c:"Bクラス",t:"11:45–12:45",g:"小学生以上"},{c:"Cクラス",t:"13:00–14:00",g:"小学生以上"},{c:"アクロバットクラス",t:"14:15–15:30",g:"側転・倒立・バク転に挑戦したい方"}]},
+  "北島":{2:[{c:"スタートクラス",t:"16:00–16:50",g:"3歳以上"},{c:"Aクラス",t:"17:00–18:00",g:"5歳〜小学生"},{c:"Bクラス",t:"18:10–19:10",g:"小学生以上"}]},
+  "吉野川":{5:[{c:"スタートクラス",t:"16:00–16:50",g:"3歳以上"},{c:"Aクラス",t:"17:00–18:00",g:"5歳〜小学生"},{c:"Bクラス",t:"18:10–19:10",g:"小学生以上"}]},
+  "阿南":{3:[{c:"スタートクラス",t:"16:00–16:50",g:"3歳以上"},{c:"Aクラス",t:"17:00–18:00",g:"5歳〜小学生"},{c:"Bクラス",t:"18:10–19:10",g:"小学生以上"}]},
+  "上板":{0:[{c:"ジュニアクラス",t:"時間確認中",g:"5歳〜小学生"},{c:"バク転クラス",t:"時間確認中",g:"バク転に挑戦したい方"}]},
+  "小松島":{4:[{c:"ジュニアクラス",t:"19:00–20:00",g:"小学生以上"},{c:"バク転クラス",t:"20:00–21:00",g:"バク転に挑戦したい方"}]},
+};
+const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"net",nm:"ネットバンキング送金",ds:"毎月ご自身で振込",ic:"💻"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"}];
+
+/* ============ 日付・学年ロジック ============ */
+const MONTHS=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
+const DOW=["日","月","火","水","木","金","土"];
+function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.getFullYear(),bm=b.getMonth()+1,bd=b.getDate(); let sby=by; if(bm<4||(bm===4&&bd===1))sby=by-1; const now=new Date(); let fy=now.getFullYear(); if(now<new Date(now.getFullYear(),3,1))fy--; const g=fy-(sby+7)+1; if(g<1)return"未就学"; if(g>6)return"中学生以上"; return"小"+g; }
+function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
+function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
+function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
+function canFurikaeTo(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&cls!=="スタートクラス")return false;return true;}
+function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
+function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
+function holidayBars(y,m){const mo=m+1;const o=[];if(mo===4||mo===5)o.push('🎌 ゴールデンウィーク休み（4/29〜5/6）');if(mo===8)o.push('🎌 お盆休み（8/11〜8/16）');if(mo===12||mo===1)o.push('🎌 年末年始休み（12/29〜1/3）');return o;}
+function maxPerChild(){return 3;}
+function totalPoints(){return kids.reduce((a,c)=>a+(c.points||0),0);}
+function yen(n){return "¥"+Number(n||0).toLocaleString('ja-JP');}
+
+/* ============ 状態 ============ */
+let me=null;            // auth user
+let profile=null;       // profiles row
+let kids=[];            // children rows
+let anns=[];            // announcements
+let cancels={};         // {room:{'YYYY-MM-DD':true}}
+let msgs=[];
+let myAbs=[];           // 自分の欠席記録（取り消し用）
+let myReqs=[];          // 自分のクラス変更申請
+let myFur=[];           // 自分の振替予定
+let cal={y:0,m:0};
+let reg={step:0,classroom:null,cls:null};
+let draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""};
+let selClass=null;
+
+/* ============ 共通 ============ */
+function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
+function tab(id,btn){go(id);document.querySelectorAll('#tabbar button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
+function showLoad(b){document.getElementById('loading').classList.toggle('show',b);}
+function showErr(id,msg){const e=document.getElementById(id);if(!msg){e.style.display='none';return;}e.textContent=msg;e.style.display='block';}
+function openSheet(html){document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;document.getElementById('mask').classList.add('show');}
+function closeSheet(){document.getElementById('mask').classList.remove('show');}
+
+/* ============ 認証 ============ */
+async function login(){
+  if(!READY){toast('初期設定が未完了です');return;}
+  showErr('login-err','');
+  const email=document.getElementById('li-mail').value.trim();
+  const pass=document.getElementById('li-pass').value;
+  if(!email||!pass){showErr('login-err','メールとパスワードを入力してください');return;}
+  showLoad(true);
+  const {error}=await db.auth.signInWithPassword({email,password:pass});
+  showLoad(false);
+  if(error){showErr('login-err','ログインできませんでした：'+error.message);return;}
+  await afterAuth();
+}
+async function forgot(){
+  if(!READY){toast('初期設定が未完了です');return;}
+  const email=document.getElementById('fg-mail').value.trim();
+  if(!email){toast('メールアドレスを入力してください');return;}
+  showLoad(true);
+  const {error}=await db.auth.resetPasswordForEmail(email);
+  showLoad(false);
+  toast(error?('送信エラー：'+error.message):'再設定メールを送信しました');
+  if(!error)go('s-login');
+}
+async function logout(){ await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
+
+/* ============ 登録フロー ============ */
+const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
+const REG_N=REG_TITLES.length;
+function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
+function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
+function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
+function renderReg(){
+  const s=document.getElementById('reg-steps');s.innerHTML='';for(let i=0;i<REG_N;i++){const d=document.createElement('div');d.className='dot'+(i<=reg.step?' on':'');s.appendChild(d);}
+  const b=document.getElementById('reg-body');const pill=`<span class="pill">STEP ${reg.step+1} / ${REG_N} ・ ${REG_TITLES[reg.step]}</span>`;
+  if(reg.step===0){
+    b.innerHTML=pill+`<h2 class="title">通っている教室を選んでください</h2>`+Object.keys(SCHOOLS).map(s=>`<div class="opt ${reg.classroom===s?'sel':''}" onclick="reg.classroom='${s}';reg.cls=null;renderReg()"><div class="ico">🏫</div><div><div class="nm">${SCHOOL_INFO[s].full}</div><div class="ds">${SCHOOL_INFO[s].day}</div></div></div>`).join('')+`<button class="btn" ${reg.classroom?'':'disabled'} onclick="reg.step=1;renderReg()">次へ</button>`;
+  }else if(reg.step===1){
+    b.innerHTML=pill+`<h2 class="title">${SCHOOL_INFO[reg.classroom].full}のクラス</h2>`+SCHOOLS[reg.classroom].map(c=>`<div class="opt ${reg.cls===c?'sel':''}" onclick="reg.cls='${c}';renderReg()"><div class="ico">🤸</div><div class="nm">${c}</div></div>`).join('')+`<button class="btn" ${reg.cls?'':'disabled'} onclick="reg.step=2;renderReg()">次へ</button>`;
+  }else if(reg.step===2){
+    b.innerHTML=pill+`<h2 class="title">ログイン情報</h2><div class="card">
+      <label class="fld">メールアドレス</label><input id="r-mail" type="email" value="${draft.email}" placeholder="hogehoge@example.com">
+      <label class="fld">パスワード（6文字以上）</label><input id="r-pass" type="password" value="${draft.pass}" placeholder="••••••••">
+      </div><button class="btn" onclick="saveLogin()">次へ</button>`;
+  }else if(reg.step===3){
+    b.innerHTML=pill+`<h2 class="title">保護者の情報</h2><div class="card">
+      <label class="fld">保護者のお名前</label><input id="p-name" value="${draft.parent.name}" placeholder="山田 花子">
+      <label class="fld">お子様との続柄</label><select id="p-rel">${["母","父","祖母","祖父","その他"].map(r=>`<option ${draft.parent.rel===r?'selected':''}>${r}</option>`).join('')}</select>
+      <label class="fld">電話番号</label><input id="p-tel" type="tel" value="${draft.parent.tel}" placeholder="090-1234-5678">
+      </div><button class="btn" onclick="saveParent()">次へ</button>`;
+  }else if(reg.step===4){
+    if(draft.children.length===0)draft.children.push(blankChild());
+    b.innerHTML=pill+`<h2 class="title">お子様の情報</h2><div id="kidsform"></div>
+      <button class="btn soft" style="margin-bottom:12px" onclick="draft.children.push(blankChild());renderKidsForm()">＋ 兄弟・姉妹を追加</button>
+      <button class="btn" onclick="saveKids()">次へ</button>`;
+    renderKidsForm();
+  }else if(reg.step===5){
+    b.innerHTML=pill+`<h2 class="title">現在お持ちの振替</h2>
+      <div class="note">・振替ポイントは今後、<b>お子様1人につき3つまで</b>たまります（お休み1回ごとに1つ）。<br>・<b>ご兄弟の振替ポイントは、別のご兄弟が使うこともできます</b>（ご家族で共有）。<br>・移行にあたり、<b>今お持ちの振替の数</b>をお選びください（自己申告）。</div>
+      <div id="furiform"></div><button class="btn" onclick="reg.step=6;renderReg()">次へ</button>`;
+    renderFuriForm();
+  }else if(reg.step===6){
+    b.innerHTML=pill+`<h2 class="title">お月謝の設定</h2><p class="muted" style="margin:-6px 0 12px">お子様ごとに月額を入力します。</p><div id="feeform"></div>
+      <button class="btn" onclick="reg.step=7;renderReg()">次へ</button>`;
+    renderFeeForm();
+  }else if(reg.step===7){
+    b.innerHTML=pill+`<h2 class="title">お支払い方法</h2>`+PAYMENTS.map(p=>`<div class="opt ${draft.payment===p.k?'sel':''}" onclick="draft.payment='${p.k}';renderReg()"><div class="ico">${p.ic}</div><div><div class="nm">${p.nm}</div><div class="ds">${p.ds}</div></div></div>`).join('')+`<button class="btn green" onclick="finishRegister()">登録してはじめる</button>`;
+  }
+}
+function saveLogin(){const e=document.getElementById('r-mail').value.trim(),p=document.getElementById('r-pass').value;if(!e||p.length<6){toast('メールと6文字以上のパスワードを入力してください');return;}draft.email=e;draft.pass=p;reg.step=3;renderReg();}
+function saveParent(){draft.parent={name:document.getElementById('p-name').value.trim()||"（保護者）",rel:document.getElementById('p-rel').value,tel:document.getElementById('p-tel').value.trim()};reg.step=4;renderReg();}
+function enrollYearOpts(sel){const y=new Date().getFullYear();let o='<option value="">年</option>';for(let i=0;i<=9;i++){const yy=y-i;o+=`<option ${(''+yy)===sel?'selected':''}>${yy}</option>`;}return o;}
+function enrollMonthOpts(sel){let o='<option value="">月</option>';for(let m=1;m<=12;m++){o+=`<option value="${m}" ${(+sel)===m?'selected':''}>${m}月</option>`;}return o;}
+function enrollSelects(yId,mId,enroll,onchange){const p=(enroll||'').split('-');const y=p[0]||'';const m=p[1]?(''+(+p[1])):'';return `<div class="row2"><select id="${yId}" onchange="${onchange}">${enrollYearOpts(y)}</select><select id="${mId}" onchange="${onchange}">${enrollMonthOpts(m)}</select></div>`;}
+function setEnrollDraft(i){const y=document.getElementById('enr-y-'+i).value;const m=document.getElementById('enr-m-'+i).value;draft.children[i].enroll=(y&&m)?(y+'-'+String(m).padStart(2,'0')):'';}
+function renderKidsForm(){const box=document.getElementById('kidsform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
+  const opts=Object.keys(SCHOOLS).map(s=>`<option ${c.classroom===s?'selected':''}>${s}</option>`).join('');
+  const clsOpts=SCHOOLS[c.classroom||"論田"].map(x=>`<option ${c.class_name===x?'selected':''}>${x}</option>`).join('');
+  const d=document.createElement('div');d.className='childblock';
+  d.innerHTML=`${draft.children.length>1?`<button class="rm" onclick="draft.children.splice(${i},1);renderKidsForm()">削除</button>`:''}
+    <h4>お子様 ${i+1}人目</h4>
+    <label class="fld">お名前</label><input value="${c.name}" oninput="draft.children[${i}].name=this.value" placeholder="山田 太郎">
+    <label class="fld">生年月日</label><input type="date" value="${c.birth}" oninput="draft.children[${i}].birth=this.value">
+    <label class="fld">小学校名</label><input value="${c.school}" oninput="draft.children[${i}].school=this.value" placeholder="○○小学校">
+    <label class="fld">入会した月（在籍開始）</label>${enrollSelects('enr-y-'+i,'enr-m-'+i,c.enroll,'setEnrollDraft('+i+')')}
+    <div class="row2"><div><label class="fld">教室</label><select onchange="draft.children[${i}].classroom=this.value;draft.children[${i}].class_name=SCHOOLS[this.value][0];renderKidsForm()">${opts}</select></div>
+    <div><label class="fld">クラス</label><select onchange="draft.children[${i}].class_name=this.value">${clsOpts}</select></div></div>`;
+  box.appendChild(d);});}
+function saveKids(){for(const c of draft.children){if(!c.name.trim()){toast('お子様のお名前を入力してください');return;}}reg.step=5;renderReg();}
+function renderFuriForm(){const box=document.getElementById('furiform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
+  const opts=[[0,'なし'],[1,'1'],[2,'2'],[3,'3以上']];
+  const chips=opts.map(([p,l])=>`<button class="btn sm ${c.points===p?'':'gray'}" style="flex:1" onclick="draft.children[${i}].points=${p};renderFuriForm()">${l}</button>`).join('');
+  const d=document.createElement('div');d.className='card';
+  d.innerHTML=`<div style="font-weight:800">${c.name||'お子様'+(i+1)}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室 ${c.class_name}</div><div style="display:flex;gap:6px">${chips}</div>`;
+  box.appendChild(d);});}
+function renderFeeForm(){const box=document.getElementById('feeform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
+  const d=document.createElement('div');d.className='card';
+  d.innerHTML=`<div style="font-weight:800">${c.name||'お子様'+(i+1)}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室 ${c.class_name}</div>
+    <label class="fld">月額（円）</label><input type="number" value="${c.fee}" oninput="draft.children[${i}].fee=Number(this.value)||0" placeholder="例：7000">
+    <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>`;
+  box.appendChild(d);});}
+async function finishRegister(){
+  showErr('reg-err','');showLoad(true);
+  const {data,error}=await db.auth.signUp({email:draft.email,password:draft.pass});
+  if(error){showLoad(false);showErr('reg-err','登録できませんでした：'+error.message);return;}
+  // セッションが無い場合（確認メールON時）に備えてサインイン
+  let uid=data.user&&data.user.id;
+  if(!data.session){ const r=await db.auth.signInWithPassword({email:draft.email,password:draft.pass}); if(r.error){showLoad(false);showErr('reg-err','登録は完了しましたが自動ログインできませんでした。ログイン画面からお試しください。');return;} uid=r.data.user.id; }
+  // profile
+  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:draft.parent.name,relation:draft.parent.rel,tel:draft.parent.tel,payment:draft.payment,email:draft.email});
+  if(pe.error){showLoad(false);showErr('reg-err','保護者情報の保存に失敗：'+pe.error.message);return;}
+  // children
+  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec2:'',ec2_note:''}));
+  const ce=await db.from('children').insert(rows);
+  showLoad(false);
+  if(ce.error){showErr('reg-err','お子様情報の保存に失敗：'+ce.error.message);return;}
+  toast('登録が完了しました！');
+  await afterAuth();
+}
+
+/* ============ ログイン後のデータ読込 ============ */
+async function afterAuth(){
+  showLoad(true);
+  const {data:{user}}=await db.auth.getUser();
+  me=user;
+  if(!me){showLoad(false);return;}
+  const p=await db.from('profiles').select('*').eq('id',me.id).maybeSingle();
+  profile=p.data;
+  if(!profile){ // 念のため最低限作成
+    await db.from('profiles').upsert({id:me.id,role:'parent',email:me.email}); profile={id:me.id,role:'parent',parent_name:'',payment:'auto'};
+  }
+  await loadAnns(); await loadCancels(); await loadOverrides();
+  if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'){
+    await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
+  }
+  await loadKids(); await loadMsgs(); await loadMyAbs(); await loadMyReqs(); await loadMyFur();
+  showLoad(false);
+  enterApp();
+}
+async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=r.data||[];}
+async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
+async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
+async function loadOverrides(){
+  const v=await db.from('venue_overrides').select('*'); (v.data||[]).forEach(r=>{ if(SCHOOL_INFO[r.room]&&r.place) SCHOOL_INFO[r.room].place=r.place; });
+  const t=await db.from('time_overrides').select('*'); (t.data||[]).forEach(r=>{ const rm=SCHEDULE[r.room]; if(!rm)return; const wd=Object.keys(rm)[0]; (rm[wd]||[]).forEach(it=>{ if(it.c===r.class_name&&r.t) it.t=r.t; }); });
+}
+async function saveVenue(room,place){showLoad(true);const r=await db.from('venue_overrides').upsert({room,place,updated_at:new Date().toISOString()},{onConflict:'room'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}SCHOOL_INFO[room].place=place;toast('会場を更新しました');}
+async function saveTime(room,cls,time){showLoad(true);const r=await db.from('time_overrides').upsert({room,class_name:cls,t:time,updated_at:new Date().toISOString()},{onConflict:'room,class_name'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}const wd=Object.keys(SCHEDULE[room])[0];(SCHEDULE[room][wd]||[]).forEach(it=>{if(it.c===cls)it.t=time;});toast('時間を更新しました');}
+async function loadMsgs(){const r=await db.from('messages').select('*').eq('parent_id',me.id).order('created_at');msgs=r.data||[];}
+async function loadMyAbs(){const r=await db.from('absences').select('*').eq('parent_id',me.id);myAbs=r.data||[];}
+async function loadMyReqs(){const r=await db.from('change_requests').select('*').eq('parent_id',me.id).eq('status','pending');myReqs=r.data||[];}
+async function loadMyFur(){const r=await db.from('furikae').select('*').eq('parent_id',me.id);myFur=r.data||[];}
+function isCancelled(room,key){return !!(cancels[room]&&cancels[room][key]);}
+
+function enterApp(){
+  const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();
+  document.getElementById('tabbar').style.display='flex';
+  tab('s-home',document.querySelector('#tabbar button[data-s="s-home"]'));
+  const fam=(profile.parent_name||'')+' 様';
+  document.getElementById('home-fam').textContent=fam;document.getElementById('my-fam').textContent=fam;
+  renderLegend();renderCal();renderMy();renderMsgs();renderHomeAnn();
+  setTimeout(checkPaymentReminder,400);
+}
+
+/* ============ お知らせ ============ */
+function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(kids.map(c=>c.classroom))];let h='';
+  anns.filter(a=>a.scope==='all').forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（全体）</b><br>${esc(a.body)}</div>`;});
+  anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 ${SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room}</b><br>${esc(a.body)}</div>`;});
+  box.innerHTML=h;}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
+
+/* ============ カレンダー ============ */
+function renderLegend(){document.getElementById('cal-legend').innerHTML=Object.keys(SCHOOLS).map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('');}
+function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
+function schoolsOn(wd){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]);}
+function renderCal(){
+  document.getElementById('cal-label').textContent=`${cal.y}年 ${MONTHS[cal.m]}`;
+  document.getElementById('cal-holi').innerHTML=holidayBars(cal.y,cal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
+  const cv=document.getElementById('cal');cv.innerHTML='';
+  DOW.forEach((d,i)=>{const e=document.createElement('div');e.className='dow';e.style.color=i===0?'#e0556b':i===6?'#2f7df6':'';e.textContent=d;cv.appendChild(e);});
+  const first=new Date(cal.y,cal.m,1).getDay(),days=new Date(cal.y,cal.m+1,0).getDate(),today=new Date();
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
+  for(let d=1;d<=days;d++){
+    const wd=new Date(cal.y,cal.m,d).getDay();const schools=schoolsOn(wd);
+    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
+    if(today.getFullYear()===cal.y&&today.getMonth()===cal.m&&today.getDate()===d)e.classList.add('today');
+    e.innerHTML=`<span>${d}</span>`;
+    const past=isPast(cal.y,cal.m,d);if(past)e.classList.add('past');
+    if(holidayName(cal.y,cal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
+    const key=dateKey(cal.y,cal.m,d);
+    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?s+' 休':s;if(!cx){const c=scolor(s);ev.style.background=c.bg;ev.style.color=c.fg;}e.appendChild(ev);});
+    if(schools.length&&!past)e.onclick=()=>openDay(cal.y,cal.m,d,schools);
+    cv.appendChild(e);
+  }
+}
+function openDay(y,m,d,schools){
+  const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
+  let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
+  schools.forEach(s=>{const inf=SCHOOL_INFO[s];
+    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${inf.place}<br>🗓 ${inf.day}<br>👨‍🏫 メイン: ${inf.teachers}先生</div>`;
+    if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
+    SCHEDULE[s][wd].forEach(item=>{html+=`<div class="timeitem" onclick='openClass(${JSON.stringify(s)},${JSON.stringify(item.c)},${JSON.stringify(item.t)},${JSON.stringify(item.g||"")},${y},${m+1},${d})'><div><div class="cn">${item.c}</div><div class="tm">⏰ ${item.t}${item.g?'　🧒 '+item.g:''}</div></div><div style="color:#2f7df6;font-weight:800">›</div></div>`;});
+  });
+  openSheet(html);
+}
+function openClass(school,cls,time,target,y,m,d){
+  selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
+  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];
+  openSheet(`<h3>${inf.full} ${cls}</h3>
+    <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
+    <div class="muted" style="margin-bottom:16px">📍 ${inf.place}</div>
+    <button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
+    ${canF?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>'}
+    <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
+    <div style="height:14px"></div>
+    <button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
+    <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild()}）</p>`);
+}
+function chooseChild(mode,cls){
+  const title=mode==='furikae'?'どのお子様が振替参加しますか？':'どのお子様がお休みですか？';
+  let html=`<h3>${title}</h3><p class="muted" style="margin-bottom:14px">${cls}</p>`;
+  kids.forEach((c,i)=>{
+    if(mode==='furikae'){let dis=false,rs='';
+      if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
+      if(!dis&&!canFurikaeTo(c,cls)){dis=true;rs='満5歳未満はスタートのみ';}
+      html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild()}${rs?' ・ '+rs:''}</div></div></div>`;
+    }else{
+      const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
+      if(ab){
+        html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
+      }else{
+        html+=`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild()}</div></div></div>`;
+      }
+    }});
+  openSheet(html);
+}
+async function doAction(mode,i,cls){
+  const c=kids[i];showLoad(true);
+  try{
+    if(mode==='absent'){
+      // 欠席連絡は常に可能。振替ポイントは上限(3)まで。超える分は加算しない。
+      const np=Math.min(maxPerChild(), c.points+1); const gained=np>c.points;
+      if(gained) await db.from('children').update({points:np}).eq('id',c.id);
+      const ins=await db.from('absences').insert({child_id:c.id,parent_id:me.id,date:selClass.dateStr,classroom:selClass.room,class_name:selClass.cls}).select();
+      if(ins.data&&ins.data[0])myAbs.push(ins.data[0]);
+      c.points=np;
+      toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
+    }else{
+      if(totalPoints()<=0){toast('家族の振替ポイントが足りません');return;}
+      if(!canFurikaeTo(c,cls)){toast('満5歳未満のお子様はスタートクラスのみ参加できます');return;}
+      // 兄弟共有：本人→なければ兄弟から1消費
+      let target=c.points>0?c:kids.find(k=>k.points>0);
+      const np=target.points-1;
+      await db.from('children').update({points:np}).eq('id',target.id);
+      const fi=await db.from('furikae').insert({child_id:c.id,parent_id:me.id,date:selClass.dateStr,to_room:selClass.room,to_class:selClass.cls,from_room:c.classroom,from_class:c.class_name}).select();
+      if(fi.data&&fi.data[0])myFur.push(fi.data[0]);
+      target.points=np;toast(`${c.name}の振替参加を受付しました！`);
+    }
+  }catch(e){toast('エラー：'+e.message);}
+  showLoad(false);closeSheet();renderMy();
+}
+async function cancelAbsent(absId,i){
+  const c=kids[i];showLoad(true);
+  try{
+    const dr=await db.from('absences').delete().eq('id',absId);
+    if(dr.error){showLoad(false);toast('取り消しに失敗：'+dr.error.message);return;}
+    const np=Math.max(0,(c.points||0)-1);
+    if(np!==c.points) await db.from('children').update({points:np}).eq('id',c.id);
+    c.points=np; myAbs=myAbs.filter(a=>a.id!==absId);
+    toast(`${c.name}の欠席を取り消しました`);
+  }catch(e){toast('エラー：'+e.message);}
+  showLoad(false);closeSheet();renderMy();
+}
+
+/* ============ 振替・欠席の管理（マイページ内） ============ */
+function dLabel(d){const x=new Date((''+d).slice(0,10)+'T00:00:00');return `${x.getMonth()+1}月${x.getDate()}日（${DOW[x.getDay()]}）`;}
+function kidName(id){const c=kids.find(k=>k.id===id);return c?c.name:'';}
+function manageBlock(){
+  const furs=myFur.slice().sort((a,b)=>(''+b.date).localeCompare(''+a.date));
+  const abs=myAbs.slice().sort((a,b)=>(''+b.date).localeCompare(''+a.date));
+  let h=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🔁 振替・欠席の管理　<span style="color:var(--sub);font-weight:700">${furs.length+abs.length}件</span></summary>`;
+  h+=`<div style="font-weight:800;font-size:13px;margin:8px 0 4px">🔁 振替で参加</div>`;
+  if(furs.length){furs.forEach(f=>{h+=`<div class="sumrow"><span>${dLabel(f.date)}　${f.to_room} ${f.to_class}<br><span class="muted" style="font-size:11px">${kidName(f.child_id)}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelFur('${f.id}')">取り消す</button></div>`;});}
+  else h+=`<p class="muted" style="margin:2px 0 0">予定はありません</p>`;
+  h+=`<div style="font-weight:800;font-size:13px;margin:12px 0 4px">🙅 欠席</div>`;
+  if(abs.length){abs.forEach(a=>{h+=`<div class="sumrow"><span>${dLabel(a.date)}　${a.classroom} ${a.class_name}<br><span class="muted" style="font-size:11px">${kidName(a.child_id)}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelAbs('${a.id}')">取り消す</button></div>`;});}
+  else h+=`<p class="muted" style="margin:2px 0 0">欠席はありません</p>`;
+  h+=`</details></div>`;
+  return h;
+}
+async function cancelAbs(absId){
+  const ab=myAbs.find(a=>a.id===absId); if(!ab)return;
+  const c=kids.find(k=>k.id===ab.child_id);
+  showLoad(true);
+  const r=await db.from('absences').delete().eq('id',absId);
+  if(r.error){showLoad(false);toast('取り消しに失敗：'+r.error.message);return;}
+  if(c){const np=Math.max(0,(c.points||0)-1); if(np!==c.points)await db.from('children').update({points:np}).eq('id',c.id); c.points=np;}
+  myAbs=myAbs.filter(a=>a.id!==absId);
+  showLoad(false); toast('欠席を取り消しました'); renderMy();
+}
+async function cancelFur(furId){
+  const f=myFur.find(x=>x.id===furId); if(!f)return;
+  showLoad(true);
+  const dr=await db.from('furikae').delete().eq('id',furId);
+  if(dr.error){showLoad(false);toast('取り消しに失敗：'+dr.error.message);return;}
+  // 振替で使ったポイントを1つ戻す（本人優先・上限3、満たなければ兄弟へ）
+  let tgt=kids.find(k=>k.id===f.child_id&&(k.points||0)<maxPerChild());
+  if(!tgt)tgt=kids.find(k=>(k.points||0)<maxPerChild());
+  if(tgt){tgt.points=(tgt.points||0)+1; await db.from('children').update({points:tgt.points}).eq('id',tgt.id);}
+  myFur=myFur.filter(x=>x.id!==furId);
+  showLoad(false); toast('振替を取り消しました（ポイントを1つ戻しました）'); renderMy();
+}
+
+/* ============ マイページ ============ */
+function renderMy(){
+  const b=document.getElementById('my-body');const cap=3*kids.length;
+  let html=`<div class="card">
+    <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
+    <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
+    <div class="kv"><span class="k">お支払い</span><span class="v">${(PAYMENTS.find(p=>p.k===profile.payment)||{}).nm||'未設定'}</span></div>
+    </div>
+    <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
+    <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
+  html+=manageBlock();
+  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;
+    html+=`<div class="card childcard"><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}</h3>
+      <div class="muted" style="margin-bottom:6px">${c.classroom}教室 ${c.class_name}</div>
+      ${(()=>{const rq=myReqs.find(r=>r.child_id===c.id);return rq?`<div class="note" style="margin-bottom:8px">🔁 教室・クラスの変更を申請中：${rq.to_room}教室 ${rq.to_class}（承認待ち）</div>`:`<button class="btn gray sm" style="margin-bottom:8px" onclick="openChangeReq(${i})">🔁 教室・クラスの変更を申請</button>`;})()}
+      <div class="kv"><span class="k">生年月日</span><span class="v">${fmtDate(c.birth)}${c.birth?'（'+ageStr(c.birth)+'）':''}</span></div>
+      <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
+      <div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
+      <div class="ptchips">${chips}</div>
+      <details class="acc"><summary>お月謝・緊急連絡先を見る／編集</summary>
+        <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000">
+        <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>
+        <label class="fld">緊急連絡先1</label><input id="ec1-${i}" value="${c.ec1||''}" placeholder="電話番号">
+        <input style="margin-top:6px" id="ec1n-${i}" value="${c.ec1_note||''}" placeholder="特につながりやすい時間・関係（例：母・日中）">
+        <label class="fld">緊急連絡先2</label><input id="ec2-${i}" value="${c.ec2||''}" placeholder="電話番号">
+        <input style="margin-top:6px" id="ec2n-${i}" value="${c.ec2_note||''}" placeholder="特につながりやすい時間・関係（例：父・夜のみ）">
+        <button class="btn sm" style="margin-top:10px" onclick="saveChild(${i})">このお子様の情報を保存</button>
+      </details></div>`;});
+  html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>
+    <button class="btn gray" style="margin-top:10px" onclick="checkPaymentReminder(true)">（確認）支払い確認ポップアップを見る</button>
+    <button class="btn gray" style="margin-top:10px" onclick="logout()">ログアウト</button>`;
+  b.innerHTML=html;
+}
+async function saveChild(i){const c=kids[i];showLoad(true);
+  const patch={fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value};
+  const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
+  if(r.error){toast('保存エラー：'+r.error.message);return;}
+  Object.assign(c,patch);toast('保存しました');}
+function openChangeReq(i){
+  const c=kids[i];const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option ${s===c.classroom?'selected':''}>${s}</option>`).join('');
+  openSheet(`<h3>教室・クラスの変更申請</h3>
+    <p class="muted" style="margin-bottom:10px">${c.name} さんの希望を選んで送信してください。<b>管理者が承認すると反映</b>されます。</p>
+    <label class="fld">希望する教室</label>
+    <select id="cr-room" onchange="document.getElementById('cr-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('')">${schoolOpts}</select>
+    <label class="fld">希望するクラス</label>
+    <select id="cr-cls">${SCHOOLS[c.classroom].map(x=>`<option ${x===c.class_name?'selected':''}>${x}</option>`).join('')}</select>
+    <div style="height:14px"></div>
+    <button class="btn green" onclick="submitChangeReq(${i})">この内容で申請する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
+}
+async function submitChangeReq(i){
+  const c=kids[i];const toRoom=document.getElementById('cr-room').value;const toCls=document.getElementById('cr-cls').value;
+  if(toRoom===c.classroom&&toCls===c.class_name){toast('現在と同じ内容です');return;}
+  showLoad(true);
+  const r=await db.from('change_requests').insert({child_id:c.id,parent_id:me.id,child_name:c.name,from_room:c.classroom,from_class:c.class_name,to_room:toRoom,to_class:toCls,status:'pending'}).select();
+  showLoad(false);
+  if(r.error){toast('申請エラー：'+r.error.message);return;}
+  if(r.data&&r.data[0])myReqs.push(r.data[0]);
+  closeSheet();renderMy();toast('変更を申請しました（承認をお待ちください）');
+}
+function openAddSibling(){
+  const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option>${s}</option>`).join('');const first=Object.keys(SCHOOLS)[0];
+  openSheet(`<h3>兄弟・姉妹を追加</h3>
+    <label class="fld">お名前</label><input id="sb-name" placeholder="山田 次郎">
+    <label class="fld">生年月日</label><input id="sb-birth" type="date">
+    <label class="fld">小学校名</label><input id="sb-school" placeholder="○○小学校">
+    <label class="fld">入会した月</label>${enrollSelects('sb-enroll-y','sb-enroll-m','','')}
+    <div class="row2"><div><label class="fld">教室</label><select id="sb-room" onchange="document.getElementById('sb-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('')">${schoolOpts}</select></div>
+    <div><label class="fld">クラス</label><select id="sb-cls">${SCHOOLS[first].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
+    <label class="fld">お月謝（円）</label><input id="sb-fee" type="number" value="7000">
+    <div style="height:14px"></div><button class="btn green" onclick="saveSibling()">追加する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
+}
+async function saveSibling(){
+  const name=document.getElementById('sb-name').value.trim();if(!name){toast('お名前を入力してください');return;}
+  showLoad(true);
+  const row={parent_id:me.id,name,birth:document.getElementById('sb-birth').value||null,school:document.getElementById('sb-school').value,classroom:document.getElementById('sb-room').value,class_name:document.getElementById('sb-cls').value,fee:Number(document.getElementById('sb-fee').value)||0,enroll:(document.getElementById('sb-enroll-y').value&&document.getElementById('sb-enroll-m').value)?document.getElementById('sb-enroll-y').value+'-'+String(document.getElementById('sb-enroll-m').value).padStart(2,'0'):'',points:0};
+  const r=await db.from('children').insert(row);showLoad(false);
+  if(r.error){toast('追加エラー：'+r.error.message);return;}
+  await loadKids();closeSheet();renderMy();toast(name+'を追加しました');
+}
+
+/* ============ 支払い確認ポップアップ（20日・月末） ============ */
+function monthKey(){const n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1);}
+function needsPayCheck(){return profile.payment==='net'||profile.payment==='cash';}
+async function checkPaymentReminder(force){
+  const now=new Date();const last=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();const isEnd=now.getDate()===last&&now.getDate()!==20;
+  const ym=monthKey();
+  if(!force){
+    if(!needsPayCheck())return;
+    if(now.getDate()!==20&&now.getDate()!==last)return;
+    const r=await db.from('payment_status').select('paid').eq('parent_id',me.id).eq('ym',ym).maybeSingle();
+    if(r.data&&r.data.paid)return;
+  }
+  const pm=(PAYMENTS.find(p=>p.k===profile.payment)||{}).nm||'';
+  openSheet(`<div style="text-align:center"><div style="font-size:46px">💴</div><h3>${now.getMonth()+1}月分のお月謝</h3>
+    <p class="muted" style="margin:6px 0 4px">お支払い方法：<b>${pm}</b></p>
+    ${isEnd?'<div class="note" style="text-align:left;margin:8px 0">20日時点でご入金の確認がとれておりません。月末のため、改めてご確認のお願いです。</div>':''}
+    <p style="font-weight:700;margin:10px 0 18px">今月分のお支払いはお済みですか？</p>
+    <button class="btn green" onclick="payAnswer(true,'${ym}')">✅ はい、支払いました</button>
+    <button class="btn gray" style="margin-top:10px" onclick="payAnswer(false,'${ym}')">まだです（あとで）</button></div>`);
+}
+async function payAnswer(done,ym){
+  closeSheet();showLoad(true);
+  await db.from('payment_status').upsert({parent_id:me.id,ym,paid:done,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});
+  showLoad(false);
+  toast(done?'ありがとうございます！確認しました':'お手数ですが、お支払いをお願いします');
+}
+
+/* ============ メッセージ ============ */
+function renderMsgs(){const w=document.getElementById('msg-list');
+  if(msgs.length===0){w.innerHTML=`<div class="msg them">こんにちは！サワーズ体操教室です。ご不明な点があればこちらからお気軽にどうぞ😊</div>`;}
+  else{w.innerHTML=msgs.map(m=>`<div class="msg ${m.sender==='parent'?'me':'them'}">${esc(m.body)}<span class="t">${(m.created_at||'').slice(5,16).replace('T',' ')}</span></div>`).join('');}
+  const sc=document.getElementById('s-msg');setTimeout(()=>{sc.scrollTop=sc.scrollHeight;},30);
+}
+async function sendMsg(){const i=document.getElementById('msg-input');const v=i.value.trim();if(!v)return;
+  i.value='';
+  const r=await db.from('messages').insert({parent_id:me.id,sender:'parent',body:v}).select();
+  if(r.error){toast('送信エラー：'+r.error.message);return;}
+  if(r.data)msgs.push(r.data[0]);renderMsgs();}
+function openOther(){openSheet(`<h3>その他</h3>
+  <div class="opt" onclick="otherFriend()"><div class="ico">🎁</div><div><div class="nm">お友達の紹介</div><div class="ds">お友達を紹介する</div></div></div>
+  <div class="opt" onclick="otherQuit()"><div class="ico">📝</div><div><div class="nm">退会について</div><div class="ds">退会のお手続き</div></div></div>`);}
+function otherFriend(){closeSheet();tab('s-msg',document.querySelector('#tabbar button[data-s="s-msg"]'));
+  toast('お友達のお名前・保護者名・電話番号をメッセージでお送りください');
+  document.getElementById('msg-input').value='お友達を紹介します\nお友達のお名前：\n保護者名：\n電話番号：';}
+function otherQuit(){closeSheet();tab('s-msg',document.querySelector('#tabbar button[data-s="s-msg"]'));
+  toast('前の月の20日までにお送りください');
+  document.getElementById('msg-input').value='退会を希望します\n退会するお子様のお名前：\n退会理由：';}
+
+/* ============================================================
+   ============  スタッフ / 管理者  ============================
+   ============================================================ */
+let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attDate=null;
+function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
+let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
+const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
+const ROLE_TABS={staff:['schedule','furikae','announce','messages'],admin:['schedule','furikae','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
+async function loadStaffData(){
+  const a=await db.from('profiles').select('*'); allProfiles=a.data||[];
+  const b=await db.from('children').select('*'); allChildren=b.data||[];
+  const c=await db.from('furikae').select('*').order('date'); allFurikae=c.data||[];
+  const ab=await db.from('absences').select('*').order('date'); allAbsences=ab.data||[];
+  const rc=await db.from('room_costs').select('*'); roomCosts={}; (rc.data||[]).forEach(r=>roomCosts[r.room]={gym:r.gym||0,labor:r.labor||0});
+  const cr=await db.from('change_requests').select('*').eq('status','pending').order('created_at'); allChangeReqs=cr.data||[];
+  const sh=await db.from('shifts').select('*').eq('user_id',me.id); myShifts=sh.data||[];
+  const d=await db.from('payment_status').select('*'); allPay=d.data||[];
+  const e=await db.from('messages').select('*').order('created_at'); allMsgs=e.data||[];
+}
+function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
+function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
+// スタッフ・管理者の登録は「生徒」として扱わない（名簿・分析等から除外）
+function isStaffParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&(p.role==='staff'||p.role==='admin'));}
+function students(){return allChildren.filter(c=>!isStaffParent(c.parent_id));}
+function enterStaffApp(role){
+  staffRole=role; staffSection=(ROLE_TABS[role]||['schedule'])[0];
+  const t=new Date(); scal.y=t.getFullYear(); scal.m=t.getMonth();
+  document.getElementById('tabbar').style.display='none';
+  document.getElementById('staff-tabbar').style.display='flex';
+  go('s-staff'); renderStaffNav(); renderStaff();
+}
+function renderStaffNav(){
+  const tabs=ROLE_TABS[staffRole]||ROLE_TABS.admin;
+  document.getElementById('staff-tabbar').innerHTML=tabs.map(k=>`<button class="${staffSection===k?'on':''}" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}</button>`).join('');
+  document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
+}
+function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);}
+function renderStaff(){const b=document.getElementById('staff-body');
+  if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
+  else if(staffSection==='furikae')b.innerHTML=stFurikae();
+  else if(staffSection==='roster')b.innerHTML=stRoster();
+  else if(staffSection==='pay')b.innerHTML=stPay();
+  else if(staffSection==='finance')b.innerHTML=stFinance();
+  else if(staffSection==='shift')b.innerHTML=stShift();
+  else if(staffSection==='students')b.innerHTML=stStudents();
+  else if(staffSection==='members')b.innerHTML=stMembers();
+  else if(staffSection==='announce')b.innerHTML=stAnnounce();
+  else if(staffSection==='messages')b.innerHTML=stMessages();
+}
+/* --- 予定（カレンダー） --- */
+function calStaffMove(d){scal.m+=d;if(scal.m<0){scal.m=11;scal.y--;}if(scal.m>11){scal.m=0;scal.y++;}renderStaffCal();}
+function stShellCal(){return `<h2 class="title">スケジュール</h2>
+  <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
+  <div id="scal-holi"></div><div class="cal" id="scal"></div>
+  <div class="legend" style="flex-wrap:wrap;gap:5px">${Object.keys(SCHOOLS).map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('')}</div>
+  <p class="muted" style="margin-top:6px">活動日をタップすると、会場・時間の変更や休講の設定ができます。</p></div>`;}
+function renderStaffCal(){
+  const lab=document.getElementById('scal-label'); if(!lab)return; lab.textContent=`${scal.y}年 ${MONTHS[scal.m]}`;
+  document.getElementById('scal-holi').innerHTML=holidayBars(scal.y,scal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
+  const cv=document.getElementById('scal');cv.innerHTML='';
+  DOW.forEach((d,i)=>{const e=document.createElement('div');e.className='dow';e.style.color=i===0?'#e0556b':i===6?'#2f7df6':'';e.textContent=d;cv.appendChild(e);});
+  const first=new Date(scal.y,scal.m,1).getDay(),days=new Date(scal.y,scal.m+1,0).getDate(),today=new Date();
+  for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
+  for(let d=1;d<=days;d++){const wd=new Date(scal.y,scal.m,d).getDay();const schools=schoolsOn(wd);
+    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
+    if(today.getFullYear()===scal.y&&today.getMonth()===scal.m&&today.getDate()===d)e.classList.add('today');
+    e.innerHTML=`<span>${d}</span>`;const past=isPast(scal.y,scal.m,d);if(past)e.classList.add('past');
+    if(holidayName(scal.y,scal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
+    const key=dateKey(scal.y,scal.m,d);
+    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?s+' 休':s;if(!cx){const c=scolor(s);ev.style.background=c.bg;ev.style.color=c.fg;}e.appendChild(ev);});
+    if(schools.length&&!past)e.onclick=()=>openStaffDay(scal.y,scal.m,d,schools);
+    cv.appendChild(e);}
+}
+function openStaffDay(y,m,d,schools){
+  const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);
+  let h=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
+  h+=`<p class="muted" style="margin:-4px 0 8px">会場・時間の変更は毎週の予定に反映され、全員のカレンダーに表示されます。</p>`;
+  schools.forEach(s=>{const inf=SCHOOL_INFO[s],cx=isCancelled(s,key);
+    h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full}</div>`;
+    if(cx){
+      h+=`<div class="muted" style="margin-bottom:6px">📍 ${inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
+        <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button>`;
+    } else {
+      h+=`<label class="fld">開催場所</label><input value="${(inf.place||'').replace(/"/g,'&quot;')}" onchange="saveVenue('${s}',this.value)">`;
+      SCHEDULE[s][wd].forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
+      h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
+    }
+    h+=`</div>`;});
+  h+=`<button class="btn gray" onclick="closeSheet()">閉じる</button>`;openSheet(h);
+}
+async function setCancel(room,key,on){
+  showLoad(true);
+  if(on){ await db.from('cancellations').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'}); }
+  else { await db.from('cancellations').delete().eq('room',room).eq('date',key); }
+  await loadCancels(); showLoad(false);
+  toast(on?'休講にしました':'休講を取り消しました');
+  const schools=schoolsOn(new Date(key).getDay());
+  closeSheet();renderStaffCal();
+}
+/* --- 振替の参加予定 --- */
+function attDateLabel(d){const x=new Date(d+'T00:00:00');return `${x.getFullYear()}年${x.getMonth()+1}月${x.getDate()}日（${DOW[x.getDay()]}）`;}
+function stFurikae(){
+  const norm=s=>(''+s).slice(0,10);
+  const ds=new Set();
+  allAbsences.forEach(a=>ds.add(norm(a.date)));
+  allFurikae.forEach(f=>ds.add(norm(f.date)));
+  const dates=[...ds].sort();
+  let h=`<h2 class="title">欠席・振替</h2>`;
+  if(dates.length===0)return h+`<div class="card center"><span class="muted">欠席・振替の記録はまだありません。</span></div>`;
+  if(!attDate||!dates.includes(attDate)){const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());attDate=dates.find(d=>d>=today)||dates[dates.length-1];}
+  const opts=dates.slice().reverse().map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('');
+  h+=`<div class="card"><label class="fld">日にちを選ぶ</label><select onchange="attDate=this.value;renderStaff()">${opts}</select></div>`;
+  const absOf=allAbsences.filter(a=>norm(a.date)===attDate);
+  const furOf=allFurikae.filter(f=>norm(f.date)===attDate);
+  let any=false;
+  Object.keys(SCHOOLS).forEach(room=>{
+    SCHOOLS[room].forEach(cls=>{
+      const abs=absOf.filter(a=>a.classroom===room&&a.class_name===cls);
+      const fur=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
+      if(abs.length===0&&fur.length===0)return; any=true;
+      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}</div>
+        <div class="sumrow"><span>🙅 欠席（お休み）</span><b>${abs.length}人</b></div>
+        ${abs.length?`<div class="muted" style="margin:2px 0 6px">${abs.map(a=>childName(a.child_id)).join('、')}</div>`:''}
+        <div class="sumrow"><span>🔁 振替で参加</span><b>${fur.length}人</b></div>
+        ${fur.length?`<div class="muted" style="margin-top:2px">${fur.map(f=>{const cross=f.from_room!==room;return childName(f.child_id)+(cross?`（${f.from_room}教室 ${f.from_class}から）`:`（${f.from_class}から）`);}).join('、')}</div>`:''}
+      </div>`;
+    });
+  });
+  if(!any)h+=`<div class="card center"><span class="muted">この日の欠席・振替はありません。</span></div>`;
+  return h;
+}
+/* --- 名簿・生徒数・売上 --- */
+function stRoster(){
+  let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">教室・クラスをタップで開きます。</p>`;
+  h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
+  Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
+    SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);const fc=inC.reduce((a,c)=>a+(c.fee||0),0);let rows='';
+      inC.forEach(c=>{rows+=`<tr><td>${c.name}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
+      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名・${yen(fee)}</span></summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
+  const total=students().reduce((a,c)=>a+(c.fee||0),0);
+  h+=`<div class="card center"><div class="muted">全教室 月謝合計（月）</div><div class="tot">${yen(total)} <span style="font-size:15px;color:#9aa3b8">/ ${yen(TARGET_REVENUE)}</span></div><div class="muted">現在の合計 ／ 満員想定の目標</div></div>`;
+  return h;
+}
+/* --- 入金チェック（admin） --- */
+function stPay(){
+  if(!payYm)payYm=monthKey();
+  const ym=payYm; const mo=+(''+ym).split('-')[1];
+  const payers=allProfiles.filter(p=>p.payment==='net'||p.payment==='cash');
+  const paidOf=id=>{const r=allPay.find(x=>x.parent_id===id&&x.ym===ym);return r?r.paid:false;};
+  const paid=payers.filter(p=>paidOf(p.id)).length;
+  let h=`<h2 class="title">入金チェック</h2>
+    <div class="card"><label class="fld">表示する月</label><select onchange="payYm=this.value;renderStaff()">${payMonthOptions(ym)}</select></div>
+    <p class="muted" style="margin-top:-4px">送金・振込のご家庭の${mo}月分。保護者が20日/月末の確認で「支払いました」を押すと自動でチェックが入ります。手動切替も可。</p>
+    <div class="card center"><div class="muted">${mo}月 入金済み</div><div class="tot">${paid} / ${payers.length} 件</div></div>`;
+  if(payers.length===0)h+=`<div class="card center"><span class="muted">送金・振込のご家庭はまだいません。</span></div>`;
+  payers.forEach(p=>{const on=paidOf(p.id);
+    h+=`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px"><button class="paychk" onclick="togglePay('${p.id}')">${on?'✅':'⬜'}</button>
+      <div style="flex:1"><div style="font-weight:800">${p.parent_name||p.email||'(無名)'}</div><div class="muted">${p.payment==='net'?'ネットバンキング送金':'現金手渡し'}</div></div>
+      <div style="font-weight:800;font-size:13px;color:${on?'var(--green)':'var(--red)'}">${on?'入金済み':'未入金'}</div></div>`;});
+  return h;
+}
+async function togglePay(pid){const ym=payYm||monthKey();const cur=allPay.find(x=>x.parent_id===pid&&x.ym===ym);const np=!(cur&&cur.paid);
+  showLoad(true);await db.from('payment_status').upsert({parent_id:pid,ym,paid:np,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});
+  const d=await db.from('payment_status').select('*');allPay=d.data||[];showLoad(false);renderStaff();}
+/* --- 分析（売上・経費・収支） admin --- */
+function stFinance(){
+  let h=`<h2 class="title">分析（売上・経費）</h2><p class="muted" style="margin-top:-8px">体育館使用料・人件費を入力すると、教室ごとの概算収支が出ます。会場名の変更は「予定」タブから。</p>`;
+  let tFee=0,tCost=0;
+  Object.keys(SCHOOLS).forEach(room=>{
+    const inR=students().filter(c=>c.classroom===room);
+    const fee=inR.reduce((a,c)=>a+(c.fee||0),0);
+    const c=roomCosts[room]||{gym:0,labor:0};
+    const gymMonthly=(c.gym||0)*4; const cost=gymMonthly+(c.labor||0); const profit=fee-cost;
+    tFee+=fee; tCost+=cost;
+    h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}</div>
+      <div class="muted" style="margin-bottom:6px">📍 ${SCHOOL_INFO[room].place}</div>
+      <div class="sumrow"><span>月謝収入（${inR.length}名）</span><b>${yen(fee)}</b></div>
+      <label class="fld">体育館使用料（1回あたり・円）</label>
+      <input type="number" value="${c.gym||0}" onchange="saveCost('${room}','gym',this.value)">
+      <div class="sumrow"><span>体育館使用料（月4回想定）</span><b>− ${yen(gymMonthly)}</b></div>
+      <label class="fld">人件費（月・円）</label>
+      <input type="number" value="${c.labor||0}" onchange="saveCost('${room}','labor',this.value)">
+      <div class="sumrow"><span>人件費（月）</span><b>− ${yen(c.labor||0)}</b></div>
+      <div class="sumrow" style="border-top:2px solid #eef1f7"><span><b>概算収支（月）</b></span><b style="color:${profit>=0?'var(--green)':'var(--red)'}">${profit>=0?'+':''}${yen(profit)}</b></div>
+    </div>`;
+  });
+  h+=`<div class="card center"><div class="muted">全教室 月謝収入</div><div class="tot">${yen(tFee)}</div>
+    <div class="muted" style="margin-top:8px">全教室 概算コスト</div><div class="tot" style="color:var(--red)">${yen(tCost)}</div>
+    <div class="muted" style="margin-top:8px">全体 概算収支（月）</div><div class="tot" style="color:${tFee-tCost>=0?'var(--green)':'var(--red)'}">${tFee-tCost>=0?'+':''}${yen(tFee-tCost)}</div></div>`;
+  return h;
+}
+async function saveCost(room,field,val){
+  if(!roomCosts[room])roomCosts[room]={gym:0,labor:0};
+  roomCosts[room][field]=Number(val)||0;
+  showLoad(true);
+  const r=await db.from('room_costs').upsert({room,gym:roomCosts[room].gym,labor:roomCosts[room].labor,updated_at:new Date().toISOString()},{onConflict:'room'});
+  showLoad(false);
+  if(r.error){toast('保存エラー：'+r.error.message);return;}
+  toast('保存しました'); renderStaff();
+}
+/* --- メンバー（権限管理・スタッフ追加） admin --- */
+function roleLabel(r){return r==='admin'?'管理者':r==='staff'?'スタッフ':r==='parttime'?'アルバイト':'保護者';}
+function roleSelect(p){const r=p.role||'parent';
+  return `<label class="fld">役割</label><select onchange="changeRole('${p.id}',this.value)" ${p.id===me.id?'disabled':''}>
+    <option value="parent" ${r==='parent'?'selected':''}>保護者</option>
+    <option value="parttime" ${r==='parttime'?'selected':''}>アルバイト</option>
+    <option value="staff" ${r==='staff'?'selected':''}>スタッフ</option>
+    <option value="admin" ${r==='admin'?'selected':''}>管理者</option></select>${p.id===me.id?'<p class="muted" style="margin:6px 0 0">※自分の役割は変更できません</p>':''}`;}
+function memberCard(c){
+  const p=allProfiles.find(x=>x.id===c.parent_id)||{}; const r=p.role||'parent';
+  return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
+    <div style="font-weight:800">${c.name} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
+    <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
+    ${p.email?`<div class="muted">${p.email}</div>`:''}
+    <div class="muted" style="margin-top:4px">🚨 緊急連絡先1：${c.ec1||'未登録'}${c.ec1_note?'（'+c.ec1_note+'）':''}</div>
+    <div class="muted">🚨 緊急連絡先2：${c.ec2||'未登録'}${c.ec2_note?'（'+c.ec2_note+'）':''}</div>
+    ${roleSelect(p)}
+  </div>`;
+}
+function stMembers(){
+  let h=`<h2 class="title">メンバー・権限</h2><p class="muted" style="margin-top:-8px">教室・クラスごとにまとめています。緊急連絡先の確認や、役割（スタッフ・管理者・アルバイト）の変更ができます。</p>`;
+  if(allChangeReqs.length){
+    h+=`<div class="card" style="border:1.5px solid var(--accent)"><div class="roomtitle" style="color:var(--accent)">🔁 クラス変更の申請（${allChangeReqs.length}件）</div>`;
+    allChangeReqs.forEach(r=>{h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
+      <div style="font-weight:800">${r.child_name||childName(r.child_id)}</div>
+      <div class="muted">${r.from_room}教室 ${r.from_class} → <b style="color:var(--accent)">${r.to_room}教室 ${r.to_class}</b></div>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveReq('${r.id}','${r.child_id}','${r.to_room}','${r.to_class}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectReq('${r.id}')">却下</button></div></div>`;});
+    h+=`</div>`;
+  }
+  Object.keys(SCHOOLS).forEach(room=>{
+    const roomKids=students().filter(c=>c.classroom===room);
+    let inner='';
+    SCHOOLS[room].forEach(cls=>{
+      const ck=roomKids.filter(c=>c.class_name===cls);
+      if(!ck.length)return;
+      inner+=`<div class="roomtitle" style="color:var(--brand);font-size:13px;margin:10px 0 4px">${cls}（${ck.length}名）</div>`;
+      ck.forEach(c=>{inner+=memberCard(c);});
+    });
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0">
+      <summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${roomKids.length}名</span></summary>
+      ${inner||'<p class="muted" style="padding:6px 0">在籍なし</p>'}</details></div>`;
+  });
+  // スタッフ・管理者（クラスに属さない方）
+  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin');
+  let s='';
+  staffs.forEach(p=>{const r=p.role||'parent';
+    s+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
+      <div style="font-weight:800">${p.parent_name||'(無名)'} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
+      <div class="muted">${p.email||''}${p.tel?'／ '+p.tel:''}</div>${roleSelect(p)}</div>`;});
+  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0">
+    <summary>🛠 スタッフ・管理者　<span style="color:var(--sub);font-weight:700">${staffs.length}名</span></summary>
+    ${s||'<p class="muted" style="padding:6px 0">いません</p>'}</details></div>`;
+  return h;
+}
+async function changeRole(id,role){showLoad(true);const r=await db.from('profiles').update({role}).eq('id',id);
+  const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);
+  if(r.error){toast('変更エラー：'+r.error.message);return;}
+  toast('役割を変更しました');renderStaff();}
+async function approveReq(id,childId,toRoom,toCls){showLoad(true);
+  const u=await db.from('change_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);
+  if(!u.error) await db.from('children').update({classroom:toRoom,class_name:toCls}).eq('id',childId);
+  const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
+  const ch=await db.from('children').select('*');allChildren=ch.data||[];
+  showLoad(false); if(u.error){toast('エラー：'+u.error.message);return;} toast('承認しました（クラスを変更）');renderStaff();}
+async function rejectReq(id){showLoad(true);
+  await db.from('change_requests').update({status:'rejected',decided_at:new Date().toISOString()}).eq('id',id);
+  const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
+  showLoad(false); toast('却下しました');renderStaff();}
+/* --- アルバイト：シフト＆当日の生徒 --- */
+function stShift(){
+  let h=`<h2 class="title">シフト</h2><p class="muted" style="margin-top:-8px">参加できる日に「入る」を押してください。</p>`;
+  const t=new Date(); const set=new Set(myShifts.map(s=>(''+s.date).slice(0,10))); let any=false;
+  for(let i=0;i<56;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const wd=d.getDay();const schools=schoolsOn(wd);if(!schools.length)continue;if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
+    const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());const on=set.has(key);any=true;
+    h+=`<div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="flex:1"><div style="font-weight:800">${d.getMonth()+1}月${d.getDate()}日（${DOW[wd]}）</div><div class="muted">${schools.join('・')}</div></div>
+      <button class="btn sm ${on?'green':'gray'}" style="width:auto;padding:9px 16px" onclick="toggleShift('${key}')">${on?'✅ 入る':'入る'}</button></div>`;}
+  if(!any)h+=`<div class="card center"><span class="muted">直近に活動日がありません。</span></div>`;
+  return h;
+}
+async function toggleShift(key){const ex=myShifts.find(s=>(''+s.date).slice(0,10)===key);showLoad(true);
+  if(ex){await db.from('shifts').delete().eq('id',ex.id);myShifts=myShifts.filter(s=>s.id!==ex.id);}
+  else{const r=await db.from('shifts').insert({user_id:me.id,date:key}).select();if(r.data&&r.data[0])myShifts.push(r.data[0]);}
+  showLoad(false);renderStaff();}
+function stStudents(){
+  let h=`<h2 class="title">当日の生徒</h2><p class="muted" style="margin-top:-8px">シフトに入っている日の参加者を確認できます。</p>`;
+  const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
+  const days=myShifts.map(s=>(''+s.date).slice(0,10)).filter(d=>d>=today).sort();
+  if(days.length===0)return h+`<div class="card center"><span class="muted">シフトに入っている日がありません。「シフト」タブから登録してください。</span></div>`;
+  if(!attDate||!days.includes(attDate))attDate=days[0];
+  h+=`<div class="card"><label class="fld">シフトの日</label><select onchange="attDate=this.value;renderStaff()">${days.map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('')}</select></div>`;
+  const wd=new Date(attDate+'T00:00:00').getDay();
+  const absOf=allAbsences.filter(a=>(''+a.date).slice(0,10)===attDate);
+  const furOf=allFurikae.filter(f=>(''+f.date).slice(0,10)===attDate);
+  let any=false;
+  Object.keys(SCHOOLS).forEach(room=>{ if(!SCHEDULE[room][wd])return; if(isCancelled(room,attDate))return;
+    SCHOOLS[room].forEach(cls=>{ if(!(SCHEDULE[room][wd]||[]).some(it=>it.c===cls))return;
+      const enrolled=students().filter(c=>c.classroom===room&&c.class_name===cls);
+      const absSet=new Set(absOf.filter(a=>a.classroom===room&&a.class_name===cls).map(a=>a.child_id));
+      const furIn=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
+      const cnt=enrolled.filter(c=>!absSet.has(c.id)).length+furIn.length; any=true;
+      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}　<span style="color:var(--sub);font-weight:700">参加 ${cnt}名</span></div>`;
+      enrolled.forEach(c=>{const ab=absSet.has(c.id);h+=`<div class="sumrow"><span>${c.name}</span><b style="font-size:13px;color:${ab?'var(--red)':'var(--green)'}">${ab?'欠席':'参加'}</b></div>`;});
+      furIn.forEach(f=>{h+=`<div class="sumrow"><span>${childName(f.child_id)} <span style="color:var(--accent);font-size:11px">(振替)</span></span><b style="font-size:13px;color:var(--green)">参加</b></div>`;});
+      h+=`</div>`;
+    });
+  });
+  if(!any)h+=`<div class="card center"><span class="muted">この日のクラス情報がありません。</span></div>`;
+  return h;
+}
+/* --- お知らせ投稿 --- */
+function stAnnounce(){
+  let h=`<h2 class="title">お知らせ</h2><p class="muted" style="margin-top:-8px">保護者のホーム画面に表示されます。</p>
+    <div class="card"><label class="fld">📢 全体（全教室の保護者）</label><textarea id="ann-all-b" placeholder="例：年末年始の休講のお知らせ…"></textarea>
+      <button class="btn sm" style="margin-top:10px" onclick="postAnn('all','')">全体に投稿</button></div>`;
+  Object.keys(SCHOOLS).forEach(room=>{h+=`<div class="card"><label class="fld">📢 ${SCHOOL_INFO[room].full}</label><textarea id="ann-${room}-b" placeholder="この教室の保護者向け…"></textarea>
+    <button class="btn sm gray" style="margin-top:10px" onclick="postAnn('room','${room}')">この教室に投稿</button></div>`;});
+  if(anns.length){h+=`<h2 class="title" style="margin-top:18px">投稿済み</h2>`;anns.forEach(a=>{h+=`<div class="card" style="padding:12px 14px"><div style="font-weight:800;font-size:13px">${a.scope==='all'?'全体':(SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room)}</div><div class="muted">${esc(a.body)}</div><button class="btn sm gray" style="margin-top:8px;width:auto;padding:7px 12px" onclick="delAnn('${a.id}')">削除</button></div>`;});}
+  return h;
+}
+async function postAnn(scope,room){const ta=document.getElementById(scope==='all'?'ann-all-b':'ann-'+room+'-b');const body=ta.value.trim();if(!body){toast('内容を入力してください');return;}
+  showLoad(true);const r=await db.from('announcements').insert({scope,room:scope==='room'?room:null,body,created_by:me.id});await loadAnns();showLoad(false);
+  if(r.error){toast('投稿エラー：'+r.error.message);return;}toast('投稿しました');renderStaff();}
+async function delAnn(id){showLoad(true);await db.from('announcements').delete().eq('id',id);await loadAnns();showLoad(false);toast('削除しました');renderStaff();}
+/* --- 連絡（メッセージ返信） --- */
+function stMessages(){
+  const byP={}; allMsgs.forEach(m=>{(byP[m.parent_id]=byP[m.parent_id]||[]).push(m);});
+  const ids=Object.keys(byP);
+  let h=`<h2 class="title">保護者からの連絡</h2>`;
+  if(ids.length===0)return h+`<div class="card center"><span class="muted">まだメッセージはありません。</span></div>`;
+  ids.forEach(pid=>{const ms=byP[pid];const last=ms[ms.length-1];
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
+      <div class="msgwrap" style="margin:8px 0">${ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join('')}</div>
+      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="返信を入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
+    </details></div>`;});
+  return h;
+}
+async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const v=i.value.trim();if(!v)return;
+  showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);
+  if(r.error){toast('送信エラー：'+r.error.message);return;}toast('返信しました');renderStaff();}
+
+/* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
+async function refreshApp(){
+  if(!READY||!me)return;
+  await loadAnns(); await loadCancels(); await loadOverrides();
+  if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
+  else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
+}
+(function setupPull(){
+  const el=document.createElement('div'); el.id='pull-refresh';
+  el.style.cssText='position:fixed;top:-44px;left:50%;transform:translateX(-50%);background:#fff;color:#2f7df6;font-weight:800;font-size:13px;padding:8px 16px;border-radius:20px;box-shadow:0 4px 14px rgba(40,60,110,.2);z-index:120;transition:top .15s,opacity .15s;opacity:0';
+  document.body.appendChild(el);
+  let startY=0, pulling=false;
+  const scroller=()=>document.querySelector('.screen.active');
+  document.addEventListener('touchstart',e=>{const sc=scroller();pulling=!!(sc&&sc.scrollTop<=0);startY=e.touches[0].clientY;},{passive:true});
+  document.addEventListener('touchmove',e=>{ if(!pulling)return; const dy=e.touches[0].clientY-startY; if(dy>6){const p=Math.min(dy,100);el.style.top=(p-44)+'px';el.style.opacity=Math.min(1,p/70);el.textContent=p>70?'↻ 離して更新':'↓ 引っぱって更新';}},{passive:true});
+  document.addEventListener('touchend',async e=>{ if(!pulling)return; pulling=false; const dy=e.changedTouches[0].clientY-startY;
+    if(dy>70){ el.style.top='12px';el.style.opacity='1';el.textContent='更新中…'; try{await refreshApp();}catch(_){} el.style.top='-44px';el.style.opacity='0'; toast('最新の状態に更新しました'); }
+    else { el.style.top='-44px';el.style.opacity='0'; } },{passive:true});
+})();
+
+/* ============ 起動時：セッション確認 ============ */
+window.addEventListener('load',async()=>{
+  if(!READY)return;
+  const {data:{session}}=await db.auth.getSession();
+  if(session){await afterAuth();}
+});
+</script>
+</body>
+</html>
