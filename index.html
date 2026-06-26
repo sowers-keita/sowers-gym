@@ -299,6 +299,51 @@ const SCHEDULE = {
 };
 const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"net",nm:"ネットバンキング送金",ds:"毎月ご自身で振込",ic:"💻"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"}];
 
+/* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
+Object.assign(SCHOOLS,{
+  "米子":["スタートA","スタートB","スタートC","スタートD","ステップアップ","アクロバット"],
+  "松江":["Aクラス","Bクラス"],
+  "糸島":["ジュニアクラス","スタートクラス"],
+  "福山":["Aクラス","Bクラス"],
+  "北谷":["ジュニアAクラス","ジュニアBクラス"],
+  "室川":["キッズ体操","キッズバク転","子どもバク転B","子どもバク転C"],
+  "keydance":["Aクラス","Bクラス"]
+});
+Object.assign(SCHOOL_INFO,{
+  "米子":{full:"米子タンブ体操教室",place:"米子市産業体育館（鳥取県米子市東福原8-27-1）",day:"日曜・木曜 月3回",teachers:"大野達也・高原圭吾"},
+  "松江":{full:"松江タンブ体操教室",place:"松江市総合体育館 多目的ルーム（島根県松江市学園南1-21-1）",day:"土曜・月3回",teachers:"勝平実優"},
+  "糸島":{full:"糸島アクロ体操教室",place:"キッズガリレオ糸島教室（福岡県糸島市前原西2-3-3）",day:"土曜・月3回",teachers:"友納あや"},
+  "福山":{full:"福山アクロ体操教室",place:"エフピコアリーナふくやま スタジオ室（広島県福山市）",day:"日曜・月3回",teachers:"松崎あやこ"},
+  "北谷":{full:"北谷アクロ体操教室",place:"砂辺公民館 体育館（沖縄県中頭郡北谷町砂辺61）",day:"木曜・月3回",teachers:"小坂瑛人"},
+  "室川":{full:"室川アクロ体操教室",place:"室川自治公民館（沖縄県沖縄市室川2-11-12）",day:"月曜・火曜 月3回",teachers:"照屋雄大"},
+  "keydance":{full:"key dance school",place:"水:上八万コミュニティセンター／木:八万中央コミュニティセンター（徳島市）",day:"水曜・木曜 月3回",teachers:"あかね"}
+});
+Object.assign(SCHOOL_COLOR,{
+  "米子":{bg:"#0ea5e9",fg:"#fff"},"松江":{bg:"#14b8a6",fg:"#fff"},"糸島":{bg:"#f97316",fg:"#fff"},"福山":{bg:"#ef4444",fg:"#fff"},"北谷":{bg:"#22c55e",fg:"#fff"},"室川":{bg:"#a855f7",fg:"#fff"},"keydance":{bg:"#ec4899",fg:"#fff"}
+});
+Object.assign(SCHEDULE,{
+  "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"16:30–17:30",g:"5歳以上"},{c:"スタートD",t:"17:40–18:40",g:"5歳以上"}]},
+  "松江":{6:[{c:"Aクラス",t:"16:30–17:30",g:"5歳以上"},{c:"Bクラス",t:"17:40–18:40",g:"5歳以上"}]},
+  "糸島":{6:[{c:"ジュニアクラス",t:"10:30–11:30",g:"小学生以上推奨"},{c:"スタートクラス",t:"14:00–15:00",g:"年中・年長向け"}]},
+  "福山":{0:[{c:"Aクラス",t:"10:00–11:00",g:"5歳〜"},{c:"Bクラス",t:"11:10–12:10",g:"5歳〜"}]},
+  "北谷":{4:[{c:"ジュニアAクラス",t:"16:50–17:50",g:"小学生"},{c:"ジュニアBクラス",t:"18:00–19:00",g:"小学生"}]},
+  "室川":{1:[{c:"キッズ体操",t:"18:10–19:10",g:"小学生以上"},{c:"キッズバク転",t:"19:20–20:20",g:"小学生以上"}],2:[{c:"子どもバク転B",t:"17:50–18:50",g:"小学生以上"},{c:"子どもバク転C",t:"19:00–20:00",g:"小学生以上"}]},
+  "keydance":{3:[{c:"Aクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"Bクラス",t:"17:30–18:30",g:"5歳〜小学生"}],4:[{c:"Aクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"Bクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
+});
+Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13});
+const CLASSROOM_META={
+  "論田":{p:"体操",r:"徳島"},"北島":{p:"体操",r:"徳島"},"吉野川":{p:"体操",r:"徳島"},"阿南":{p:"体操",r:"徳島"},"上板":{p:"体操",r:"徳島"},"小松島":{p:"体操",r:"徳島"},
+  "米子":{p:"体操",r:"鳥取"},"松江":{p:"体操",r:"島根"},"糸島":{p:"体操",r:"福岡"},"福山":{p:"体操",r:"広島"},"北谷":{p:"体操",r:"沖縄"},"室川":{p:"体操",r:"沖縄"},
+  "keydance":{p:"ダンス",r:"徳島"}
+};
+const PROGRAMS=[{k:"体操",ic:"🤸"},{k:"ダンス",ic:"💃"}];
+const REGION_ORDER=["徳島","鳥取","島根","広島","福岡","沖縄"];
+function regionsFor(program){const s=[];Object.keys(CLASSROOM_META).forEach(k=>{const m=CLASSROOM_META[k];if(m.p===program&&!s.includes(m.r))s.push(m.r);});return s.sort((a,b)=>REGION_ORDER.indexOf(a)-REGION_ORDER.indexOf(b));}
+function classroomsIn(program,region){return Object.keys(CLASSROOM_META).filter(k=>CLASSROOM_META[k].p===program&&CLASSROOM_META[k].r===region);}
+function metaOf(room){return CLASSROOM_META[room]||{p:"体操",r:"徳島"};}
+function currentScope(){if(typeof kids!=='undefined'&&kids&&kids.length){const m=metaOf(kids[0].classroom);return {p:m.p,r:m.r};}return {p:"体操",r:"徳島"};}
+function paymentsFor(scope){if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
+
 /* ============ 日付・学年ロジック ============ */
 const MONTHS=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
 const DOW=["日","月","火","水","木","金","土"];
@@ -306,7 +351,7 @@ function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.g
 function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
-function canFurikaeTo(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&cls!=="スタートクラス")return false;return true;}
+function canFurikaeTo(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return false;return true;}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
 function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
@@ -326,7 +371,7 @@ let myAbs=[];           // 自分の欠席記録（取り消し用）
 let myReqs=[];          // 自分のクラス変更申請
 let myFur=[];           // 自分の振替予定
 let cal={y:0,m:0};
-let reg={step:0,classroom:null,cls:null};
+let reg={step:0,program:null,region:null,classroom:null,cls:null};
 let draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""};
 let selClass=null;
 
@@ -367,14 +412,20 @@ async function logout(){ await db.auth.signOut(); profile=null;kids=[];me=null; 
 /* ============ 登録フロー ============ */
 const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
 const REG_N=REG_TITLES.length;
-function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
+function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
 function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
 function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
 function renderReg(){
   const s=document.getElementById('reg-steps');s.innerHTML='';for(let i=0;i<REG_N;i++){const d=document.createElement('div');d.className='dot'+(i<=reg.step?' on':'');s.appendChild(d);}
   const b=document.getElementById('reg-body');const pill=`<span class="pill">STEP ${reg.step+1} / ${REG_N} ・ ${REG_TITLES[reg.step]}</span>`;
   if(reg.step===0){
-    b.innerHTML=pill+`<h2 class="title">通っている教室を選んでください</h2>`+Object.keys(SCHOOLS).map(s=>`<div class="opt ${reg.classroom===s?'sel':''}" onclick="reg.classroom='${s}';reg.cls=null;renderReg()"><div class="ico">🏫</div><div><div class="nm">${SCHOOL_INFO[s].full}</div><div class="ds">${SCHOOL_INFO[s].day}</div></div></div>`).join('')+`<button class="btn" ${reg.classroom?'':'disabled'} onclick="reg.step=1;renderReg()">次へ</button>`;
+    if(!reg.program){
+      b.innerHTML=pill+`<h2 class="title">種目を選んでください</h2>`+PROGRAMS.map(p=>`<div class="opt ${reg.program===p.k?'sel':''}" onclick="reg.program='${p.k}';reg.region=null;reg.classroom=null;reg.cls=null;renderReg()"><div class="ico">${p.ic}</div><div><div class="nm">${p.k}教室</div></div></div>`).join('');
+    }else if(!reg.region){
+      b.innerHTML=pill+`<h2 class="title">都道府県を選んでください</h2>`+regionsFor(reg.program).map(r=>`<div class="opt ${reg.region===r?'sel':''}" onclick="reg.region='${r}';reg.classroom=null;reg.cls=null;renderReg()"><div class="ico">📍</div><div><div class="nm">${r}</div></div></div>`).join('')+`<button class="btn gray" style="margin-top:8px" onclick="reg.program=null;renderReg()">← 種目を選び直す</button>`;
+    }else{
+      b.innerHTML=pill+`<h2 class="title">通っている教室を選んでください</h2>`+classroomsIn(reg.program,reg.region).map(s=>`<div class="opt ${reg.classroom===s?'sel':''}" onclick="reg.classroom='${s}';reg.cls=null;renderReg()"><div class="ico">🏫</div><div><div class="nm">${SCHOOL_INFO[s].full}</div><div class="ds">${SCHOOL_INFO[s].day}</div></div></div>`).join('')+`<button class="btn" ${reg.classroom?'':'disabled'} onclick="reg.step=1;renderReg()">次へ</button>`+`<button class="btn gray" style="margin-top:8px" onclick="reg.region=null;reg.classroom=null;renderReg()">← 都道府県を選び直す</button>`;
+    }
   }else if(reg.step===1){
     b.innerHTML=pill+`<h2 class="title">${SCHOOL_INFO[reg.classroom].full}のクラス</h2>`+SCHOOLS[reg.classroom].map(c=>`<div class="opt ${reg.cls===c?'sel':''}" onclick="reg.cls='${c}';renderReg()"><div class="ico">🤸</div><div class="nm">${c}</div></div>`).join('')+`<button class="btn" ${reg.cls?'':'disabled'} onclick="reg.step=2;renderReg()">次へ</button>`;
   }else if(reg.step===2){
@@ -404,7 +455,10 @@ function renderReg(){
       <button class="btn" onclick="reg.step=7;renderReg()">次へ</button>`;
     renderFeeForm();
   }else if(reg.step===7){
-    b.innerHTML=pill+`<h2 class="title">お支払い方法</h2>`+PAYMENTS.map(p=>`<div class="opt ${draft.payment===p.k?'sel':''}" onclick="draft.payment='${p.k}';renderReg()"><div class="ico">${p.ic}</div><div><div class="nm">${p.nm}</div><div class="ds">${p.ds}</div></div></div>`).join('')+`<button class="btn green" onclick="finishRegister()">登録してはじめる</button>`;
+    const pays=paymentsFor({p:reg.program,r:reg.region});
+    if(!pays.some(p=>p.k===draft.payment))draft.payment=pays[0].k;
+    const payNote=pays.length===1?`<p class="muted" style="margin:-4px 0 10px">この教室のお支払いは「${pays[0].nm}」のみです。</p>`:'';
+    b.innerHTML=pill+`<h2 class="title">お支払い方法</h2>`+payNote+pays.map(p=>`<div class="opt ${draft.payment===p.k?'sel':''}" onclick="draft.payment='${p.k}';renderReg()"><div class="ico">${p.ic}</div><div><div class="nm">${p.nm}</div><div class="ds">${p.ds}</div></div></div>`).join('')+`<button class="btn green" onclick="finishRegister()">登録してはじめる</button>`;
   }
 }
 function saveLogin(){const e=document.getElementById('r-mail').value.trim(),p=document.getElementById('r-pass').value;if(!e||p.length<6){toast('メールと6文字以上のパスワードを入力してください');return;}draft.email=e;draft.pass=p;reg.step=3;renderReg();}
@@ -414,7 +468,7 @@ function enrollMonthOpts(sel){let o='<option value="">月</option>';for(let m=1;
 function enrollSelects(yId,mId,enroll,onchange){const p=(enroll||'').split('-');const y=p[0]||'';const m=p[1]?(''+(+p[1])):'';return `<div class="row2"><select id="${yId}" onchange="${onchange}">${enrollYearOpts(y)}</select><select id="${mId}" onchange="${onchange}">${enrollMonthOpts(m)}</select></div>`;}
 function setEnrollDraft(i){const y=document.getElementById('enr-y-'+i).value;const m=document.getElementById('enr-m-'+i).value;draft.children[i].enroll=(y&&m)?(y+'-'+String(m).padStart(2,'0')):'';}
 function renderKidsForm(){const box=document.getElementById('kidsform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
-  const opts=Object.keys(SCHOOLS).map(s=>`<option ${c.classroom===s?'selected':''}>${s}</option>`).join('');
+  const opts=classroomsIn(reg.program||'体操',reg.region||'徳島').map(s=>`<option ${c.classroom===s?'selected':''}>${s}</option>`).join('');
   const clsOpts=SCHOOLS[c.classroom||"論田"].map(x=>`<option ${c.class_name===x?'selected':''}>${x}</option>`).join('');
   const d=document.createElement('div');d.className='childblock';
   d.innerHTML=`${draft.children.length>1?`<button class="rm" onclick="draft.children.splice(${i},1);renderKidsForm()">削除</button>`:''}
@@ -459,21 +513,24 @@ async function finishRegister(){
 }
 
 /* ============ ログイン後のデータ読込 ============ */
-async function afterAuth(){
+async function afterAuth(preUser){
   showLoad(true);
-  const {data:{user}}=await db.auth.getUser();
-  me=user;
+  if(preUser){ me=preUser; } // 起動時はgetSession済みのユーザーを再利用（getUserの通信を省略）
+  else { const {data:{user}}=await db.auth.getUser(); me=user; }
   if(!me){showLoad(false);return;}
-  const p=await db.from('profiles').select('*').eq('id',me.id).maybeSingle();
+  // プロフィール取得と共通データ読み込みを並列化（互いに独立）
+  const [p]=await Promise.all([
+    db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
+    loadAnns(), loadCancels(), loadOverrides()
+  ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
     await db.from('profiles').upsert({id:me.id,role:'parent',email:me.email}); profile={id:me.id,role:'parent',parent_name:'',payment:'auto'};
   }
-  await loadAnns(); await loadCancels(); await loadOverrides();
   if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'){
     await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
   }
-  await loadKids(); await loadMsgs(); await loadMyAbs(); await loadMyReqs(); await loadMyFur();
+  await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur()]);
   showLoad(false);
   enterApp();
 }
@@ -481,8 +538,12 @@ async function loadKids(){const r=await db.from('children').select('*').eq('pare
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
 async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
 async function loadOverrides(){
-  const v=await db.from('venue_overrides').select('*'); (v.data||[]).forEach(r=>{ if(SCHOOL_INFO[r.room]&&r.place) SCHOOL_INFO[r.room].place=r.place; });
-  const t=await db.from('time_overrides').select('*'); (t.data||[]).forEach(r=>{ const rm=SCHEDULE[r.room]; if(!rm)return; const wd=Object.keys(rm)[0]; (rm[wd]||[]).forEach(it=>{ if(it.c===r.class_name&&r.t) it.t=r.t; }); });
+  const [v,t]=await Promise.all([
+    db.from('venue_overrides').select('*'),
+    db.from('time_overrides').select('*')
+  ]);
+  (v.data||[]).forEach(r=>{ if(SCHOOL_INFO[r.room]&&r.place) SCHOOL_INFO[r.room].place=r.place; });
+  (t.data||[]).forEach(r=>{ const rm=SCHEDULE[r.room]; if(!rm)return; const wd=Object.keys(rm)[0]; (rm[wd]||[]).forEach(it=>{ if(it.c===r.class_name&&r.t) it.t=r.t; }); });
 }
 async function saveVenue(room,place){showLoad(true);const r=await db.from('venue_overrides').upsert({room,place,updated_at:new Date().toISOString()},{onConflict:'room'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}SCHOOL_INFO[room].place=place;toast('会場を更新しました');}
 async function saveTime(room,cls,time){showLoad(true);const r=await db.from('time_overrides').upsert({room,class_name:cls,t:time,updated_at:new Date().toISOString()},{onConflict:'room,class_name'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}const wd=Object.keys(SCHEDULE[room])[0];(SCHEDULE[room][wd]||[]).forEach(it=>{if(it.c===cls)it.t=time;});toast('時間を更新しました');}
@@ -510,9 +571,9 @@ function renderHomeAnn(){const box=document.getElementById('home-ann');const roo
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
 
 /* ============ カレンダー ============ */
-function renderLegend(){document.getElementById('cal-legend').innerHTML=Object.keys(SCHOOLS).map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('');}
+function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=classroomsIn(sc.p,sc.r).map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('');}
 function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
-function schoolsOn(wd){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]);}
+function schoolsOn(wd,scope){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
 function renderCal(){
   document.getElementById('cal-label').textContent=`${cal.y}年 ${MONTHS[cal.m]}`;
   document.getElementById('cal-holi').innerHTML=holidayBars(cal.y,cal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
@@ -521,7 +582,7 @@ function renderCal(){
   const first=new Date(cal.y,cal.m,1).getDay(),days=new Date(cal.y,cal.m+1,0).getDate(),today=new Date();
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
   for(let d=1;d<=days;d++){
-    const wd=new Date(cal.y,cal.m,d).getDay();const schools=schoolsOn(wd);
+    const wd=new Date(cal.y,cal.m,d).getDay();const schools=schoolsOn(wd,currentScope());
     const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
     if(today.getFullYear()===cal.y&&today.getMonth()===cal.m&&today.getDate()===d)e.classList.add('today');
     e.innerHTML=`<span>${d}</span>`;
@@ -667,7 +728,7 @@ function renderMy(){
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
-    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${PAYMENTS.map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
+    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${paymentsFor(currentScope()).map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
     </div>
     <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
     <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
@@ -801,15 +862,27 @@ let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], al
 const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
 const ROLE_TABS={staff:['schedule','furikae','announce','messages'],admin:['schedule','furikae','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
 async function loadStaffData(){
-  const a=await db.from('profiles').select('*'); allProfiles=a.data||[];
-  const b=await db.from('children').select('*'); allChildren=b.data||[];
-  const c=await db.from('furikae').select('*').order('date'); allFurikae=c.data||[];
-  const ab=await db.from('absences').select('*').order('date'); allAbsences=ab.data||[];
-  const rc=await db.from('room_costs').select('*'); roomCosts={}; (rc.data||[]).forEach(r=>roomCosts[r.room]={gym:r.gym||0,labor:r.labor||0});
-  const cr=await db.from('change_requests').select('*').eq('status','pending').order('created_at'); allChangeReqs=cr.data||[];
-  const sh=await db.from('shifts').select('*').eq('user_id',me.id); myShifts=sh.data||[];
-  const d=await db.from('payment_status').select('*'); allPay=d.data||[];
-  const e=await db.from('messages').select('*').order('created_at'); allMsgs=e.data||[];
+  // 9件のクエリを並列取得（互いに独立）
+  const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
+    db.from('profiles').select('*'),
+    db.from('children').select('*'),
+    db.from('furikae').select('*').order('date'),
+    db.from('absences').select('*').order('date'),
+    db.from('room_costs').select('*'),
+    db.from('change_requests').select('*').eq('status','pending').order('created_at'),
+    db.from('shifts').select('*').eq('user_id',me.id),
+    db.from('payment_status').select('*'),
+    db.from('messages').select('*').order('created_at')
+  ]);
+  allProfiles=a.data||[];
+  allChildren=b.data||[];
+  allFurikae=c.data||[];
+  allAbsences=ab.data||[];
+  roomCosts={}; (rc.data||[]).forEach(r=>roomCosts[r.room]={gym:r.gym||0,labor:r.labor||0});
+  allChangeReqs=cr.data||[];
+  myShifts=sh.data||[];
+  allPay=d.data||[];
+  allMsgs=e.data||[];
 }
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
@@ -1176,7 +1249,7 @@ async function refreshApp(){
 window.addEventListener('load',async()=>{
   if(!READY)return;
   const {data:{session}}=await db.auth.getSession();
-  if(session){await afterAuth();}
+  if(session){await afterAuth(session.user);}
 });
 </script>
 </body>
