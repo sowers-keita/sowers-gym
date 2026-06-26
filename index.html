@@ -428,6 +428,32 @@ async function ensureRuleEvents(){
   if(rows.length){await db.from('events').upsert(rows,{onConflict:'room,date'});}
 }
 
+/* ===== Phase C 増分3：シフト（メイン/フォロー）・定員・担当先生 ===== */
+let shiftsAll={}; // {room:{key:[{id,uid,role,name}]}}
+let capOv={};     // {room:{key:{main,follow}}}
+let staffDayCtx=null;
+async function loadShifts(){shiftsAll={};const r=await db.from('shifts').select('*');(r.data||[]).forEach(s=>{if(!s.room)return;const k=(''+s.date).slice(0,10);(shiftsAll[s.room]=shiftsAll[s.room]||{});(shiftsAll[s.room][k]=shiftsAll[s.room][k]||[]).push({id:s.id,uid:s.user_id,role:s.role||'follow',name:s.staff_name||'スタッフ'});});}
+async function loadCapacity(){capOv={};const r=await db.from('shift_capacity').select('*');(r.data||[]).forEach(c=>{const k=(''+c.date).slice(0,10);(capOv[c.room]=capOv[c.room]||{})[k]={main:c.main_quota,follow:c.follow_quota};});}
+function capacityFor(room,key){if(capOv[room]&&capOv[room][key])return capOv[room][key];return metaOf(room).r==='徳島'?{main:1,follow:3}:{main:1,follow:1};}
+function shiftsFor(room,key){return (shiftsAll[room]&&shiftsAll[room][key])||[];}
+function myShiftRole(room,key){const s=shiftsFor(room,key).find(x=>x.uid===me.id);return s?s.role:null;}
+function teacherInfo(room,key){const list=shiftsFor(room,key);return {mains:list.filter(s=>s.role==='main').map(s=>s.name),follows:list.filter(s=>s.role==='follow').map(s=>s.name)};}
+function teacherLine(room,key){const ti=teacherInfo(room,key);const m=ti.mains.length?ti.mains.join('・'):((SCHOOL_INFO[room]||{}).teachers||'');let s='';if(m)s+=`👨‍🏫 メインスタッフ：${m}先生`;if(ti.follows.length)s+=(s?'<br>':'')+`🤝 フォロースタッフ：${ti.follows.join('・')}先生`;return s;}
+async function joinShift(room,key,role){showLoad(true);const r=await db.from('shifts').upsert({user_id:me.id,room,date:key,role,staff_name:(profile&&profile.parent_name)||'スタッフ'},{onConflict:'user_id,room,date'});await loadShifts();showLoad(false);if(r.error){toast('登録エラー：'+r.error.message);return;}toast(role==='main'?'メインで入りました':'フォローで入りました');reopenStaffDay();renderStaff();}
+async function leaveShift(room,key){showLoad(true);const r=await db.from('shifts').delete().eq('user_id',me.id).eq('room',room).eq('date',key);await loadShifts();showLoad(false);if(r.error){toast('解除エラー：'+r.error.message);return;}toast('シフトを外れました');reopenStaffDay();renderStaff();}
+async function saveCapacity(room,key,m,f){showLoad(true);const r=await db.from('shift_capacity').upsert({room,date:key,main_quota:m,follow_quota:f,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room,date'});await loadCapacity();showLoad(false);if(r.error){toast('定員保存エラー：'+r.error.message);return;}toast('定員を保存しました');reopenStaffDay();}
+function saveCapFromInputs(room,key){const m=Number(document.getElementById('cap-m-'+room).value)||0;const f=Number(document.getElementById('cap-f-'+room).value)||0;saveCapacity(room,key,m,f);}
+function reopenStaffDay(){if(staffDayCtx)openStaffDay(staffDayCtx.y,staffDayCtx.m,staffDayCtx.d,staffDayCtx.schools);}
+function shiftSection(room,key){
+  const cap=capacityFor(room,key);const ti=teacherInfo(room,key);const myRole=myShiftRole(room,key);
+  const mainFull=ti.mains.length>=cap.main&&myRole!=='main';const followFull=ti.follows.length>=cap.follow&&myRole!=='follow';
+  let h=`<div style="margin-top:10px;font-weight:800;font-size:13px">担当・シフト</div>`;
+  h+=`<div class="muted" style="margin:2px 0 6px">メイン ${ti.mains.length}/${cap.main}：${ti.mains.join('・')||'未定'}<br>フォロー ${ti.follows.length}/${cap.follow}：${ti.follows.join('・')||'未定'}</div>`;
+  h+=`<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm ${myRole==='main'?'green':'gray'}" style="width:auto;padding:8px 12px" ${mainFull?'disabled':''} onclick="joinShift('${room}','${key}','main')">メインで入る</button><button class="btn sm ${myRole==='follow'?'green':'gray'}" style="width:auto;padding:8px 12px" ${followFull?'disabled':''} onclick="joinShift('${room}','${key}','follow')">フォローで入る</button>${myRole?`<button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="leaveShift('${room}','${key}')">外れる</button>`:''}</div>`;
+  h+=`<div class="row2" style="margin-top:8px"><div><label class="fld">メイン定員</label><input type="number" min="0" value="${cap.main}" id="cap-m-${room}"></div><div><label class="fld">フォロー定員</label><input type="number" min="0" value="${cap.follow}" id="cap-f-${room}"></div></div><button class="btn sm" style="width:auto;padding:8px 12px;margin-top:6px" onclick="saveCapFromInputs('${room}','${key}')">定員を保存</button>`;
+  return h;
+}
+
 /* ============ 日付・学年ロジック ============ */
 const MONTHS=["1月","2月","3月","4月","5月","6月","7月","8月","9月","10月","11月","12月"];
 const DOW=["日","月","火","水","木","金","土"];
@@ -605,7 +631,7 @@ async function afterAuth(preUser){
   // プロフィール取得と共通データ読み込みを並列化（互いに独立）
   const [p]=await Promise.all([
     db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
-    loadAnns(), loadCancels(), loadOverrides(), loadEvents(), loadTemplates(), loadRules()
+    loadAnns(), loadCancels(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts()
   ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
@@ -684,7 +710,7 @@ function openDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
   let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
   schools.forEach(s=>{const inf=SCHOOL_INFO[s];const ct=contentOn(s,key,wd);
-    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${ct.place||inf.place}<br>👨‍🏫 メイン: ${inf.teachers}先生</div>`;
+    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${ct.place||inf.place}<br>${teacherLine(s,key)||('👨‍🏫 メインスタッフ：'+inf.teachers+'先生')}</div>`;
     if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
     ct.classes.forEach(item=>{html+=`<div class="timeitem" onclick='openClass(${JSON.stringify(s)},${JSON.stringify(item.c)},${JSON.stringify(item.t)},${JSON.stringify(item.g||"")},${y},${m+1},${d})'><div><div class="cn">${item.c}</div><div class="tm">⏰ ${item.t}${item.g?'　🧒 '+item.g:''}</div></div><div style="color:#2f7df6;font-weight:800">›</div></div>`;});
   });
@@ -969,7 +995,7 @@ async function loadStaffData(){
   myShifts=sh.data||[];
   allPay=d.data||[];
   allMsgs=e.data||[];
-  await ensureRuleEvents(); await loadEvents();
+  await ensureRuleEvents(); await loadEvents(); await loadCapacity(); await loadShifts();
 }
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
@@ -982,7 +1008,7 @@ function enterStaffApp(role){
   document.getElementById('tabbar').style.display='none';
   document.getElementById('staff-tabbar').style.display='flex';
   go('s-staff'); renderStaffNav(); renderStaff();
-  if(role==='staff'&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
+  if((role==='staff'||role==='parttime')&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
 }
 function renderStaffNav(){
   const tabs=ROLE_TABS[staffRole]||ROLE_TABS.admin;
@@ -1032,7 +1058,7 @@ function renderStaffCal(){
     cv.appendChild(e);}
 }
 function openStaffDay(y,m,d,schools){
-  const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);
+  const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);staffDayCtx={y,m,d,schools};
   let h=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
   h+=`<p class="muted" style="margin:-4px 0 8px">会場・時間の変更は毎週の予定に反映され、全員のカレンダーに表示されます。</p>`;
   schools.forEach(s=>{const inf=SCHOOL_INFO[s],cx=isCancelled(s,key),monthly=isMonthlyRoom(s),ct=contentOn(s,key,wd);
@@ -1050,6 +1076,7 @@ function openStaffDay(y,m,d,schools){
       (SCHEDULE[s][wd]||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
       h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
     }
+    if(!cx)h+=shiftSection(s,key);
     h+=`</div>`;});
   h+=`<button class="btn gray" onclick="closeSheet()">閉じる</button>`;openSheet(h);
 }
@@ -1237,37 +1264,37 @@ async function rejectReq(id){showLoad(true);
   showLoad(false); toast('却下しました');renderStaff();}
 /* --- アルバイト：シフト＆当日の生徒 --- */
 function stShift(){
-  let h=`<h2 class="title">シフト</h2><p class="muted" style="margin-top:-8px">参加できる日に「入る」を押してください。</p>`;
-  const t=new Date(); const set=new Set(myShifts.map(s=>(''+s.date).slice(0,10))); let any=false;
-  for(let i=0;i<56;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const wd=d.getDay();const schools=schoolsOn(wd);if(!schools.length)continue;if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
-    const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());const on=set.has(key);any=true;
-    h+=`<div class="card" style="display:flex;align-items:center;gap:10px;padding:12px 14px"><div style="flex:1"><div style="font-weight:800">${d.getMonth()+1}月${d.getDate()}日（${DOW[wd]}）</div><div class="muted">${schools.join('・')}</div></div>
-      <button class="btn sm ${on?'green':'gray'}" style="width:auto;padding:9px 16px" onclick="toggleShift('${key}')">${on?'✅ 入る':'入る'}</button></div>`;}
-  if(!any)h+=`<div class="card center"><span class="muted">直近に活動日がありません。</span></div>`;
+  let h=`<h2 class="title">シフト</h2><p class="muted" style="margin-top:-8px">入れる日に「フォローで入る」を押してください。あなたはフォロースタッフです。</p>`;
+  const sc=staffScope();const t=new Date();t.setHours(0,0,0,0);let any=false;
+  for(let i=0;i<70;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
+    const schools=schoolsOn(wd,sc).filter(s=>isHeld(s,key)&&!isCancelled(s,key));
+    schools.forEach(room=>{any=true;const cap=capacityFor(room,key);const ti=teacherInfo(room,key);const mine=myShiftRole(room,key)==='follow';const full=ti.follows.length>=cap.follow&&!mine;
+      h+=`<div class="card" style="padding:12px 14px"><div style="font-weight:800">${d.getMonth()+1}月${d.getDate()}日（${DOW[wd]}）・${SCHOOL_INFO[room].full}</div><div class="muted">フォロー ${ti.follows.length}/${cap.follow}${ti.follows.length?'：'+ti.follows.join('・'):''}</div>
+        <div style="margin-top:8px">${mine?`<button class="btn sm green" style="width:auto;padding:8px 14px" onclick="leaveShift('${room}','${key}')">✅ 入っています（外れる）</button>`:`<button class="btn sm ${full?'gray':''}" style="width:auto;padding:8px 14px" ${full?'disabled':''} onclick="joinShift('${room}','${key}','follow')">${full?'満員':'フォローで入る'}</button>`}</div></div>`;});
+  }
+  if(!any)h+=`<div class="card center"><span class="muted">直近に開催日がありません。担当エリアの開催日が登録されると表示されます。</span></div>`;
   return h;
 }
-async function toggleShift(key){const ex=myShifts.find(s=>(''+s.date).slice(0,10)===key);showLoad(true);
-  if(ex){await db.from('shifts').delete().eq('id',ex.id);myShifts=myShifts.filter(s=>s.id!==ex.id);}
-  else{const r=await db.from('shifts').insert({user_id:me.id,date:key}).select();if(r.data&&r.data[0])myShifts.push(r.data[0]);}
-  showLoad(false);renderStaff();}
 function stStudents(){
   let h=`<h2 class="title">当日の生徒</h2><p class="muted" style="margin-top:-8px">シフトに入っている日の参加者を確認できます。</p>`;
   const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
-  const days=myShifts.map(s=>(''+s.date).slice(0,10)).filter(d=>d>=today).sort();
-  if(days.length===0)return h+`<div class="card center"><span class="muted">シフトに入っている日がありません。「シフト」タブから登録してください。</span></div>`;
+  const mine=[];Object.keys(shiftsAll).forEach(room=>Object.keys(shiftsAll[room]).forEach(key=>{if(key>=today&&shiftsAll[room][key].some(s=>s.uid===me.id))mine.push({room,key});}));
+  if(!mine.length)return h+`<div class="card center"><span class="muted">シフトに入っている日がありません。「シフト」タブから登録してください。</span></div>`;
+  const days=[...new Set(mine.map(m=>m.key))].sort();
   if(!attDate||!days.includes(attDate))attDate=days[0];
   h+=`<div class="card"><label class="fld">シフトの日</label><select onchange="attDate=this.value;renderStaff()">${days.map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('')}</select></div>`;
   const wd=new Date(attDate+'T00:00:00').getDay();
   const absOf=allAbsences.filter(a=>(''+a.date).slice(0,10)===attDate);
   const furOf=allFurikae.filter(f=>(''+f.date).slice(0,10)===attDate);
+  const myRooms=mine.filter(m=>m.key===attDate).map(m=>m.room);
   let any=false;
-  Object.keys(SCHOOLS).forEach(room=>{ if(!SCHEDULE[room][wd])return; if(isCancelled(room,attDate))return;
-    SCHOOLS[room].forEach(cls=>{ if(!(SCHEDULE[room][wd]||[]).some(it=>it.c===cls))return;
+  myRooms.forEach(room=>{ if(isCancelled(room,attDate))return; const ct=contentOn(room,attDate,wd);
+    ct.classes.forEach(it=>{const cls=it.c;
       const enrolled=students().filter(c=>c.classroom===room&&c.class_name===cls);
       const absSet=new Set(absOf.filter(a=>a.classroom===room&&a.class_name===cls).map(a=>a.child_id));
       const furIn=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
       const cnt=enrolled.filter(c=>!absSet.has(c.id)).length+furIn.length; any=true;
-      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}　<span style="color:var(--sub);font-weight:700">参加 ${cnt}名</span></div>`;
+      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}${it.t?'　'+it.t:''}　<span style="color:var(--sub);font-weight:700">参加 ${cnt}名</span></div>`;
       enrolled.forEach(c=>{const ab=absSet.has(c.id);h+=`<div class="sumrow"><span>${c.name}</span><b style="font-size:13px;color:${ab?'var(--red)':'var(--green)'}">${ab?'欠席':'参加'}</b></div>`;});
       furIn.forEach(f=>{h+=`<div class="sumrow"><span>${childName(f.child_id)} <span style="color:var(--accent);font-size:11px">(振替)</span></span><b style="font-size:13px;color:var(--green)">参加</b></div>`;});
       h+=`</div>`;
@@ -1325,7 +1352,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
 /* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
 async function refreshApp(){
   if(!READY||!me)return;
-  await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules();
+  await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
   if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
 }
