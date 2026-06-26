@@ -151,6 +151,7 @@
         <div class="center" style="margin-top:10px"><button class="linkbtn" onclick="go('s-forgot')">パスワードを忘れた方</button></div>
       </div>
       <button class="btn ghost" onclick="startRegister()">はじめての方（新規登録）</button>
+      <div class="center" style="margin-top:14px"><button class="linkbtn" onclick="openStaffSignup()">スタッフの方はこちら</button></div>
     </div>
   </section>
 
@@ -637,6 +638,7 @@ async function afterAuth(preUser){
   if(!profile){ // 念のため最低限作成
     await db.from('profiles').upsert({id:me.id,role:'parent',email:me.email}); profile={id:me.id,role:'parent',parent_name:'',payment:'auto'};
   }
+  if(profile.staff_request&&!profile.staff_approved&&profile.role==='parent'){showLoad(false);openPendingScreen();return;}
   if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'){
     await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
   }
@@ -1032,10 +1034,12 @@ function renderStaff(){const b=document.getElementById('staff-body');
 function calStaffMove(d){scal.m+=d;if(scal.m<0){scal.m=11;scal.y--;}if(scal.m>11){scal.m=0;scal.y++;}renderStaffCal();}
 function stShellCal(){
   const isAdmin=staffRole==='admin';
-  const legendRooms=isAdmin?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
+  let legendRooms=isAdmin?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
+  if(isAdmin){if(adminFilter.p)legendRooms=legendRooms.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)legendRooms=legendRooms.filter(s=>metaOf(s).r===adminFilter.r);}
   const areaBar=(!isAdmin)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted">担当エリア</span><div style="font-weight:800">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
+  const filterBar=isAdmin?`<div class="card" style="padding:10px 14px"><div class="muted" style="margin-bottom:6px">表示する種目・都道府県で絞り込み</div><div style="display:flex;gap:8px"><div style="flex:1"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select></div><div style="flex:1"><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div></div></div>`:'';
   const createBtn=monthlyRoomsInScope().length?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
-  return `<h2 class="title">スケジュール</h2>${areaBar}${createBtn}
+  return `<h2 class="title">スケジュール</h2>${areaBar}${filterBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
   <div class="legend" style="flex-wrap:wrap;gap:5px">${legendRooms.map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('')}</div>
@@ -1047,7 +1051,7 @@ function renderStaffCal(){
   DOW.forEach((d,i)=>{const e=document.createElement('div');e.className='dow';e.style.color=i===0?'#e0556b':i===6?'#2f7df6':'';e.textContent=d;cv.appendChild(e);});
   const first=new Date(scal.y,scal.m,1).getDay(),days=new Date(scal.y,scal.m+1,0).getDate(),today=new Date();
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
-  for(let d=1;d<=days;d++){const wd=new Date(scal.y,scal.m,d).getDay();const schools=schoolsOn(wd,staffRole==='admin'?null:staffScope()).filter(s=>isHeld(s,dateKey(scal.y,scal.m,d)));
+  for(let d=1;d<=days;d++){const wd=new Date(scal.y,scal.m,d).getDay();const schools=staffCalRooms(wd,dateKey(scal.y,scal.m,d));
     const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
     if(today.getFullYear()===scal.y&&today.getMonth()===scal.m&&today.getDate()===d)e.classList.add('today');
     e.innerHTML=`<span>${d}</span>`;const past=isPast(scal.y,scal.m,d);if(past)e.classList.add('past');
@@ -1213,6 +1217,43 @@ function memberCard(c){
     ${roleSelect(p)}
   </div>`;
 }
+/* ===== Phase C 増分4：スタッフ承認フロー＋管理者フィルタ ===== */
+let staffSignup={name:'',email:'',pass:'',role:'owner',p:'体操',r:'徳島'};
+let adminFilter={p:'',r:''};
+function openStaffSignup(){if(!READY){toast('初期設定が未完了です');return;}staffSignup={name:'',email:'',pass:'',role:'owner',p:'体操',r:'徳島'};renderStaffSignup();}
+function renderStaffSignup(){
+  const roleBtns=[['owner','オーナー（メイン）'],['parttime','アルバイト（フォロー）']].map(([k,l])=>`<button class="btn sm ${staffSignup.role===k?'':'gray'}" style="flex:1" onclick="staffSignup.role='${k}';renderStaffSignup()">${l}</button>`).join('');
+  const progs=PROGRAMS.map(p=>`<button class="btn sm ${staffSignup.p===p.k?'':'gray'}" style="flex:1" onclick="staffSignup.p='${p.k}';staffSignup.r=regionsFor('${p.k}')[0];renderStaffSignup()">${p.k}</button>`).join('');
+  const regs=regionsFor(staffSignup.p).map(r=>`<option value="${r}" ${staffSignup.r===r?'selected':''}>${r}</option>`).join('');
+  let h=`<h3>スタッフ申請</h3><p class="muted" style="margin-bottom:8px">申請後、管理者（木原）の承認をお待ちください。承認されるとスタッフ機能が使えます。</p>
+    <label class="fld">お名前</label><input value="${(staffSignup.name||'').replace(/"/g,'&quot;')}" oninput="staffSignup.name=this.value" placeholder="山田 太郎">
+    <label class="fld">メールアドレス</label><input type="email" value="${(staffSignup.email||'').replace(/"/g,'&quot;')}" oninput="staffSignup.email=this.value" placeholder="hogehoge@example.com">
+    <label class="fld">パスワード（6文字以上）</label><input type="password" value="${staffSignup.pass}" oninput="staffSignup.pass=this.value" placeholder="••••••••">
+    <label class="fld">希望の役割</label><div style="display:flex;gap:6px">${roleBtns}</div>
+    <label class="fld" style="margin-top:8px">担当の種目</label><div style="display:flex;gap:6px">${progs}</div>
+    <label class="fld" style="margin-top:8px">担当の都道府県</label><select onchange="staffSignup.r=this.value">${regs}</select>
+    <button class="btn green" style="margin-top:14px" onclick="submitStaffSignup()">申請する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);
+}
+async function submitStaffSignup(){
+  if(!staffSignup.name.trim()){toast('お名前を入力してください');return;}
+  if(!staffSignup.email.trim()||staffSignup.pass.length<6){toast('メールと6文字以上のパスワードを入力してください');return;}
+  showLoad(true);
+  const {data,error}=await db.auth.signUp({email:staffSignup.email.trim(),password:staffSignup.pass});
+  if(error){showLoad(false);toast('申請エラー：'+error.message);return;}
+  let uid=data.user&&data.user.id;
+  if(!data.session){const r=await db.auth.signInWithPassword({email:staffSignup.email.trim(),password:staffSignup.pass});if(r.error){showLoad(false);toast('申請は作成しましたが、ログイン画面から再度お試しください');return;}uid=r.data.user.id;}
+  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:staffSignup.name.trim(),email:staffSignup.email.trim(),staff_request:staffSignup.role,staff_approved:false,staff_program:staffSignup.p,staff_region:staffSignup.r});
+  await db.auth.signOut();
+  showLoad(false);
+  if(pe.error){toast('申請保存エラー：'+pe.error.message);return;}
+  closeSheet();toast('申請を受け付けました。承認後にログインできます');go('s-login');
+}
+function openPendingScreen(){go('s-login');openSheet(`<h3>承認待ちです</h3><p class="muted">スタッフ申請を受け付けています。管理者（木原）の承認をお待ちください。承認されると、次回ログイン時にスタッフ機能が使えます。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet();logout()">ログアウト</button>`);}
+async function approveStaff(id,req){showLoad(true);const role=req==='owner'?'staff':'parttime';const r=await db.from('profiles').update({role,staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
+async function rejectStaff(id){showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
+function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope());if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
 function stMembers(){
   let h=`<h2 class="title">メンバー・権限</h2><p class="muted" style="margin-top:-8px">教室・クラスごとにまとめています。緊急連絡先の確認や、役割（スタッフ・管理者・アルバイト）の変更ができます。</p>`;
   if(allChangeReqs.length){
@@ -1221,6 +1262,12 @@ function stMembers(){
       <div style="font-weight:800">${r.child_name||childName(r.child_id)}</div>
       <div class="muted">${r.from_room}教室 ${r.from_class} → <b style="color:var(--accent)">${r.to_room}教室 ${r.to_class}</b></div>
       <div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveReq('${r.id}','${r.child_id}','${r.to_room}','${r.to_class}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectReq('${r.id}')">却下</button></div></div>`;});
+    h+=`</div>`;
+  }
+  const pendStaff=allProfiles.filter(p=>p.staff_request&&!p.staff_approved&&p.role==='parent');
+  if(staffRole==='admin'&&pendStaff.length){
+    h+=`<div class="card" style="border:1.5px solid var(--brand)"><div class="roomtitle" style="color:var(--brand)">🪪 スタッフ申請（${pendStaff.length}件）</div>`;
+    pendStaff.forEach(p=>{const rl=p.staff_request==='owner'?'オーナー（メイン）':'アルバイト（フォロー）';h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px"><div style="font-weight:800">${p.parent_name||'(無名)'}</div><div class="muted">希望：${rl}／${p.staff_program||''}・${p.staff_region||''}<br>${p.email||''}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveStaff('${p.id}','${p.staff_request}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectStaff('${p.id}')">却下</button></div></div>`;});
     h+=`</div>`;
   }
   Object.keys(SCHOOLS).forEach(room=>{
@@ -1237,7 +1284,7 @@ function stMembers(){
       ${inner||'<p class="muted" style="padding:6px 0">在籍なし</p>'}</details></div>`;
   });
   // スタッフ・管理者（クラスに属さない方）
-  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin');
+  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin'||p.role==='parttime');
   let s='';
   staffs.forEach(p=>{const r=p.role||'parent';
     s+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
