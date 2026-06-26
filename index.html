@@ -974,7 +974,7 @@ let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attD
 function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
 let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
 const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
-const ROLE_TABS={staff:['schedule','furikae','announce','messages'],admin:['schedule','furikae','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
+const ROLE_TABS={staff:['schedule','furikae','roster','announce','messages'],admin:['schedule','furikae','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
 async function loadStaffData(){
   // 9件のクエリを並列取得（互いに独立）
   const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
@@ -1129,6 +1129,7 @@ function stFurikae(){
 }
 /* --- 名簿・生徒数・売上 --- */
 function stRoster(){
+  if(staffRole!=='admin')return ownerRoster();
   let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">教室・クラスをタップで開きます。</p>`;
   h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
   Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
@@ -1206,6 +1207,39 @@ function roleSelect(p){const r=p.role||'parent';
     <option value="parttime" ${r==='parttime'?'selected':''}>アルバイト</option>
     <option value="staff" ${r==='staff'?'selected':''}>スタッフ</option>
     <option value="admin" ${r==='admin'?'selected':''}>管理者</option></select>${p.id===me.id?'<p class="muted" style="margin:6px 0 0">※自分の役割は変更できません</p>':''}`;}
+/* ===== Phase C 増分5：オーナーの連絡機能（個別メッセージ・緊急連絡先・アルバイト名簿） ===== */
+function myAreaParentIds(){const sc=staffScope();const rooms=new Set(classroomsIn(sc.p,sc.r));return new Set(allChildren.filter(c=>rooms.has(c.classroom)).map(c=>c.parent_id));}
+function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
+  return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
+    <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span></div>
+    <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
+    <div class="muted" style="margin-top:4px">🚨 緊急連絡先1：${c.ec1||'未登録'}${c.ec1_note?'（'+c.ec1_note+'）':''}</div>
+    <div class="muted">🚨 緊急連絡先2：${c.ec2||'未登録'}${c.ec2_note?'（'+c.ec2_note+'）':''}</div>
+    <button class="btn sm soft" style="width:auto;padding:7px 12px;margin-top:8px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button>
+  </div>`;}
+function openParentMsg(pid){
+  const ms=allMsgs.filter(m=>m.parent_id===pid);
+  let h=`<h3>${profName(pid)} への連絡</h3><div class="msgwrap" style="margin:8px 0;max-height:48vh;overflow:auto">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
+    <div style="display:flex;gap:8px"><input id="pmsg-${pid}" placeholder="メッセージを入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="sendParentMsg('${pid}')">送信</button></div>
+    <button class="btn gray" style="margin-top:10px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);
+}
+async function sendParentMsg(pid){const i=document.getElementById('pmsg-'+pid);const v=i.value.trim();if(!v)return;showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);if(r.error){toast('送信エラー：'+r.error.message);return;}toast('送信しました');openParentMsg(pid);renderStaff();}
+function ownerRoster(){
+  const sc=staffScope();const rooms=classroomsIn(sc.p,sc.r);
+  let h=`<h2 class="title">名簿・連絡先</h2><p class="muted" style="margin-top:-8px">担当エリア（${sc.p}・${sc.r}）の生徒と緊急連絡先です。</p>`;
+  let total=0;
+  rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);total+=inR.length;if(!inR.length)return;
+    let inner='';inR.forEach(c=>{inner+=contactCard(c);});
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span class="muted" style="font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
+  if(!total)h+=`<div class="card center"><span class="muted">担当エリアにまだ生徒がいません。</span></div>`;
+  const pts=allProfiles.filter(p=>p.role==='parttime'&&p.staff_program===sc.p&&p.staff_region===sc.r);
+  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🙋 アルバイト名簿　<span class="muted" style="font-weight:700">${pts.length}名</span></summary>`;
+  if(!pts.length)h+=`<p class="muted" style="padding:6px 0">いません</p>`;
+  pts.forEach(p=>{h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px"><div style="font-weight:800">${p.parent_name||'(無名)'}</div><div class="muted">${p.email||''}${p.tel?'／ '+p.tel:''}</div></div>`;});
+  h+=`</details></div>`;
+  return h;
+}
 function memberCard(c){
   const p=allProfiles.find(x=>x.id===c.parent_id)||{}; const r=p.role||'parent';
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
@@ -1382,13 +1416,15 @@ async function delAnn(id){showLoad(true);await db.from('announcements').delete()
 function parentRooms(pid){const rs=[...new Set(allChildren.filter(c=>c.parent_id===pid).map(c=>c.classroom))].filter(Boolean);return rs.length?'（'+rs.join('・')+'教室）':'';}
 function stMessages(){
   const byP={}; allMsgs.forEach(m=>{(byP[m.parent_id]=byP[m.parent_id]||[]).push(m);});
-  const ids=Object.keys(byP);
-  let h=`<h2 class="title">保護者からの連絡</h2>`;
-  if(ids.length===0)return h+`<div class="card center"><span class="muted">まだメッセージはありません。</span></div>`;
-  ids.forEach(pid=>{const ms=byP[pid];const last=ms[ms.length-1];
+  let pids;
+  if(staffRole==='admin'){pids=Object.keys(byP);}
+  else{const area=myAreaParentIds();pids=[...new Set([...Object.keys(byP).filter(id=>area.has(id)),...area])];}
+  let h=`<h2 class="title">${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>`;
+  if(pids.length===0)return h+`<div class="card center"><span class="muted">${staffRole==='admin'?'まだメッセージはありません。':'担当の保護者がいません。'}</span></div>`;
+  pids.forEach(pid=>{const ms=byP[pid]||[];
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}<span style="color:var(--sub);font-weight:600;font-size:11px">${parentRooms(pid)}</span>　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
-      <div class="msgwrap" style="margin:8px 0">${ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join('')}</div>
-      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="返信を入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
+      <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
+      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="メッセージを入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
   return h;
 }
