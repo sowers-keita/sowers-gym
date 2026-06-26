@@ -347,9 +347,15 @@ function paymentsFor(scope){if(scope&&scope.p==="体操"&&scope.r!=="徳島")ret
 /* ===== Phase C 増分1：開催日・担当エリア・お知らせ（2026-06-26） ===== */
 const WEEKLY_ROOMS=new Set(["論田","北島","吉野川","阿南"]); // 徳島直営4＝毎週（自動表示）
 function isMonthlyRoom(room){return !WEEKLY_ROOMS.has(room);}   // それ以外＝月3回（開催日を作成）
-let sessions={}; // {room:{'YYYY-MM-DD':true}} 月3回教室の開催日
-async function loadSessions(){sessions={};const r=await db.from('session_dates').select('*');(r.data||[]).forEach(s=>{const k=(''+s.date).slice(0,10);(sessions[s.room]=sessions[s.room]||{})[k]=true;});}
-function isHeld(room,key){if(WEEKLY_ROOMS.has(room))return true;return !!(sessions[room]&&sessions[room][key]);}
+let events={};  // {room:{key:{place,classes}}} 月3回教室の開催日（内容つき）
+let roomTpl={};  // {room:{place,classes}} ひな形
+let rules=[];    // 定期開催ルール
+async function loadEvents(){events={};const r=await db.from('events').select('*');(r.data||[]).forEach(e=>{const k=(''+e.date).slice(0,10);(events[e.room]=events[e.room]||{})[k]={place:e.place||'',classes:Array.isArray(e.classes)?e.classes:[]};});}
+async function loadTemplates(){roomTpl={};const r=await db.from('room_templates').select('*');(r.data||[]).forEach(t=>{roomTpl[t.room]={place:t.place||'',classes:Array.isArray(t.classes)?t.classes:[]};});}
+async function loadRules(){const r=await db.from('event_rules').select('*');rules=r.data||[];}
+function isHeld(room,key){if(WEEKLY_ROOMS.has(room))return true;return !!(events[room]&&events[room][key]);}
+function contentOn(room,key,wd){if(WEEKLY_ROOMS.has(room)){return {place:(SCHOOL_INFO[room]||{}).place||'',classes:(SCHEDULE[room]&&SCHEDULE[room][wd])||[]};}const ev=events[room]&&events[room][key];return {place:(ev&&ev.place)||((SCHOOL_INFO[room]||{}).place||''),classes:(ev&&ev.classes)||[]};}
+function defaultContent(room){if(roomTpl[room])return {place:roomTpl[room].place,classes:roomTpl[room].classes.map(c=>({...c}))};const wd=Object.keys(SCHEDULE[room]||{})[0];const cls=((SCHEDULE[room]&&SCHEDULE[room][wd])||[]).map(it=>({c:it.c,t:it.t}));return {place:(SCHOOL_INFO[room]||{}).place||'',classes:cls};}
 // スタッフ（オーナー）の担当エリア
 function staffScope(){return {p:(profile&&profile.staff_program)||'体操',r:(profile&&profile.staff_region)||'徳島'};}
 function monthlyRoomsInScope(){const sc=(staffRole==='admin')?null:staffScope();return Object.keys(SCHEDULE).filter(s=>isMonthlyRoom(s)&&(!sc||(metaOf(s).p===sc.p&&metaOf(s).r===sc.r)));}
@@ -366,33 +372,60 @@ function renderAreaPicker(){
 }
 async function saveStaffArea(){showLoad(true);const r=await db.from('profiles').update({staff_program:areaDraft.p,staff_region:areaDraft.r}).eq('id',me.id);showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}profile.staff_program=areaDraft.p;profile.staff_region=areaDraft.r;closeSheet();toast('担当エリアを設定しました');renderStaff();}
 
-/* --- 開催日づくり（月3回教室・まとめて作成） --- */
-let sessEdit={room:null};
-function openSessionCreator(room){const rooms=monthlyRoomsInScope();if(!rooms.length){toast('対象の教室がありません');return;}sessEdit.room=room||rooms[0];renderSessionCreator();}
-function renderSessionCreator(){
-  const rooms=monthlyRoomsInScope();const room=sessEdit.room;const wdays=Object.keys(SCHEDULE[room]).map(Number);
-  const list=[];const today=new Date();today.setHours(0,0,0,0);
-  for(let i=0;i<77;i++){const d=new Date(today.getFullYear(),today.getMonth(),today.getDate()+i);if(wdays.includes(d.getDay())&&!holidayName(d.getFullYear(),d.getMonth(),d.getDate()))list.push(d);}
-  let h=`<h3>開催日を作成</h3>`;
-  if(rooms.length>1){h+=`<label class="fld">教室</label><select onchange="sessEdit.room=this.value;renderSessionCreator()">${rooms.map(r=>`<option value="${r}" ${r===room?'selected':''}>${SCHOOL_INFO[r].full}</option>`).join('')}</select>`;}
+/* --- 開催日・予定の編集（月3回教室・ひな形/定期ルール/個別追加） --- */
+let evEdit={room:null,place:'',classes:[],rw:'',rweeks:[],dadd:''};
+function openEventEditor(room){const rooms=monthlyRoomsInScope();if(!rooms.length){toast('対象の教室がありません');return;}evEdit.room=room||rooms[0];loadEvEditContent();renderEventEditor();}
+function loadEvEditContent(){const c=defaultContent(evEdit.room);evEdit.place=c.place;evEdit.classes=c.classes.map(x=>({...x}));evEdit.rw='';evEdit.rweeks=[];evEdit.dadd='';}
+function evAddClass(){evEdit.classes.push({c:'',t:''});renderEventEditor();}
+function evDelClass(i){evEdit.classes.splice(i,1);renderEventEditor();}
+function evSetClass(i,f,v){if(evEdit.classes[i])evEdit.classes[i][f]=v;}
+function evToggleWeek(n){const i=evEdit.rweeks.indexOf(n);if(i>=0)evEdit.rweeks.splice(i,1);else evEdit.rweeks.push(n);renderEventEditor();}
+function upcomingEvents(room){const t=new Date();t.setHours(0,0,0,0);return Object.keys(events[room]||{}).filter(k=>new Date(k)>=t).sort();}
+function renderEventEditor(){
+  const rooms=monthlyRoomsInScope();const room=evEdit.room;
+  let h=`<h3>開催日・予定の設定</h3><p class="muted" style="margin:-2px 0 8px">普段の練習日は「定期ルール」で自動作成。先生のお休みや臨時開催・場所変更は「個別に日を追加」で対応できます。</p>`;
+  if(rooms.length>1){h+=`<label class="fld">教室</label><select onchange="evEdit.room=this.value;loadEvEditContent();renderEventEditor()">${rooms.map(r=>`<option value="${r}" ${r===room?'selected':''}>${SCHOOL_INFO[r].full}</option>`).join('')}</select>`;}
   else{h+=`<div style="font-weight:800;margin:4px 0">${SCHOOL_INFO[room].full}</div>`;}
-  h+=`<p class="muted" style="margin:6px 0 8px">開催する日にチェックを入れて「保存」。同じ内容（クラス・時間）でまとめて登録できます。月3回など実際に開く日だけ選んでください。</p>`;
-  h+=`<div style="max-height:46vh;overflow:auto">`+list.map(d=>{const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());const on=!!(sessions[room]&&sessions[room][key]);return `<label class="timeitem" style="cursor:pointer"><span class="cn">${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）</span><input type="checkbox" data-key="${key}" ${on?'checked':''} style="width:22px;height:22px;flex:0 0 auto"></label>`;}).join('')+`</div>`;
-  h+=`<button class="btn green" style="margin-top:12px" onclick="saveSessions()">保存</button><button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">内容（クラス・時間・場所）</div>`;
+  h+=`<label class="fld">場所</label><input value="${(evEdit.place||'').replace(/"/g,'&quot;')}" oninput="evEdit.place=this.value" placeholder="例：◯◯体育館">`;
+  evEdit.classes.forEach((c,i)=>{h+=`<div class="row2" style="margin-top:8px"><input value="${(c.c||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'c',this.value)" placeholder="クラス名"><input value="${(c.t||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'t',this.value)" placeholder="時間 例：16:00–17:00"></div><button class="linkbtn" style="color:var(--red);padding:2px 4px" onclick="evDelClass(${i})">－ この行を削除</button>`;});
+  h+=`<div><button class="btn soft sm" style="margin-top:6px" onclick="evAddClass()">＋ クラスを追加</button></div>`;
+  h+=`<button class="btn gray sm" style="margin-top:8px" onclick="saveTemplate()">この内容をひな形として保存</button></div>`;
+  const wsel=[1,2,3,4,5].map(n=>`<button class="btn sm ${evEdit.rweeks.includes(n)?'':'gray'}" style="flex:1;padding:9px 0" onclick="evToggleWeek(${n})">第${n}</button>`).join('');
+  h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">定期開催ルール（自動で先まで作成）</div>
+    <label class="fld">曜日</label><select onchange="evEdit.rw=this.value"><option value="">選択してください</option>${DOW.map((d,i)=>`<option value="${i}" ${(''+i)===(''+evEdit.rw)?'selected':''}>${d}曜</option>`).join('')}</select>
+    <label class="fld" style="margin-top:8px">第何週（複数選択可・未選択＝毎週）</label><div style="display:flex;gap:5px">${wsel}</div>
+    <button class="btn sm" style="margin-top:10px" onclick="addRule()">このルールを保存して反映</button></div>`;
+  h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">個別に日を追加（どの日でも可）</div>
+    <input type="date" oninput="evEdit.dadd=this.value" onchange="evEdit.dadd=this.value"><button class="btn sm" style="margin-top:8px" onclick="addOneDate()">この日を上の内容で追加</button></div>`;
+  const rrules=rules.filter(r=>r.room===room);
+  if(rrules.length){h+=`<div style="font-weight:800;margin:10px 0 4px">登録済みルール</div>`;rrules.forEach(r=>{const wk=(r.weeks&&r.weeks.length)?r.weeks.map(n=>'第'+n).join('・'):'毎週';h+=`<div class="card" style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center"><div>${DOW[r.weekday]}曜・${wk}</div><button class="btn sm gray" style="width:auto;padding:6px 10px" onclick="delRule('${r.id}')">削除</button></div>`;});}
+  const ups=upcomingEvents(room);
+  if(ups.length){h+=`<div style="font-weight:800;margin:10px 0 4px">今後の開催日（${ups.length}件）</div><div style="max-height:30vh;overflow:auto">`;ups.forEach(k=>{const dt=new Date(k);h+=`<div class="card" style="padding:9px 12px;display:flex;justify-content:space-between;align-items:center"><div>${dt.getMonth()+1}月${dt.getDate()}日（${DOW[dt.getDay()]}）</div><button class="btn sm gray" style="width:auto;padding:6px 10px" onclick="delEventDate('${k}')">削除</button></div>`;});h+=`</div>`;}
+  h+=`<button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
 }
-async function saveSessions(){
-  const room=sessEdit.room;const boxes=[...document.querySelectorAll('#sheet input[type=checkbox][data-key]')];
-  const want=new Set();boxes.forEach(b=>{if(b.checked)want.add(b.getAttribute('data-key'));});
-  const shown=boxes.map(b=>b.getAttribute('data-key'));
-  const toAdd=[...want].filter(k=>!(sessions[room]&&sessions[room][k]));
-  const toDel=shown.filter(k=>(sessions[room]&&sessions[room][k])&&!want.has(k));
-  showLoad(true);let err=null;
-  if(toAdd.length){const rows=toAdd.map(k=>({room,date:k,created_by:me.id}));const r=await db.from('session_dates').upsert(rows,{onConflict:'room,date'});if(r.error)err=r.error;}
-  for(const k of toDel){const r=await db.from('session_dates').delete().eq('room',room).eq('date',k);if(r.error)err=r.error;}
-  await loadSessions();showLoad(false);
-  if(err){toast('保存エラー：'+err.message);return;}
-  closeSheet();toast('開催日を保存しました');renderStaff();
+async function saveTemplate(){const room=evEdit.room;showLoad(true);const r=await db.from('room_templates').upsert({room,place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room'});await loadTemplates();showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形を保存しました');}
+async function addOneDate(){const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
+async function delEventDate(k){const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
+async function addRule(){const room=evEdit.room;if(evEdit.rw===''){toast('曜日を選んでください');return;}showLoad(true);const r=await db.from('event_rules').insert({room,weekday:Number(evEdit.rw),weeks:evEdit.rweeks.slice().sort((a,b)=>a-b),place:evEdit.place,classes:evEdit.classes,active:true,created_by:me.id});if(r.error){showLoad(false);toast('ルール保存エラー：'+r.error.message);return;}await loadRules();await ensureRuleEvents();await loadEvents();showLoad(false);toast('ルールを保存し、予定を作成しました');renderEventEditor();renderStaff();}
+async function delRule(id){showLoad(true);const r=await db.from('event_rules').delete().eq('id',id);await loadRules();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('ルールを削除しました');renderEventEditor();}
+function nthWeekOfMonth(d){return Math.floor((d.getDate()-1)/7)+1;}
+async function ensureRuleEvents(){
+  if(!rules||!rules.length)return;
+  const today=new Date();today.setHours(0,0,0,0);const horizon=new Date(today.getFullYear(),today.getMonth()+12,today.getDate());
+  const rows=[];
+  rules.filter(r=>r.active!==false).forEach(r=>{
+    for(let d=new Date(today);d<=horizon;d.setDate(d.getDate()+1)){
+      if(d.getDay()!==r.weekday)continue;
+      if(r.weeks&&r.weeks.length&&!r.weeks.includes(nthWeekOfMonth(d)))continue;
+      if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
+      const k=dateKey(d.getFullYear(),d.getMonth(),d.getDate());
+      if(events[r.room]&&events[r.room][k])continue;
+      rows.push({room:r.room,date:k,place:r.place,classes:r.classes,created_by:me.id});
+    }
+  });
+  if(rows.length){await db.from('events').upsert(rows,{onConflict:'room,date'});}
 }
 
 /* ============ 日付・学年ロジック ============ */
@@ -572,7 +605,7 @@ async function afterAuth(preUser){
   // プロフィール取得と共通データ読み込みを並列化（互いに独立）
   const [p]=await Promise.all([
     db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
-    loadAnns(), loadCancels(), loadOverrides(), loadSessions()
+    loadAnns(), loadCancels(), loadOverrides(), loadEvents(), loadTemplates(), loadRules()
   ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
@@ -650,19 +683,19 @@ function renderCal(){
 function openDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
   let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
-  schools.forEach(s=>{const inf=SCHOOL_INFO[s];
-    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${inf.place}<br>🗓 ${inf.day}<br>👨‍🏫 メイン: ${inf.teachers}先生</div>`;
+  schools.forEach(s=>{const inf=SCHOOL_INFO[s];const ct=contentOn(s,key,wd);
+    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${ct.place||inf.place}<br>👨‍🏫 メイン: ${inf.teachers}先生</div>`;
     if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
-    SCHEDULE[s][wd].forEach(item=>{html+=`<div class="timeitem" onclick='openClass(${JSON.stringify(s)},${JSON.stringify(item.c)},${JSON.stringify(item.t)},${JSON.stringify(item.g||"")},${y},${m+1},${d})'><div><div class="cn">${item.c}</div><div class="tm">⏰ ${item.t}${item.g?'　🧒 '+item.g:''}</div></div><div style="color:#2f7df6;font-weight:800">›</div></div>`;});
+    ct.classes.forEach(item=>{html+=`<div class="timeitem" onclick='openClass(${JSON.stringify(s)},${JSON.stringify(item.c)},${JSON.stringify(item.t)},${JSON.stringify(item.g||"")},${y},${m+1},${d})'><div><div class="cn">${item.c}</div><div class="tm">⏰ ${item.t}${item.g?'　🧒 '+item.g:''}</div></div><div style="color:#2f7df6;font-weight:800">›</div></div>`;});
   });
   openSheet(html);
 }
 function openClass(school,cls,time,target,y,m,d){
   selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
-  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];
+  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;
   openSheet(`<h3>${inf.full} ${cls}</h3>
     <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
-    <div class="muted" style="margin-bottom:16px">📍 ${inf.place}</div>
+    <div class="muted" style="margin-bottom:16px">📍 ${_place}</div>
     <button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
     ${canF?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>'}
     <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
@@ -936,6 +969,7 @@ async function loadStaffData(){
   myShifts=sh.data||[];
   allPay=d.data||[];
   allMsgs=e.data||[];
+  await ensureRuleEvents(); await loadEvents();
 }
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
@@ -974,7 +1008,7 @@ function stShellCal(){
   const isAdmin=staffRole==='admin';
   const legendRooms=isAdmin?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
   const areaBar=(!isAdmin)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted">担当エリア</span><div style="font-weight:800">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
-  const createBtn=monthlyRoomsInScope().length?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openSessionCreator()">＋ 開催日を作成（月3回の教室）</button>`:'';
+  const createBtn=monthlyRoomsInScope().length?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
   return `<h2 class="title">スケジュール</h2>${areaBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
@@ -1001,14 +1035,19 @@ function openStaffDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);
   let h=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
   h+=`<p class="muted" style="margin:-4px 0 8px">会場・時間の変更は毎週の予定に反映され、全員のカレンダーに表示されます。</p>`;
-  schools.forEach(s=>{const inf=SCHOOL_INFO[s],cx=isCancelled(s,key);
+  schools.forEach(s=>{const inf=SCHOOL_INFO[s],cx=isCancelled(s,key),monthly=isMonthlyRoom(s),ct=contentOn(s,key,wd);
     h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full}</div>`;
     if(cx){
-      h+=`<div class="muted" style="margin-bottom:6px">📍 ${inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
+      h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
         <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button>`;
+    } else if(monthly){
+      h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div>`;
+      ct.classes.forEach(it=>{h+=`<div class="timeitem"><span class="cn">${it.c}</span><span class="tm">⏰ ${it.t}</span></div>`;});
+      h+=`<button class="btn soft sm" style="margin-top:8px" onclick="closeSheet();openEventEditor('${s}')">この教室の予定を編集（場所・クラス・日程）</button>`;
+      h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
     } else {
       h+=`<label class="fld">開催場所</label><input value="${(inf.place||'').replace(/"/g,'&quot;')}" onchange="saveVenue('${s}',this.value)">`;
-      SCHEDULE[s][wd].forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
+      (SCHEDULE[s][wd]||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
       h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
     }
     h+=`</div>`;});
@@ -1286,7 +1325,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
 /* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
 async function refreshApp(){
   if(!READY||!me)return;
-  await loadAnns(); await loadCancels(); await loadOverrides(); await loadSessions();
+  await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules();
   if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
 }
