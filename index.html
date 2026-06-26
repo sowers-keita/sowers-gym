@@ -615,7 +615,7 @@ async function finishRegister(){
   const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:draft.parent.name,relation:draft.parent.rel,tel:draft.parent.tel,payment:draft.payment,email:draft.email});
   if(pe.error){showLoad(false);showErr('reg-err','保護者情報の保存に失敗：'+pe.error.message);return;}
   // children
-  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec2:'',ec2_note:''}));
+  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,program:metaOf(c.classroom).p,region:metaOf(c.classroom).r,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec2:'',ec2_note:''}));
   const ce=await db.from('children').insert(rows);
   showLoad(false);
   if(ce.error){showErr('reg-err','お子様情報の保存に失敗：'+ce.error.message);return;}
@@ -912,7 +912,8 @@ function openAddSibling(){
 async function saveSibling(){
   const name=document.getElementById('sb-name').value.trim();if(!name){toast('お名前を入力してください');return;}
   showLoad(true);
-  const row={parent_id:me.id,name,birth:document.getElementById('sb-birth').value||null,school:document.getElementById('sb-school').value,classroom:document.getElementById('sb-room').value,class_name:document.getElementById('sb-cls').value,fee:Number(document.getElementById('sb-fee').value)||0,enroll:(document.getElementById('sb-enroll-y').value&&document.getElementById('sb-enroll-m').value)?document.getElementById('sb-enroll-y').value+'-'+String(document.getElementById('sb-enroll-m').value).padStart(2,'0'):'',points:0};
+  const _sbRoom=document.getElementById('sb-room').value;
+  const row={parent_id:me.id,name,birth:document.getElementById('sb-birth').value||null,school:document.getElementById('sb-school').value,classroom:_sbRoom,class_name:document.getElementById('sb-cls').value,program:metaOf(_sbRoom).p,region:metaOf(_sbRoom).r,fee:Number(document.getElementById('sb-fee').value)||0,enroll:(document.getElementById('sb-enroll-y').value&&document.getElementById('sb-enroll-m').value)?document.getElementById('sb-enroll-y').value+'-'+String(document.getElementById('sb-enroll-m').value).padStart(2,'0'):'',points:0};
   const r=await db.from('children').insert(row);showLoad(false);
   if(r.error){toast('追加エラー：'+r.error.message);return;}
   await loadKids();closeSheet();renderMy();toast(name+'を追加しました');
@@ -1335,7 +1336,7 @@ async function changeRole(id,role){showLoad(true);const r=await db.from('profile
   toast('役割を変更しました');renderStaff();}
 async function approveReq(id,childId,toRoom,toCls){showLoad(true);
   const u=await db.from('change_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);
-  if(!u.error) await db.from('children').update({classroom:toRoom,class_name:toCls}).eq('id',childId);
+  if(!u.error) await db.from('children').update({classroom:toRoom,class_name:toCls,program:metaOf(toRoom).p,region:metaOf(toRoom).r}).eq('id',childId);
   const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
   const ch=await db.from('children').select('*');allChildren=ch.data||[];
   showLoad(false); if(u.error){toast('エラー：'+u.error.message);return;} toast('承認しました（クラスを変更）');renderStaff();}
