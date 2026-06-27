@@ -343,7 +343,20 @@ function regionsFor(program){const s=[];Object.keys(CLASSROOM_META).forEach(k=>{
 function classroomsIn(program,region){return Object.keys(CLASSROOM_META).filter(k=>CLASSROOM_META[k].p===program&&CLASSROOM_META[k].r===region);}
 function metaOf(room){return CLASSROOM_META[room]||{p:"体操",r:"徳島"};}
 function currentScope(){if(typeof kids!=='undefined'&&kids&&kids.length){const m=metaOf(kids[0].classroom);return {p:m.p,r:m.r};}return {p:"体操",r:"徳島"};}
-function paymentsFor(scope){if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
+function paymentsFor(scope){if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
+
+/* ===== 会場が曜日で変わる教室（key dance school: 水=上八万/木=八万中央） ===== */
+const ROOM_DAY_VARIANT={
+  "keydance":{
+    3:{label:"ダンス上八万",bg:"#38bdf8",place:"上八万コミュニティセンター（徳島市上八万町樋口61）"},
+    4:{label:"ダンス八万中央",bg:"#22c55e",place:"八万中央コミュニティセンター（徳島市八万町内浜80-14）"}
+  }
+};
+// 曜日別の色分け表示は「そのダンススクールのスタッフ（オーナー/アルバイト）」のみ。管理者・保護者は通常色（ピンク）。
+function danceStaffView(){return (typeof staffRole!=='undefined')&&(staffRole==='staff'||staffRole==='parttime');}
+function roomChip(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];if(v&&danceStaffView())return {label:v.label,bg:v.bg,fg:"#fff"};const c=scolor(room);return {label:room,bg:c.bg,fg:c.fg};}
+function variantPlace(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];return v?v.place:'';}
+function legendChipsHtml(rooms){let h='';rooms.forEach(s=>{const v=ROOM_DAY_VARIANT[s];if(v&&danceStaffView()){Object.keys(v).forEach(wd=>{h+=`<span class="ev" style="background:${v[wd].bg};color:#fff">${v[wd].label}</span>`;});}else{h+=`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`;}});return h;}
 
 /* ===== Phase C 増分1：開催日・担当エリア・お知らせ（2026-06-26） ===== */
 const WEEKLY_ROOMS=new Set(["論田","北島","吉野川","阿南"]); // 徳島直営4＝毎週（自動表示）
@@ -355,7 +368,7 @@ async function loadEvents(){events={};const r=await db.from('events').select('*'
 async function loadTemplates(){roomTpl={};const r=await db.from('room_templates').select('*');(r.data||[]).forEach(t=>{roomTpl[t.room]={place:t.place||'',classes:Array.isArray(t.classes)?t.classes:[]};});}
 async function loadRules(){const r=await db.from('event_rules').select('*');rules=r.data||[];}
 function isHeld(room,key){if(WEEKLY_ROOMS.has(room))return true;return !!(events[room]&&events[room][key]);}
-function contentOn(room,key,wd){if(WEEKLY_ROOMS.has(room)){return {place:(SCHOOL_INFO[room]||{}).place||'',classes:(SCHEDULE[room]&&SCHEDULE[room][wd])||[]};}const ev=events[room]&&events[room][key];return {place:(ev&&ev.place)||((SCHOOL_INFO[room]||{}).place||''),classes:(ev&&ev.classes)||[]};}
+function contentOn(room,key,wd){if(WEEKLY_ROOMS.has(room)){return {place:(SCHOOL_INFO[room]||{}).place||'',classes:(SCHEDULE[room]&&SCHEDULE[room][wd])||[]};}const ev=events[room]&&events[room][key];return {place:(ev&&ev.place)||variantPlace(room,wd)||((SCHOOL_INFO[room]||{}).place||''),classes:(ev&&ev.classes)||[]};}
 function defaultContent(room){if(roomTpl[room])return {place:roomTpl[room].place,classes:roomTpl[room].classes.map(c=>({...c}))};const wd=Object.keys(SCHEDULE[room]||{})[0];const cls=((SCHEDULE[room]&&SCHEDULE[room][wd])||[]).map(it=>({c:it.c,t:it.t}));return {place:(SCHOOL_INFO[room]||{}).place||'',classes:cls};}
 // スタッフ（オーナー）の担当エリア
 function staffScope(){return {p:(profile&&profile.staff_program)||'体操',r:(profile&&profile.staff_region)||'徳島'};}
@@ -685,7 +698,7 @@ function renderHomeAnn(){const box=document.getElementById('home-ann');const roo
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
 
 /* ============ カレンダー ============ */
-function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=classroomsIn(sc.p,sc.r).map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('');}
+function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=legendChipsHtml(classroomsIn(sc.p,sc.r));}
 function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
 function schoolsOn(wd,scope){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
 function renderCal(){
@@ -703,7 +716,7 @@ function renderCal(){
     const past=isPast(cal.y,cal.m,d);if(past)e.classList.add('past');
     if(holidayName(cal.y,cal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
     const key=dateKey(cal.y,cal.m,d);
-    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?s+' 休':s;if(!cx){const c=scolor(s);ev.style.background=c.bg;ev.style.color=c.fg;}e.appendChild(ev);});
+    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);const chip=roomChip(s,wd);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?chip.label+' 休':chip.label;if(!cx){ev.style.background=chip.bg;ev.style.color=chip.fg;}e.appendChild(ev);});
     if(schools.length&&!past)e.onclick=()=>openDay(cal.y,cal.m,d,schools);
     cv.appendChild(e);
   }
@@ -1043,7 +1056,7 @@ function stShellCal(){
   return `<h2 class="title">スケジュール</h2>${areaBar}${filterBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
-  <div class="legend" style="flex-wrap:wrap;gap:5px">${legendRooms.map(s=>`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`).join('')}</div>
+  <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(legendRooms)}</div>
   <p class="muted" style="margin-top:6px">活動日をタップすると、会場・時間の変更や休講の設定ができます。${monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':''}</p></div>`;}
 function renderStaffCal(){
   const lab=document.getElementById('scal-label'); if(!lab)return; lab.textContent=`${scal.y}年 ${MONTHS[scal.m]}`;
@@ -1058,7 +1071,7 @@ function renderStaffCal(){
     e.innerHTML=`<span>${d}</span>`;const past=isPast(scal.y,scal.m,d);if(past)e.classList.add('past');
     if(holidayName(scal.y,scal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
     const key=dateKey(scal.y,scal.m,d);
-    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?s+' 休':s;if(!cx){const c=scolor(s);ev.style.background=c.bg;ev.style.color=c.fg;}e.appendChild(ev);});
+    schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);const chip=roomChip(s,wd);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?chip.label+' 休':chip.label;if(!cx){ev.style.background=chip.bg;ev.style.color=chip.fg;}e.appendChild(ev);});
     if(schools.length&&!past)e.onclick=()=>openStaffDay(scal.y,scal.m,d,schools);
     cv.appendChild(e);}
 }
