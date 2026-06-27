@@ -3,18 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>体操教室出席管理アプリ</title>
+<title>教室出席管理アプリ</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
 <meta name="theme-color" content="#2f7df6">
 <meta property="og:type" content="website">
-<meta property="og:title" content="体操教室出席管理アプリ">
-<meta property="og:description" content="体操教室｜予定確認・お休み/振替・名簿・お知らせ">
+<meta property="og:title" content="教室出席管理アプリ">
+<meta property="og:description" content="sowers｜予定確認・お休み/振替・名簿・お知らせ">
 <meta property="og:image" content="https://sowers-keita.github.io/sowers-gym/logo.png">
 <meta property="og:url" content="https://sowers-keita.github.io/sowers-gym/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="体操教室出席管理アプリ">
-<meta name="twitter:description" content="体操教室｜予定確認・お休み/振替・名簿・お知らせ">
+<meta name="twitter:title" content="教室出席管理アプリ">
+<meta name="twitter:description" content="sowers｜予定確認・お休み/振替・名簿・お知らせ">
 <meta name="twitter:image" content="https://sowers-keita.github.io/sowers-gym/logo.png">
 <style>
   :root{--bg:#f4f6fb;--card:#fff;--ink:#222b45;--sub:#6b7280;--brand:#2f7df6;--brand-d:#1f5fcf;--accent:#ff8a3d;--green:#1faf73;--red:#e0556b;--line:#e7ebf3;--soft:#eef3ff;--shadow:0 6px 20px rgba(40,60,110,.10)}
@@ -141,7 +141,7 @@
   <!-- LOGIN -->
   <section class="screen auth active" id="s-login">
     <div class="pad">
-      <div class="logo-big"><img src="logo.png" alt="ロゴ" style="width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)"><h1>体操教室出席管理アプリ</h1><p>サワーズ体操教室</p></div>
+      <div class="logo-big"><img src="logo.png" alt="ロゴ" style="width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)"><h1>教室出席管理アプリ</h1><p>sowers</p></div>
       <div class="err" id="login-err" style="display:none"></div>
       <div class="card">
         <label class="fld">メールアドレス</label><input id="li-mail" type="email" placeholder="hogehoge@example.com">
@@ -181,7 +181,7 @@
 
   <!-- HOME -->
   <section class="screen" id="s-home">
-    <header class="topbar"><span class="logo">体操教室出席管理</span><span class="sub" id="home-fam"></span></header>
+    <header class="topbar"><span class="logo">教室出席管理</span><span class="sub" id="home-fam"></span></header>
     <div class="pad">
       <div id="home-ann"></div>
       <h2 class="title">スケジュール</h2>
@@ -298,7 +298,7 @@ const SCHEDULE = {
   "上板":{0:[{c:"ジュニアクラス",t:"時間確認中",g:"5歳〜小学生"},{c:"バク転クラス",t:"時間確認中",g:"バク転に挑戦したい方"}]},
   "小松島":{4:[{c:"ジュニアクラス",t:"19:00–20:00",g:"小学生以上"},{c:"バク転クラス",t:"20:00–21:00",g:"バク転に挑戦したい方"}]},
 };
-const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"net",nm:"ネットバンキング送金",ds:"毎月ご自身で振込",ic:"💻"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"}];
+const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"},{k:"net",nm:"銀行振込",ds:"毎月ご自身で銀行振込",ic:"🏦"}];
 
 /* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
 Object.assign(SCHOOLS,{
@@ -532,6 +532,12 @@ async function forgot(){
   if(!error)go('s-login');
 }
 async function logout(){ await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
+function openDeleteAccount(){openSheet(`<h3 style="color:var(--red)">アカウントの削除（退会）</h3>
+  <p class="muted">お子様・保護者の情報、欠席・振替・連絡などが<b>すべて削除され、元に戻せません</b>。本当に削除しますか？</p>
+  <p class="muted" style="margin-top:6px">※ログイン用のメール／パスワード本体は、念のため運営側でも削除します。</p>
+  <button class="btn red" style="margin-top:14px" onclick="deleteMyAccount()">削除する（取り消せません）</button>
+  <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);}
+async function deleteMyAccount(){showLoad(true);const r=await db.rpc('delete_my_account');showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}closeSheet();toast('アカウントを削除しました');try{await db.auth.signOut();}catch(_){ }profile=null;kids=[];me=null;document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='none';go('s-login');}
 
 /* ============ 登録フロー ============ */
 const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
@@ -879,7 +885,8 @@ function renderMy(){
       </details></div>`;});
   html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>
     <button class="btn gray" style="margin-top:10px" onclick="checkPaymentReminder(true)">（確認）支払い確認ポップアップを見る</button>
-    <button class="btn gray" style="margin-top:10px" onclick="logout()">ログアウト</button>`;
+    <button class="btn gray" style="margin-top:10px" onclick="logout()">ログアウト</button>
+    <button class="btn" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="openDeleteAccount()">アカウントを削除（退会）</button>`;
   b.innerHTML=html;
 }
 async function saveChild(i){const c=kids[i];showLoad(true);
@@ -962,7 +969,7 @@ async function payAnswer(done,ym){
 
 /* ============ メッセージ ============ */
 function renderMsgs(){const w=document.getElementById('msg-list');
-  if(msgs.length===0){w.innerHTML=`<div class="msg them">こんにちは！サワーズ体操教室です。ご不明な点があればこちらからお気軽にどうぞ😊</div>`;}
+  if(msgs.length===0){w.innerHTML=`<div class="msg them">こんにちは！sowersです。ご不明な点があればこちらからお気軽にどうぞ😊</div>`;}
   else{w.innerHTML=msgs.map(m=>`<div class="msg ${m.sender==='parent'?'me':'them'}">${esc(m.body)}<span class="t">${(m.created_at||'').slice(5,16).replace('T',' ')}</span></div>`).join('');}
   const sc=document.getElementById('s-msg');setTimeout(()=>{sc.scrollTop=sc.scrollHeight;},30);
 }
@@ -1170,7 +1177,7 @@ function stPay(){
   if(payers.length===0)h+=`<div class="card center"><span class="muted">送金・振込のご家庭はまだいません。</span></div>`;
   payers.forEach(p=>{const on=paidOf(p.id);
     h+=`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px"><button class="paychk" onclick="togglePay('${p.id}')">${on?'✅':'⬜'}</button>
-      <div style="flex:1"><div style="font-weight:800">${p.parent_name||p.email||'(無名)'}</div><div class="muted">${p.payment==='net'?'ネットバンキング送金':'現金手渡し'}</div></div>
+      <div style="flex:1"><div style="font-weight:800">${p.parent_name||p.email||'(無名)'}</div><div class="muted">${p.payment==='net'?'銀行振込':'現金手渡し'}</div></div>
       <div style="font-weight:800;font-size:13px;color:${on?'var(--green)':'var(--red)'}">${on?'入金済み':'未入金'}</div></div>`;});
   return h;
 }
