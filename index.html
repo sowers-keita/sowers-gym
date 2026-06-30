@@ -1036,9 +1036,22 @@ function enterStaffApp(role){
   go('s-staff'); renderStaffNav(); renderStaff();
   if((role==='staff'||role==='parttime')&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
 }
+// 未返信（最後が保護者発言のスレッド）の件数。オーナーは担当エリアのみ。
+function unrepliedCount(){
+  if(!allMsgs||!allMsgs.length)return 0;
+  const byP={};allMsgs.forEach(m=>{(byP[m.parent_id]=byP[m.parent_id]||[]).push(m);});
+  let ids=Object.keys(byP);
+  if(staffRole!=='admin'){const area=myAreaParentIds();ids=ids.filter(id=>area.has(id));}
+  let n=0;ids.forEach(id=>{const ms=byP[id].slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));const last=ms[ms.length-1];if(last&&last.sender==='parent')n++;});
+  return n;
+}
 function renderStaffNav(){
   const tabs=ROLE_TABS[staffRole]||ROLE_TABS.admin;
-  document.getElementById('staff-tabbar').innerHTML=tabs.map(k=>`<button class="${staffSection===k?'on':''}" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}</button>`).join('');
+  document.getElementById('staff-tabbar').innerHTML=tabs.map(k=>{
+    let badge='';
+    if(k==='messages'){const n=unrepliedCount();if(n>0)badge=`<span style="position:absolute;top:3px;left:54%;min-width:15px;height:15px;line-height:15px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:800;text-align:center;padding:0 3px;box-shadow:0 1px 3px rgba(0,0,0,.25)">${n>99?'99+':n}</span>`;}
+    return `<button class="${staffSection===k?'on':''}" style="position:relative" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}${badge}</button>`;
+  }).join('');
   document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
 }
 function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);}
@@ -1053,6 +1066,7 @@ function renderStaff(){const b=document.getElementById('staff-body');
   else if(staffSection==='members')b.innerHTML=stMembers();
   else if(staffSection==='announce')b.innerHTML=stAnnounce();
   else if(staffSection==='messages')b.innerHTML=stMessages();
+  renderStaffNav();
 }
 /* --- 予定（カレンダー） --- */
 function calStaffMove(d){scal.m+=d;if(scal.m<0){scal.m=11;scal.y--;}if(scal.m>11){scal.m=0;scal.y++;}renderStaffCal();}
