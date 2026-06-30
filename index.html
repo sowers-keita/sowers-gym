@@ -874,7 +874,10 @@ function renderMy(){
       <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
       <div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
       <div class="ptchips">${chips}</div>
-      <details class="acc"><summary>お月謝・緊急連絡先を見る／編集</summary>
+      <details class="acc"><summary>お子様の情報・お月謝・緊急連絡先を編集</summary>
+        <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
+        <label class="fld">生年月日</label><input type="date" id="bd-${i}" value="${c.birth||''}">
+        <label class="fld">小学校名</label><input id="sc-${i}" value="${(c.school||'').replace(/"/g,'&quot;')}" placeholder="○○小学校">
         <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000">
         <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>
         <label class="fld">緊急連絡先1</label><input id="ec1-${i}" value="${c.ec1||''}" placeholder="電話番号">
@@ -890,10 +893,10 @@ function renderMy(){
   b.innerHTML=html;
 }
 async function saveChild(i){const c=kids[i];showLoad(true);
-  const patch={fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value};
+  const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value};
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
-  Object.assign(c,patch);toast('保存しました');}
+  Object.assign(c,patch);toast('保存しました');renderMy();}
 function openChangeReq(i){
   const c=kids[i];const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option ${s===c.classroom?'selected':''}>${s}</option>`).join('');
   openSheet(`<h3>教室・クラスの変更申請</h3>
@@ -1159,6 +1162,9 @@ function stRoster(){
       const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
       inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名・${yen(fee)}</span></summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
+  const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
+  let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${c.name}</span><span style="font-size:12px;color:var(--sub);text-align:right">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}<br>${c.class_name}</span></div>`;});
+  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
   const total=students().reduce((a,c)=>a+(c.fee||0),0);
   h+=`<div class="card center"><div class="muted">全教室 月謝合計（月）</div><div class="tot">${yen(total)} <span style="font-size:15px;color:#9aa3b8">/ ${yen(TARGET_REVENUE)}</span></div><div class="muted">現在の合計 ／ 満員想定の目標</div></div>`;
   return h;
