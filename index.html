@@ -626,7 +626,7 @@ function renderFeeForm(){const box=document.getElementById('feeform');if(!box)re
 async function finishRegister(){
   showErr('reg-err','');showLoad(true);
   const {data,error}=await db.auth.signUp({email:draft.email,password:draft.pass});
-  if(error){showLoad(false);showErr('reg-err','登録できませんでした：'+error.message);return;}
+  if(error){if(/already|registered|exists|duplicate/i.test((error&&error.message)||'')){showLoad(false);showErr('reg-err','このメールアドレスは登録済みです。お手数ですが、ログイン画面からログインしてください（新規登録は不要です）。');return;}showLoad(false);showErr('reg-err','登録できませんでした：'+error.message);return;}
   // セッションが無い場合（確認メールON時）に備えてサインイン
   let uid=data.user&&data.user.id;
   if(!data.session){ const r=await db.auth.signInWithPassword({email:draft.email,password:draft.pass}); if(r.error){showLoad(false);showErr('reg-err','登録は完了しましたが自動ログインできませんでした。ログイン画面からお試しください。');return;} uid=r.data.user.id; }
@@ -1316,7 +1316,7 @@ async function submitStaffSignup(){
   if(!staffSignup.email.trim()||staffSignup.pass.length<6){toast('メールと6文字以上のパスワードを入力してください');return;}
   showLoad(true);
   const {data,error}=await db.auth.signUp({email:staffSignup.email.trim(),password:staffSignup.pass});
-  if(error){showLoad(false);toast('申請エラー：'+error.message);return;}
+  if(error){if(/already|registered|exists|duplicate/i.test((error&&error.message)||'')){showLoad(false);toast('このメールアドレスは登録済みです。お手数ですが、ログイン画面からログインしてください（新規登録は不要です）。');return;}showLoad(false);toast('申請エラー：'+error.message);return;}
   let uid=data.user&&data.user.id;
   if(!data.session){const r=await db.auth.signInWithPassword({email:staffSignup.email.trim(),password:staffSignup.pass});if(r.error){showLoad(false);toast('申請は作成しましたが、ログイン画面から再度お試しください');return;}uid=r.data.user.id;}
   const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:staffSignup.name.trim(),email:staffSignup.email.trim(),staff_request:staffSignup.role,staff_approved:false,staff_program:staffSignup.p,staff_region:staffSignup.r});
