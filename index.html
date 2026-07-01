@@ -232,11 +232,12 @@
     <div class="msgbar"><input id="msg-input" placeholder="運営にメッセージを送る…"><button onclick="sendMsg()">送信</button></div>
   </section>
 
+  <section class="screen" id="s-pay"><header class="topbar"><span class="logo">💴 入金確認</span></header><div class="pad" id="pay-body"></div></section>
   <nav class="tabbar" id="tabbar" style="display:none">
     <button data-s="s-home" class="on" onclick="tab('s-home',this)"><span class="ic">📅</span>ホーム</button>
     <button data-s="s-my" onclick="tab('s-my',this)"><span class="ic">👤</span>マイページ</button>
     <button data-s="s-tane" onclick="tab('s-tane',this)"><span class="ic">🌱</span>たねもん</button>
-    <button data-s="s-msg" onclick="tab('s-msg',this)"><span class="ic">💬</span>メッセージ</button>
+    <button data-s="s-msg" onclick="tab('s-msg',this)"><span class="ic">💬</span>メッセージ</button><button data-s="s-pay" onclick="tab('s-pay',this);renderPayList()"><span class="ic">💴</span>入金</button>
   </nav>
 
   <!-- STAFF / ADMIN -->
@@ -687,6 +688,8 @@ async function loadMyReqs(){const r=await db.from('change_requests').select('*')
 async function loadMyFur(){const r=await db.from('furikae').select('*').eq('parent_id',me.id);myFur=r.data||[];}
 function isCancelled(room,key){return !!(cancels[room]&&cancels[room][key]);}
 
+async function renderPayList(){var b=document.getElementById('pay-body');if(!b)return;if(!needsPayCheck()){b.innerHTML='<h2 class="title">入金確認</h2><div class="note">この一覧は、お支払い方法が「銀行振込」または「現金」のご家庭向けです。</div>';return;}var starts=kids.map(function(c){return c.enroll;}).filter(Boolean).sort();var start=starts[0];var now=new Date();var sy,sm;if(start){var p=start.split('-');sy=parseInt(p[0],10);sm=parseInt(p[1],10);}else{sy=now.getFullYear();sm=now.getMonth()+1;}var r=await db.from('payment_status').select('*').eq('parent_id',me.id);var paidMap={};(r.data||[]).forEach(function(x){paidMap[x.ym]=x.paid;});var y=sy,m=sm,rows=[];while(y<now.getFullYear()||(y===now.getFullYear()&&m<=now.getMonth()+1)){var ym=y+'-'+m;var paid=!!paidMap[ym];rows.push('<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px"><div style="flex:1;font-weight:800">'+y+'年'+m+'月</div><div style="font-weight:800;font-size:13px;color:'+(paid?'var(--green)':'var(--red)')+'">'+(paid?'支払い済み':'未')+'</div><button class="btn sm '+(paid?'green':'gray')+' paybtn" style="width:auto;padding:9px 14px" data-ym="'+ym+'" data-paid="'+(paid?1:0)+'">'+(paid?'✓ 済み':'支払った')+'</button></div>');m++;if(m>12){m=1;y++;}}var pm=(PAYMENTS.find(function(pp){return pp.k===profile.payment;})||{}).nm||'';b.innerHTML='<h2 class="title">入金確認</h2><p class="muted" style="margin-top:-6px">お支払い方法：'+pm+'。入会月から毎月の状況です。支払いが済んだら「支払った」を押してください。</p>'+rows.join('');[].forEach.call(b.querySelectorAll('.paybtn'),function(btn){btn.onclick=function(){togglePayList(btn.getAttribute('data-ym'),btn.getAttribute('data-paid')!=='1');};});}
+async function togglePayList(ym,done){showLoad(true);await db.from('payment_status').upsert({parent_id:me.id,ym:ym,paid:done,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});showLoad(false);toast(done?'支払い済みにしました':'未払いに戻しました');renderPayList();}
 function enterApp(){
   const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();
   document.getElementById('tabbar').style.display='flex';
