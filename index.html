@@ -475,12 +475,12 @@ function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.g
 function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
-function canFurikaeTo(child,cls){return true;}
+function canFurikaeTo(child,cls){var S=["スタートA","スタートB","スタートC","スタートD"];if(child&&child.classroom==="米子"){var cur=child.class_name;if(S.indexOf(cur)>=0)return S.indexOf(cls)>=0;if(cur==="ステップアップ")return S.indexOf(cls)>=0||cls==="ステップアップ";return true;}return true;}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
 function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
 function holidayBars(y,m){const mo=m+1;const o=[];if(mo===4||mo===5)o.push('🎌 ゴールデンウィーク休み（4/29〜5/6）');if(mo===8)o.push('🎌 お盆休み（8/11〜8/16）');if(mo===12||mo===1)o.push('🎌 年末年始休み（12/29〜1/3）');return o;}
-function maxPerChild(){return 3;}
+function maxPerChild(c){return (c&&c.classroom==="米子")?5:3;}
 function totalPoints(){return kids.reduce((a,c)=>a+(c.points||0),0);}
 function yen(n){return "¥"+Number(n||0).toLocaleString('ja-JP');}
 
@@ -748,7 +748,7 @@ function openClass(school,cls,time,target,y,m,d){
     <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
     <div style="height:14px"></div>
     <button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
-    <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild()}）</p>`);
+    <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild({classroom:selClass.room})}）</p>`);
 }
 function chooseChild(mode,cls){
   const title=mode==='furikae'?'どのお子様が振替参加しますか？':'どのお子様がお休みですか？';
@@ -757,13 +757,13 @@ function chooseChild(mode,cls){
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
       if(!dis&&!canFurikaeTo(c,cls)){dis=true;rs='満5歳未満はスタートのみ';}
-      html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild()}${rs?' ・ '+rs:''}</div></div></div>`;
+      html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild(c)}${rs?' ・ '+rs:''}</div></div></div>`;
     }else{
       const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
       if(ab){
         html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
       }else{
-        html+=`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild()}</div></div></div>`;
+        html+=`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild(c)}</div></div></div>`;
       }
     }});
   openSheet(html);
@@ -773,7 +773,7 @@ async function doAction(mode,i,cls){
   try{
     if(mode==='absent'){
       // 欠席連絡は常に可能。振替ポイントは上限(3)まで。超える分は加算しない。
-      const np=Math.min(maxPerChild(), c.points+1); const gained=np>c.points;
+      const np=Math.min(maxPerChild(c), c.points+1); const gained=np>c.points;
       if(gained) await db.from('children').update({points:np}).eq('id',c.id);
       const ins=await db.from('absences').insert({child_id:c.id,parent_id:me.id,date:selClass.dateStr,classroom:selClass.room,class_name:selClass.cls}).select();
       if(ins.data&&ins.data[0])myAbs.push(ins.data[0]);
@@ -838,8 +838,8 @@ async function cancelFur(furId){
   const dr=await db.from('furikae').delete().eq('id',furId);
   if(dr.error){showLoad(false);toast('取り消しに失敗：'+dr.error.message);return;}
   // 振替で使ったポイントを1つ戻す（本人優先・上限3、満たなければ兄弟へ）
-  let tgt=kids.find(k=>k.id===f.child_id&&(k.points||0)<maxPerChild());
-  if(!tgt)tgt=kids.find(k=>(k.points||0)<maxPerChild());
+  let tgt=kids.find(k=>k.id===f.child_id&&(k.points||0)<maxPerChild(k));
+  if(!tgt)tgt=kids.find(k=>(k.points||0)<maxPerChild(k));
   if(tgt){tgt.points=(tgt.points||0)+1; await db.from('children').update({points:tgt.points}).eq('id',tgt.id);}
   myFur=myFur.filter(x=>x.id!==furId);
   showLoad(false); toast('振替を取り消しました（ポイントを1つ戻しました）'); renderMy();
@@ -857,7 +857,7 @@ async function changePayment(val){
   toast('お支払い方法を「'+nm+'」に変更しました');
 }
 function renderMy(){
-  const b=document.getElementById('my-body');const cap=3*kids.length;
+  const b=document.getElementById('my-body');const cap=kids.reduce(function(a,c){return a+maxPerChild(c);},0);
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
@@ -866,13 +866,13 @@ function renderMy(){
     <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
     <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
   html+=manageBlock();
-  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;
+  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<maxPerChild(c);k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;
     html+=`<div class="card childcard"><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}</h3>
       <div class="muted" style="margin-bottom:6px">${c.classroom}教室 ${c.class_name}</div>
       ${(()=>{const rq=myReqs.find(r=>r.child_id===c.id);return rq?`<div class="note" style="margin-bottom:8px">🔁 教室・クラスの変更を申請中：${rq.to_room}教室 ${rq.to_class}（承認待ち）</div>`:`<button class="btn gray sm" style="margin-bottom:8px" onclick="openChangeReq(${i})">🔁 教室・クラスの変更を申請</button>`;})()}
       <div class="kv"><span class="k">生年月日</span><span class="v">${fmtDate(c.birth)}${c.birth?'（'+ageStr(c.birth)+'）':''}</span></div>
       <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
-      <div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
+      <div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / ${maxPerChild(c)}</span></div>
       <div class="ptchips">${chips}</div>
       <details class="acc"><summary>お子様の情報・お月謝・緊急連絡先を編集</summary>
         <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
