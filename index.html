@@ -1140,9 +1140,9 @@ async function setCancel(room,key,on){
 function attDateLabel(d){const x=new Date(d+'T00:00:00');return `${x.getFullYear()}年${x.getMonth()+1}月${x.getDate()}日（${DOW[x.getDay()]}）`;}
 function stFurikae(){
   const norm=s=>(''+s).slice(0,10);
-  const ds=new Set();
-  allAbsences.forEach(a=>ds.add(norm(a.date)));
-  allFurikae.forEach(f=>ds.add(norm(f.date)));
+  const ds=new Set();const _sc=(staffRole==='admin')?null:staffScope();const _inScope=function(rm){return !_sc||(metaOf(rm).p===_sc.p&&metaOf(rm).r===_sc.r);};
+  allAbsences.forEach(function(a){if(_inScope(a.classroom))ds.add(norm(a.date));});
+  allFurikae.forEach(function(f){if(_inScope(f.to_room))ds.add(norm(f.date));});
   const dates=[...ds].sort();
   let h=`<h2 class="title">欠席・振替</h2>`;
   if(dates.length===0)return h+`<div class="card center"><span class="muted">欠席・振替の記録はまだありません。</span></div>`;
