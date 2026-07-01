@@ -1065,7 +1065,7 @@ function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getE
 function renderStaff(){const b=document.getElementById('staff-body');
   if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
   else if(staffSection==='furikae')b.innerHTML=stFurikae();
-  else if(staffSection==='roster')b.innerHTML=stRoster();
+  else if(staffSection==='roster')b.innerHTML=(staffRole==='admin')?stRoster():stStaffRoster();
   else if(staffSection==='pay')b.innerHTML=stPay();
   else if(staffSection==='finance')b.innerHTML=stFinance();
   else if(staffSection==='shift')b.innerHTML=stShift();
@@ -1173,6 +1173,7 @@ function stFurikae(){
   return h;
 }
 /* --- 名簿・生徒数・売上 --- */
+function stStaffRoster(){var sc=staffScope();var rooms=Object.keys(SCHOOLS).filter(function(s){return metaOf(s).p===sc.p&&metaOf(s).r===sc.r;});var h='<h2 class="title">名簿（クラス別）</h2><p class="muted" style="margin-top:-8px">担当教室のクラスごとの人数と在籍者です。</p>';if(!rooms.length)return h+'<div class="card center"><span class="muted">担当教室がありません（担当エリア未設定）。</span></div>';rooms.forEach(function(room){var inR=students().filter(function(c){return c.classroom===room;});var inner='';SCHOOLS[room].forEach(function(cls){var inC=inR.filter(function(c){return c.class_name===cls;});var rows=inC.map(function(c){return '<div class="sumrow"><span>'+c.name+'</span><b style="font-size:12px;color:var(--sub)">'+(calcGrade(c.birth)||'')+'</b></div>';}).join('')||'<p class="muted" style="margin:4px 0 8px">在籍なし</p>';inner+='<div style="font-weight:800;color:var(--brand);font-size:13px;margin:10px 0 4px">'+cls+'（'+inC.length+'名）</div>'+rows;});h+='<div class="card"><div class="roomtitle" style="color:'+scolor(room).bg+'">'+SCHOOL_INFO[room].full+'　'+inR.length+'名</div>'+inner+'</div>';});return h;}
 function stRoster(){
   if(staffRole!=='admin')return ownerRoster();
   let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">教室・クラスをタップで開きます。</p>`;
