@@ -450,7 +450,7 @@ async function ensureRuleEvents(){
 let shiftsAll={}; // {room:{key:[{id,uid,role,name}]}}
 let capOv={};     // {room:{key:{main,follow}}}
 let staffDayCtx=null;
-async function loadShifts(){shiftsAll={};const r=await db.from('shifts').select('*');(r.data||[]).forEach(s=>{if(!s.room)return;const k=(''+s.date).slice(0,10);(shiftsAll[s.room]=shiftsAll[s.room]||{});(shiftsAll[s.room][k]=shiftsAll[s.room][k]||[]).push({id:s.id,uid:s.user_id,role:s.role||'follow',name:s.staff_name||'スタッフ'});});}
+async function loadShifts(){shiftsAll={};const r=await db.from('shifts').select('*');(r.data||[]).forEach(s=>{if(!s.room)return;const k=(''+s.date).slice(0,10);(shiftsAll[s.room]=shiftsAll[s.room]||{});(shiftsAll[s.room][k]=shiftsAll[s.room][k]||[]).push({id:s.id,uid:s.user_id,role:s.role||'follow',name:sanStr(s.staff_name)||'スタッフ'});});}
 async function loadCapacity(){capOv={};const r=await db.from('shift_capacity').select('*');(r.data||[]).forEach(c=>{const k=(''+c.date).slice(0,10);(capOv[c.room]=capOv[c.room]||{})[k]={main:c.main_quota,follow:c.follow_quota};});}
 function capacityFor(room,key){if(capOv[room]&&capOv[room][key])return capOv[room][key];return metaOf(room).r==='徳島'?{main:1,follow:3}:{main:1,follow:1};}
 function shiftsFor(room,key){return (shiftsAll[room]&&shiftsAll[room][key])||[];}
@@ -669,7 +669,7 @@ async function afterAuth(preUser){
   showLoad(false);
   enterApp();
 }
-async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=r.data||[];}
+async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=(r.data||[]).map(_san);}
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
 async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
 async function loadOverrides(){
@@ -707,12 +707,14 @@ function renderHomeAnn(){const box=document.getElementById('home-ann');const roo
   anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（${esc(a.area)}）</b><br>${esc(a.body)}</div>`;});
   anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 ${SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room}</b><br>${esc(a.body)}</div>`;});
   box.innerHTML=h;}
+function sanStr(s){return (''+(s==null?'':s)).replace(/[<>]/g,'');}
+function _san(o){const x=Object.assign({},o);for(const k in x){if(typeof x[k]==='string')x[k]=sanStr(x[k]);}return x;}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
 
 /* ============ カレンダー ============ */
 function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=legendChipsHtml(classroomsIn(sc.p,sc.r));}
 function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
-function schoolsOn(wd,scope){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
+function schoolsOn(wd,scope,key){return Object.keys(SCHEDULE).filter(s=>(SCHEDULE[s][wd]||(key&&!WEEKLY_ROOMS.has(s)&&events[s]&&events[s][key]))&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
 function renderCal(){
   document.getElementById('cal-label').textContent=`${cal.y}年 ${MONTHS[cal.m]}`;
   document.getElementById('cal-holi').innerHTML=holidayBars(cal.y,cal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
@@ -721,7 +723,7 @@ function renderCal(){
   const first=new Date(cal.y,cal.m,1).getDay(),days=new Date(cal.y,cal.m+1,0).getDate(),today=new Date();
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
   for(let d=1;d<=days;d++){
-    const wd=new Date(cal.y,cal.m,d).getDay();const schools=schoolsOn(wd,currentScope()).filter(s=>isHeld(s,dateKey(cal.y,cal.m,d)));
+    const wd=new Date(cal.y,cal.m,d).getDay();const _k=dateKey(cal.y,cal.m,d);const schools=schoolsOn(wd,currentScope(),_k).filter(s=>isHeld(s,_k));
     const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
     if(today.getFullYear()===cal.y&&today.getMonth()===cal.m&&today.getDate()===d)e.classList.add('today');
     e.innerHTML=`<span>${d}</span>`;
@@ -762,7 +764,7 @@ function chooseChild(mode,cls){
   kids.forEach((c,i)=>{
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
-      if(!dis&&!canFurikaeTo(c,cls)){dis=true;rs='満5歳未満はスタートのみ';}
+      if(!dis&&!canFurikaeTo(c,cls)){dis=true;rs='スタート系クラスへのみ振替できます';}
       html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild(c)}${rs?' ・ '+rs:''}</div></div></div>`;
     }else{
       const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
@@ -787,7 +789,7 @@ async function doAction(mode,i,cls){
       toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
     }else{
       if(totalPoints()<=0){toast('家族の振替ポイントが足りません');return;}
-      if(!canFurikaeTo(c,cls)){toast('満5歳未満のお子様はスタートクラスのみ参加できます');return;}
+      if(!canFurikaeTo(c,cls)){toast('このクラスへは振替できません（スタート系クラスをお選びください）');return;}
       // 兄弟共有：本人→なければ兄弟から1消費
       let target=c.points>0?c:kids.find(k=>k.points>0);
       const np=target.points-1;
@@ -1019,8 +1021,8 @@ async function loadStaffData(){
     db.from('payment_status').select('*'),
     db.from('messages').select('*').order('created_at')
   ]);
-  allProfiles=a.data||[];
-  allChildren=b.data||[];
+  allProfiles=(a.data||[]).map(_san);
+  allChildren=(b.data||[]).map(_san);
   allFurikae=c.data||[];
   allAbsences=ab.data||[];
   roomCosts={}; (rc.data||[]).forEach(r=>roomCosts[r.room]={gym:r.gym||0,labor:r.labor||0});
@@ -1065,7 +1067,7 @@ function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getE
 function renderStaff(){const b=document.getElementById('staff-body');
   if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
   else if(staffSection==='furikae')b.innerHTML=stFurikae();
-  else if(staffSection==='roster')b.innerHTML=(staffRole==='admin')?stRoster():stStaffRoster();
+  else if(staffSection==='roster')b.innerHTML=(staffRole==='admin')?stRoster():ownerRoster();
   else if(staffSection==='pay')b.innerHTML=stPay();
   else if(staffSection==='finance')b.innerHTML=stFinance();
   else if(staffSection==='shift')b.innerHTML=stShift();
@@ -1157,7 +1159,7 @@ function stFurikae(){
   const furOf=allFurikae.filter(f=>norm(f.date)===attDate);
   let any=false;
   (staffRole==='admin'?Object.keys(SCHOOLS):Object.keys(SCHOOLS).filter(function(_r){return metaOf(_r).p===staffScope().p&&metaOf(_r).r===staffScope().r;})).forEach(room=>{
-    SCHOOLS[room].forEach(cls=>{
+    [...new Set([...SCHOOLS[room],...absOf.filter(a=>a.classroom===room).map(a=>a.class_name),...furOf.filter(f=>f.to_room===room).map(f=>f.to_class)])].forEach(cls=>{
       const abs=absOf.filter(a=>a.classroom===room&&a.class_name===cls);
       const fur=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
       if(abs.length===0&&fur.length===0)return; any=true;
@@ -1334,9 +1336,9 @@ async function submitStaffSignup(){
   closeSheet();toast('申請を受け付けました。承認後にログインできます');go('s-login');
 }
 function openPendingScreen(){go('s-login');openSheet(`<h3>承認待ちです</h3><p class="muted">スタッフ申請を受け付けています。管理者（木原）の承認をお待ちください。承認されると、次回ログイン時にスタッフ機能が使えます。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet();logout()">ログアウト</button>`);}
-async function approveStaff(id,req){showLoad(true);const role=req==='owner'?'staff':'parttime';const r=await db.from('profiles').update({role,staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
+async function approveStaff(id,req){showLoad(true);const role=req==='owner'?'staff':'parttime';const r=await db.from('profiles').update({role,staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=(a.data||[]).map(_san);showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
 async function rejectStaff(id){showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
-function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope());if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
+function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope(), key);if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
 function stMembers(){
   let h=`<h2 class="title">メンバー・権限</h2><p class="muted" style="margin-top:-8px">教室・クラスごとにまとめています。緊急連絡先の確認や、役割（スタッフ・管理者・アルバイト）の変更ができます。</p>`;
   if(allChangeReqs.length){
@@ -1386,7 +1388,7 @@ async function approveReq(id,childId,toRoom,toCls){showLoad(true);
   const u=await db.from('change_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);
   if(!u.error) await db.from('children').update({classroom:toRoom,class_name:toCls,program:metaOf(toRoom).p,region:metaOf(toRoom).r}).eq('id',childId);
   const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
-  const ch=await db.from('children').select('*');allChildren=ch.data||[];
+  const ch=await db.from('children').select('*');allChildren=(ch.data||[]).map(_san);
   showLoad(false); if(u.error){toast('エラー：'+u.error.message);return;} toast('承認しました（クラスを変更）');renderStaff();}
 async function rejectReq(id){showLoad(true);
   await db.from('change_requests').update({status:'rejected',decided_at:new Date().toISOString()}).eq('id',id);
@@ -1397,7 +1399,7 @@ function stShift(){
   let h=`<h2 class="title">シフト</h2><p class="muted" style="margin-top:-8px">入れる日に「フォローで入る」を押してください。あなたはフォロースタッフです。</p>`;
   const sc=staffScope();const t=new Date();t.setHours(0,0,0,0);let any=false;
   for(let i=0;i<70;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
-    const schools=schoolsOn(wd,sc).filter(s=>isHeld(s,key)&&!isCancelled(s,key));
+    const schools=schoolsOn(wd,sc,key).filter(s=>isHeld(s,key)&&!isCancelled(s,key));
     schools.forEach(room=>{any=true;const cap=capacityFor(room,key);const ti=teacherInfo(room,key);const mine=myShiftRole(room,key)==='follow';const full=ti.follows.length>=cap.follow&&!mine;
       h+=`<div class="card" style="padding:12px 14px"><div style="font-weight:800">${d.getMonth()+1}月${d.getDate()}日（${DOW[wd]}）・${SCHOOL_INFO[room].full}</div><div class="muted">フォロー ${ti.follows.length}/${cap.follow}${ti.follows.length?'：'+ti.follows.join('・'):''}</div>
         <div style="margin-top:8px">${mine?`<button class="btn sm green" style="width:auto;padding:8px 14px" onclick="leaveShift('${room}','${key}')">✅ 入っています（外れる）</button>`:`<button class="btn sm ${full?'gray':''}" style="width:auto;padding:8px 14px" ${full?'disabled':''} onclick="joinShift('${room}','${key}','follow')">${full?'満員':'フォローで入る'}</button>`}</div></div>`;});
@@ -1485,7 +1487,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
 async function refreshApp(){var _ae=document.activeElement;if(_ae&&(_ae.tagName==='INPUT'||_ae.tagName==='TEXTAREA'||_ae.isContentEditable)){return;}
   if(!READY||!me)return;
   await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
-  if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
+  if(profile&&(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
 }
 (function setupPull(){
