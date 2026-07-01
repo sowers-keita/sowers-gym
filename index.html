@@ -1149,7 +1149,7 @@ function stFurikae(){
   const absOf=allAbsences.filter(a=>norm(a.date)===attDate);
   const furOf=allFurikae.filter(f=>norm(f.date)===attDate);
   let any=false;
-  Object.keys(SCHOOLS).forEach(room=>{
+  (staffRole==='admin'?Object.keys(SCHOOLS):Object.keys(SCHOOLS).filter(function(_r){return metaOf(_r).p===staffScope().p&&metaOf(_r).r===staffScope().r;})).forEach(room=>{
     SCHOOLS[room].forEach(cls=>{
       const abs=absOf.filter(a=>a.classroom===room&&a.class_name===cls);
       const fur=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
