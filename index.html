@@ -881,7 +881,7 @@ function renderMy(){
         <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
         <label class="fld">生年月日</label><input type="date" id="bd-${i}" value="${c.birth||''}">
         <label class="fld">小学校名</label><input id="sc-${i}" value="${(c.school||'').replace(/"/g,'&quot;')}" placeholder="○○小学校">
-        <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000">
+        <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000"><label class="fld">入会した月</label><div class="row2"><select id="enr2y-${i}"><option value="">年</option>${(function(){var y=new Date().getFullYear();var o='';for(var k=0;k<=9;k++){var yy=y-k;o+='<option'+((''+yy)===((c.enroll||'').split('-')[0])?' selected':'')+'>'+yy+'</option>';}return o;})()}</select><select id="enr2m-${i}"><option value="">月</option>${(function(){var o='';var mm=(c.enroll||'').split('-')[1];mm=mm?(''+parseInt(mm,10)):'';for(var k=1;k<=12;k++){o+='<option value="'+k+'"'+((''+k)===mm?' selected':'')+'>'+k+'月</option>';}return o;})()}</select></div><button class="btn sm" style="margin-top:8px" onclick="saveEnroll(${i})">入会月を保存</button>
         <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>
         <label class="fld">緊急連絡先1</label><input id="ec1-${i}" value="${c.ec1||''}" placeholder="電話番号">
         <input style="margin-top:6px" id="ec1n-${i}" value="${c.ec1_note||''}" placeholder="特につながりやすい時間・関係（例：母・日中）">
@@ -895,6 +895,7 @@ function renderMy(){
     <button class="btn" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="openDeleteAccount()">アカウントを削除（退会）</button>`;
   b.innerHTML=html;
 }
+async function saveEnroll(i){var c=kids[i];var y=document.getElementById('enr2y-'+i).value;var m=document.getElementById('enr2m-'+i).value;if(!y||!m){toast('入会した年と月を選んでください');return;}var ev=y+'-'+String(m).padStart(2,'0');showLoad(true);var r=await db.from('children').update({enroll:ev}).eq('id',c.id);showLoad(false);if(r&&r.error){toast('保存エラー：'+r.error.message);return;}c.enroll=ev;toast('入会月を'+y+'年'+m+'月に変更しました');}
 async function saveChild(i){const c=kids[i];showLoad(true);
   const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value};
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
