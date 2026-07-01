@@ -1482,7 +1482,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
   if(r.error){toast('送信エラー：'+r.error.message);return;}toast('返信しました');renderStaff();}
 
 /* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
-async function refreshApp(){
+async function refreshApp(){var _ae=document.activeElement;if(_ae&&(_ae.tagName==='INPUT'||_ae.tagName==='TEXTAREA'||_ae.isContentEditable)){return;}
   if(!READY||!me)return;
   await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
   if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
