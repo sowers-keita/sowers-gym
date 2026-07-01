@@ -737,14 +737,14 @@ function openDay(y,m,d,schools){
   });
   openSheet(html);
 }
-function openClass(school,cls,time,target,y,m,d){
+async function openClass(school,cls,time,target,y,m,d){
   selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
-  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;
+  const _ccwd=new Date(y,m-1,d).getDay();const _cont=(typeof contentOn==='function')?contentOn(school,selClass.dateStr,_ccwd):{classes:[]};const _ci=(_cont.classes||[]).find(function(x){return x.c===cls;});const _cap=(_ci&&_ci.cap!=null)?_ci.cap:3;let _en=0,_fi=0,_ab=0;try{const _r=await db.rpc('class_counts',{p_room:school,p_date:selClass.dateStr,p_class:cls});if(_r&&_r.data&&_r.data[0]){_en=_r.data[0].enrolled||0;_fi=_r.data[0].furikae_in||0;_ab=_r.data[0].absent||0;}}catch(e){}const _going=_en+_fi-_ab;const _slots=_cap+_ab-_fi;const _full=_slots<=0;const canF=totalPoints()>0&&!_full;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;
   openSheet(`<h3>${inf.full} ${cls}</h3>
     <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
     <div class="muted" style="margin-bottom:16px">📍 ${_place}</div>
-    <button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
-    ${canF?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>'}
+    <div class="note" style="margin-bottom:14px">現在の参加見込み：<b>${_going}名</b>${_full?'　（振替は満員です）':'　／ 振替の空き：あと'+Math.max(0,_slots)+'名'}</div><button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
+    ${_full?'<p class="muted center" style="margin:8px 0 4px">振替の枠が満員です</p>':(totalPoints()>0?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>')}
     <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
     <div style="height:14px"></div>
     <button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
