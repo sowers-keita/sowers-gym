@@ -302,7 +302,7 @@ const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動�
 
 /* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
 Object.assign(SCHOOLS,{
-  "米子":["スタートA","スタートB","スタートC","スタートD","ステップアップ","アクロバット"],
+  "米子":["スタートA","スタートB","スタートC","ステップアップY","ステップアップZ","アクロバット"],
   "松江":["Aクラス","Bクラス"],
   "糸島":["ジュニアクラス","スタートクラス"],
   "福山":["Aクラス","Bクラス"],
@@ -323,7 +323,7 @@ Object.assign(SCHOOL_COLOR,{
   "米子":{bg:"#0ea5e9",fg:"#fff"},"松江":{bg:"#14b8a6",fg:"#fff"},"糸島":{bg:"#f97316",fg:"#fff"},"福山":{bg:"#ef4444",fg:"#fff"},"北谷":{bg:"#22c55e",fg:"#fff"},"室川":{bg:"#a855f7",fg:"#fff"},"keydance":{bg:"#ec4899",fg:"#fff"}
 });
 Object.assign(SCHEDULE,{
-  "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"16:30–17:30",g:"5歳以上"},{c:"スタートD",t:"17:40–18:40",g:"5歳以上"}]},
+  "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップZ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"16:30–17:30",g:"5歳以上"},{c:"ステップアップY",t:"17:40–18:40",g:"基礎〜技の習得"}]},
   "松江":{6:[{c:"Aクラス",t:"16:30–17:30",g:"5歳以上"},{c:"Bクラス",t:"17:40–18:40",g:"5歳以上"}]},
   "糸島":{6:[{c:"ジュニアクラス",t:"10:30–11:30",g:"小学生以上推奨"},{c:"スタートクラス",t:"14:00–15:00",g:"年中・年長向け"}]},
   "福山":{0:[{c:"Aクラス",t:"10:00–11:00",g:"5歳〜"},{c:"Bクラス",t:"11:10–12:10",g:"5歳〜"}]},
@@ -331,7 +331,7 @@ Object.assign(SCHEDULE,{
   "室川":{1:[{c:"キッズ体操",t:"18:10–19:10",g:"小学生以上"},{c:"キッズバク転",t:"19:20–20:20",g:"小学生以上"}],2:[{c:"子どもバク転B",t:"17:50–18:50",g:"小学生以上"},{c:"子どもバク転C",t:"19:00–20:00",g:"小学生以上"}]},
   "keydance":{3:[{c:"Aクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"Bクラス",t:"17:30–18:30",g:"5歳〜小学生"}],4:[{c:"Aクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"Bクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
 });
-Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13});
+Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13});
 const CLASSROOM_META={
   "論田":{p:"体操",r:"徳島"},"北島":{p:"体操",r:"徳島"},"吉野川":{p:"体操",r:"徳島"},"阿南":{p:"体操",r:"徳島"},"上板":{p:"体操",r:"徳島"},"小松島":{p:"体操",r:"徳島"},
   "米子":{p:"体操",r:"鳥取"},"松江":{p:"体操",r:"島根"},"糸島":{p:"体操",r:"福岡"},"福山":{p:"体操",r:"広島"},"北谷":{p:"体操",r:"沖縄"},"室川":{p:"体操",r:"沖縄"},
@@ -1284,10 +1284,10 @@ function ownerRoster(){
   rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);total+=inR.length;if(!inR.length)return;
     let inner='';
     (SCHOOLS[room]||[]).forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);if(!inC.length)return;
-      inner+=`<div class="roomtitle" style="color:var(--brand);font-size:13px;margin:10px 0 4px">${cls}（${inC.length}名）</div>`;
-      inC.forEach(c=>{inner+=contactCard(c);});});
+      let cards='';inC.forEach(c=>{cards+=contactCard(c);});
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}（${inC.length}名）</summary>${cards}</details>`;});
     const other=inR.filter(c=>!(SCHOOLS[room]||[]).includes(c.class_name));
-    if(other.length){inner+=`<div class="roomtitle" style="color:var(--sub);font-size:13px;margin:10px 0 4px">その他（${other.length}名）</div>`;other.forEach(c=>{inner+=contactCard(c);});}
+    if(other.length){let cards='';other.forEach(c=>{cards+=contactCard(c);});inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--sub)">その他（${other.length}名）</summary>${cards}</details>`;}
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span class="muted" style="font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
   if(!total)h+=`<div class="card center"><span class="muted">担当エリアにまだ生徒がいません。</span></div>`;
   const pts=allProfiles.filter(p=>p.role==='parttime'&&p.staff_program===sc.p&&p.staff_region===sc.r);
