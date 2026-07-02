@@ -344,6 +344,9 @@ function regionsFor(program){const s=[];Object.keys(CLASSROOM_META).forEach(k=>{
 function classroomsIn(program,region){return Object.keys(CLASSROOM_META).filter(k=>CLASSROOM_META[k].p===program&&CLASSROOM_META[k].r===region);}
 function metaOf(room){return CLASSROOM_META[room]||{p:"体操",r:"徳島"};}
 function currentScope(){if(typeof kids!=='undefined'&&kids&&kids.length){const m=metaOf(kids[0].classroom);return {p:m.p,r:m.r};}return {p:"体操",r:"徳島"};}
+function familyScopes(){if(typeof kids!=='undefined'&&kids&&kids.length){const seen={},out=[];kids.forEach(k=>{const m=metaOf(k.classroom);const key=m.p+'/'+m.r;if(!seen[key]){seen[key]=1;out.push({p:m.p,r:m.r});}});return out;}return [currentScope()];}
+function familyRooms(){return [...new Set(familyScopes().flatMap(sc=>classroomsIn(sc.p,sc.r)))];}
+function familyPayments(){return [...new Map(familyScopes().flatMap(sc=>paymentsFor(sc)).map(p=>[p.k,p])).values()];}
 function paymentsFor(scope){if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
 
 /* ===== 会場が曜日で変わる教室（key dance school: 水=上八万/木=八万中央） ===== */
@@ -703,8 +706,8 @@ function enterApp(){
 /* ============ お知らせ ============ */
 function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(kids.map(c=>c.classroom))];let h='';
   anns.filter(a=>a.scope==='all').forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（全体）</b><br>${esc(a.body)}</div>`;});
-  const _sc=currentScope();const _area=_sc.p+'/'+_sc.r;
-  anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（${esc(a.area)}）</b><br>${esc(a.body)}</div>`;});
+  const _areas=familyScopes().map(sc=>sc.p+'/'+sc.r);
+  anns.filter(a=>a.scope==='area'&&_areas.includes(a.area)).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（${esc(a.area)}）</b><br>${esc(a.body)}</div>`;});
   anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 ${SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room}</b><br>${esc(a.body)}</div>`;});
   box.innerHTML=h;}
 function sanStr(s){return (''+(s==null?'':s)).replace(/[<>]/g,'');}
@@ -712,7 +715,7 @@ function _san(o){const x=Object.assign({},o);for(const k in x){if(typeof x[k]===
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
 
 /* ============ カレンダー ============ */
-function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=legendChipsHtml(classroomsIn(sc.p,sc.r));}
+function renderLegend(){document.getElementById('cal-legend').innerHTML=legendChipsHtml(familyRooms());}
 function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
 function schoolsOn(wd,scope,key){return Object.keys(SCHEDULE).filter(s=>(SCHEDULE[s][wd]||(key&&!WEEKLY_ROOMS.has(s)&&events[s]&&events[s][key]))&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
 function renderCal(){
@@ -723,7 +726,7 @@ function renderCal(){
   const first=new Date(cal.y,cal.m,1).getDay(),days=new Date(cal.y,cal.m+1,0).getDate(),today=new Date();
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
   for(let d=1;d<=days;d++){
-    const wd=new Date(cal.y,cal.m,d).getDay();const _k=dateKey(cal.y,cal.m,d);const schools=schoolsOn(wd,currentScope(),_k).filter(s=>isHeld(s,_k));
+    const wd=new Date(cal.y,cal.m,d).getDay();const _k=dateKey(cal.y,cal.m,d);const schools=[...new Set(familyScopes().flatMap(sc=>schoolsOn(wd,sc,_k)))].filter(s=>isHeld(s,_k));
     const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
     if(today.getFullYear()===cal.y&&today.getMonth()===cal.m&&today.getDate()===d)e.classList.add('today');
     e.innerHTML=`<span>${d}</span>`;
@@ -879,7 +882,7 @@ function renderMy(){
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
-    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${paymentsFor(currentScope()).map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
+    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${familyPayments().map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
     </div>
     <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
     <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
@@ -917,7 +920,7 @@ async function saveChild(i){const c=kids[i];showLoad(true);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   Object.assign(c,patch);toast('保存しました');renderMy();}
 function openChangeReq(i){
-  const c=kids[i];const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option ${s===c.classroom?'selected':''}>${s}</option>`).join('');
+  const c=kids[i];const schoolOpts=familyRooms().map(s=>`<option value="${s}" ${s===c.classroom?'selected':''}>${SCHOOL_INFO[s]?SCHOOL_INFO[s].full:s}</option>`).join('');
   openSheet(`<h3>教室・クラスの変更申請</h3>
     <p class="muted" style="margin-bottom:10px">${c.name} さんの希望を選んで送信してください。<b>管理者が承認すると反映</b>されます。</p>
     <label class="fld">希望する教室</label>
@@ -939,7 +942,7 @@ async function submitChangeReq(i){
   closeSheet();renderMy();toast('変更を申請しました（承認をお待ちください）');
 }
 function openAddSibling(){
-  const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option>${s}</option>`).join('');const first=Object.keys(SCHOOLS)[0];
+  const _fr=familyRooms();const schoolOpts=_fr.map(s=>`<option value="${s}">${SCHOOL_INFO[s]?SCHOOL_INFO[s].full:s}</option>`).join('');const first=_fr[0];
   openSheet(`<h3>兄弟・姉妹を追加</h3>
     <label class="fld">お名前</label><input id="sb-name" placeholder="山田 次郎">
     <label class="fld">生年月日</label><input id="sb-birth" type="date">
