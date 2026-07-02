@@ -1138,22 +1138,30 @@ async function setCancel(room,key,on){
 }
 /* --- 振替の参加予定 --- */
 function attDateLabel(d){const x=new Date(d+'T00:00:00');return `${x.getFullYear()}年${x.getMonth()+1}月${x.getDate()}日（${DOW[x.getDay()]}）`;}
+function furikaeRooms(){
+  if(staffRole==='admin'){let r=Object.keys(SCHOOLS);if(adminFilter.p)r=r.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)r=r.filter(s=>metaOf(s).r===adminFilter.r);return r;}
+  const sc=staffScope();return classroomsIn(sc.p,sc.r);
+}
 function stFurikae(){
   const norm=s=>(''+s).slice(0,10);
+  const rooms=furikaeRooms();
   const ds=new Set();
-  allAbsences.forEach(a=>ds.add(norm(a.date)));
-  allFurikae.forEach(f=>ds.add(norm(f.date)));
+  allAbsences.forEach(a=>{if(rooms.includes(a.classroom))ds.add(norm(a.date));});
+  allFurikae.forEach(f=>{if(rooms.includes(f.to_room))ds.add(norm(f.date));});
+  // 開催日（前後約1.5〜3ヶ月）も候補に含める＝記録が無い日でも選べる
+  const t0=new Date();t0.setHours(0,0,0,0);const st=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-45);
+  for(let i=0;i<135;i++){const d=new Date(st.getFullYear(),st.getMonth(),st.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;rooms.forEach(room=>{if(SCHEDULE[room]&&SCHEDULE[room][wd]&&isHeld(room,key))ds.add(key);});}
   const dates=[...ds].sort();
   let h=`<h2 class="title">欠席・振替</h2>`;
-  if(dates.length===0)return h+`<div class="card center"><span class="muted">欠席・振替の記録はまだありません。</span></div>`;
+  if(dates.length===0)return h+`<div class="card center"><span class="muted">開催日がまだありません。月3回の教室は「予定」タブの「開催日・予定を作成/編集」で開催日を登録してください。</span></div>`;
   if(!attDate||!dates.includes(attDate)){const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());attDate=dates.find(d=>d>=today)||dates[dates.length-1];}
   const opts=dates.slice().reverse().map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('');
   h+=`<div class="card"><label class="fld">日にちを選ぶ</label><select onchange="attDate=this.value;renderStaff()">${opts}</select></div>`;
   const absOf=allAbsences.filter(a=>norm(a.date)===attDate);
   const furOf=allFurikae.filter(f=>norm(f.date)===attDate);
   let any=false;
-  Object.keys(SCHOOLS).forEach(room=>{
-    SCHOOLS[room].forEach(cls=>{
+  rooms.forEach(room=>{
+    (SCHOOLS[room]||[]).forEach(cls=>{
       const abs=absOf.filter(a=>a.classroom===room&&a.class_name===cls);
       const fur=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
       if(abs.length===0&&fur.length===0)return; any=true;
@@ -1274,7 +1282,12 @@ function ownerRoster(){
   let h=`<h2 class="title">名簿・連絡先</h2><p class="muted" style="margin-top:-8px">担当エリア（${sc.p}・${sc.r}）の生徒と緊急連絡先です。</p>`;
   let total=0;
   rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);total+=inR.length;if(!inR.length)return;
-    let inner='';inR.forEach(c=>{inner+=contactCard(c);});
+    let inner='';
+    (SCHOOLS[room]||[]).forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);if(!inC.length)return;
+      inner+=`<div class="roomtitle" style="color:var(--brand);font-size:13px;margin:10px 0 4px">${cls}（${inC.length}名）</div>`;
+      inC.forEach(c=>{inner+=contactCard(c);});});
+    const other=inR.filter(c=>!(SCHOOLS[room]||[]).includes(c.class_name));
+    if(other.length){inner+=`<div class="roomtitle" style="color:var(--sub);font-size:13px;margin:10px 0 4px">その他（${other.length}名）</div>`;other.forEach(c=>{inner+=contactCard(c);});}
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span class="muted" style="font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
   if(!total)h+=`<div class="card center"><span class="muted">担当エリアにまだ生徒がいません。</span></div>`;
   const pts=allProfiles.filter(p=>p.role==='parttime'&&p.staff_program===sc.p&&p.staff_region===sc.r);
