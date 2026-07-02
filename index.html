@@ -1495,10 +1495,13 @@ function stMessages(){
   let pids;
   if(staffRole==='admin'){pids=Object.keys(byP);}
   else{const area=myAreaParentIds();pids=[...new Set([...Object.keys(byP).filter(id=>area.has(id)),...area])];}
-  let h=`<h2 class="title">${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>`;
+  const _isUnreplied=(pid)=>{const ms=(byP[pid]||[]).slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));const last=ms[ms.length-1];return !!(last&&last.sender==='parent');};
+  pids=pids.slice().sort((a,b)=>{const ua=_isUnreplied(a),ub=_isUnreplied(b);if(ua!==ub)return ua?-1:1;const la=(byP[a]||[]).slice(-1)[0],lb=(byP[b]||[]).slice(-1)[0];return (''+((lb&&lb.created_at)||'')).localeCompare(''+((la&&la.created_at)||''));});
+  const _un=pids.filter(_isUnreplied).length;
+  let h=`<h2 class="title">${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>`+(_un>0?`<div class="note" style="background:#ffeaea;border-color:#f3c2c2;color:#b3261e;margin-bottom:12px">✉️ 未返信が <b>${_un}件</b> あります（赤い「未返信」の保護者からお返事をお願いします）</div>`:'');
   if(pids.length===0)return h+`<div class="card center"><span class="muted">${staffRole==='admin'?'まだメッセージはありません。':'担当の保護者がいません。'}</span></div>`;
   pids.forEach(pid=>{const ms=byP[pid]||[];
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}<span style="color:var(--sub);font-weight:600;font-size:11px">${parentRooms(pid)}</span>　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${_isUnreplied(pid)?'<span style="display:inline-block;background:var(--red);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:9px;margin-right:6px">未返信</span>':''}${profName(pid)}<span style="color:var(--sub);font-weight:600;font-size:11px">${parentRooms(pid)}</span>　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
       <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
       <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="メッセージを入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
