@@ -553,7 +553,9 @@ const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","�
 const REG_N=REG_TITLES.length;
 function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
 function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
-function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
+const FEE_BY_ROOM={"論田":7000,"北島":6500,"吉野川":6500,"小松島":5500,"上板":5500,"米子":5500,"松江":5500,"糸島":5500,"keydance":4900};
+function feeFor(room){return (room in FEE_BY_ROOM)?FEE_BY_ROOM[room]:7000;}
+function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:feeFor(cr),enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
 function renderReg(){
   const s=document.getElementById('reg-steps');s.innerHTML='';for(let i=0;i<REG_N;i++){const d=document.createElement('div');d.className='dot'+(i<=reg.step?' on':'');s.appendChild(d);}
   const b=document.getElementById('reg-body');const pill=`<span class="pill">STEP ${reg.step+1} / ${REG_N} ・ ${REG_TITLES[reg.step]}</span>`;
@@ -616,7 +618,7 @@ function renderKidsForm(){const box=document.getElementById('kidsform');if(!box)
     <label class="fld">生年月日</label><input type="date" value="${c.birth}" oninput="draft.children[${i}].birth=this.value">
     <label class="fld">小学校名</label><input value="${c.school}" oninput="draft.children[${i}].school=this.value" placeholder="○○小学校">
     <label class="fld">入会した月（在籍開始）</label>${enrollSelects('enr-y-'+i,'enr-m-'+i,c.enroll,'setEnrollDraft('+i+')')}
-    <div class="row2"><div><label class="fld">教室</label><select onchange="draft.children[${i}].classroom=this.value;draft.children[${i}].class_name=SCHOOLS[this.value][0];renderKidsForm()">${opts}</select></div>
+    <div class="row2"><div><label class="fld">教室</label><select onchange="draft.children[${i}].classroom=this.value;draft.children[${i}].class_name=SCHOOLS[this.value][0];draft.children[${i}].fee=feeFor(this.value);renderKidsForm()">${opts}</select></div>
     <div><label class="fld">クラス</label><select onchange="draft.children[${i}].class_name=this.value">${clsOpts}</select></div></div>`;
   box.appendChild(d);});}
 function saveKids(){for(const c of draft.children){if(!c.name.trim()){toast('お子様のお名前を入力してください');return;}}reg.step=5;renderReg();}
@@ -956,9 +958,9 @@ function openAddSibling(){
     <label class="fld">生年月日</label><input id="sb-birth" type="date">
     <label class="fld">小学校名</label><input id="sb-school" placeholder="○○小学校">
     <label class="fld">入会した月</label>${enrollSelects('sb-enroll-y','sb-enroll-m','','')}
-    <div class="row2"><div><label class="fld">教室</label><select id="sb-room" onchange="document.getElementById('sb-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('')">${schoolOpts}</select></div>
+    <div class="row2"><div><label class="fld">教室</label><select id="sb-room" onchange="document.getElementById('sb-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('');var _sf=document.getElementById('sb-fee');if(_sf&&_sf.dataset.auto==='1')_sf.value=feeFor(this.value)">${schoolOpts}</select></div>
     <div><label class="fld">クラス</label><select id="sb-cls">${SCHOOLS[first].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
-    <label class="fld">お月謝（円）</label><input id="sb-fee" type="number" value="7000">
+    <label class="fld">お月謝（円）</label><input id="sb-fee" type="number" value="${feeFor(first)}" data-auto="1">
     <div style="height:14px"></div><button class="btn green" onclick="saveSibling()">追加する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
 }
