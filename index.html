@@ -673,6 +673,7 @@ async function afterAuth(preUser){
     await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
   }
   await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur()]);
+  await syncPoints();
   showLoad(false);
   enterApp();
 }
@@ -789,6 +790,9 @@ if(!dis){const _dF=myFur.find(f=>f.child_id===c.id&&(''+f.date).slice(0,10)===se
     }});
   openSheet(html);
 }
+function earnedPoints(){const g={};myAbs.forEach(function(a){if(a.point_granted!==false)g[a.child_id]=(g[a.child_id]||0)+1;});let e=0;kids.forEach(function(c){e+=Math.min(maxPerChild(c),g[c.id]||0);});return e;}
+function availablePoints(){return Math.max(0,earnedPoints()-myFur.length);}
+async function syncPoints(){let avail=availablePoints();for(const c of kids){const give=Math.min(maxPerChild(c),avail);avail-=give;if((c.points||0)!==give){c.points=give;await db.from('children').update({points:give}).eq('id',c.id);}}}
 async function doAction(mode,i,cls){
   const c=kids[i];showLoad(true);
   try{
@@ -796,28 +800,22 @@ async function doAction(mode,i,cls){
       if(c.classroom!==selClass.room){showLoad(false);toast('在籍教室以外の欠席連絡は不要です');return;}
       const _dA=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===selClass.cls);
       if(_dA){showLoad(false);toast('この日の欠席はすでに受付済みです');return;}
-      const np=Math.min(maxPerChild(c), c.points+1); const gained=np>c.points;
       const _row={child_id:c.id,parent_id:me.id,date:selClass.dateStr,classroom:selClass.room,class_name:selClass.cls};
-      let ins=await db.from('absences').insert(Object.assign({point_granted:gained},_row)).select();
+      let ins=await db.from('absences').insert(Object.assign({point_granted:true},_row)).select();
       if(ins.error&&/point_granted/.test(''+ins.error.message)){ins=await db.from('absences').insert(_row).select();}
       if(ins.error){showLoad(false);toast(/duplicate|23505/.test(''+ins.error.message+ins.error.code)?'この日の欠席はすでに受付済みです':'受付できませんでした：'+ins.error.message);return;}
-      if(gained) await db.from('children').update({points:np}).eq('id',c.id);
       if(ins.data&&ins.data[0])myAbs.push(ins.data[0]);
-      c.points=np;
-      toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
+      const _bp=totalPoints();await syncPoints();
+      toast(totalPoints()>_bp?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
     }else{
-      if(totalPoints()<=0){showLoad(false);toast('家族の振替ポイントが足りません');return;}
+      if(availablePoints()<=0){showLoad(false);toast('家族の振替ポイントが足りません');return;}
       if(!canFurikaeTo(c,cls)){showLoad(false);toast('このクラスへは振替できません（スタート系クラスをお選びください）');return;}
       const _dF2=myFur.find(f=>f.child_id===c.id&&(''+f.date).slice(0,10)===selClass.dateStr&&f.to_room===selClass.room&&f.to_class===selClass.cls);
       if(_dF2){showLoad(false);toast('この日の振替はすでに受付済みです');return;}
-      // 兄弟共有：本人→なければ兄弟から1消費（先に登録し、成功後にポイント減算）
-      let target=c.points>0?c:kids.find(k=>k.points>0);
-      const np=target.points-1;
       const fi=await db.from('furikae').insert({child_id:c.id,parent_id:me.id,date:selClass.dateStr,to_room:selClass.room,to_class:selClass.cls,from_room:c.classroom,from_class:c.class_name}).select();
       if(fi.error){showLoad(false);toast(/duplicate|23505/.test(''+fi.error.message+fi.error.code)?'この日の振替はすでに受付済みです':'受付できませんでした：'+fi.error.message);return;}
-      await db.from('children').update({points:np}).eq('id',target.id);
       if(fi.data&&fi.data[0])myFur.push(fi.data[0]);
-      target.points=np;toast(`${c.name}の振替参加を受付しました！`);
+      await syncPoints();toast(`${c.name}の振替参加を受付しました！`);
     }
   }catch(e){toast('エラー：'+e.message);}
   showLoad(false);closeSheet();renderMy();
@@ -827,9 +825,8 @@ async function cancelAbsent(absId,i){
   try{
     const dr=await db.from('absences').delete().eq('id',absId);
     if(dr.error){showLoad(false);toast('取り消しに失敗：'+dr.error.message);return;}
-    const _abR=myAbs.find(a=>a.id===absId);const _granted=!_abR||_abR.point_granted!==false;
-    if(_granted){const np=Math.max(0,(c.points||0)-1);if(np!==c.points) await db.from('children').update({points:np}).eq('id',c.id);c.points=np;}
     myAbs=myAbs.filter(a=>a.id!==absId);
+    await syncPoints();
     toast(`${c.name}の欠席を取り消しました`);
   }catch(e){toast('エラー：'+e.message);}
   showLoad(false);closeSheet();renderMy();
@@ -853,12 +850,11 @@ function manageBlock(){
 }
 async function cancelAbs(absId){
   const ab=myAbs.find(a=>a.id===absId); if(!ab)return;
-  const c=kids.find(k=>k.id===ab.child_id);
   showLoad(true);
   const r=await db.from('absences').delete().eq('id',absId);
   if(r.error){showLoad(false);toast('取り消しに失敗：'+r.error.message);return;}
-  if(c&&(ab.point_granted!==false)){const np=Math.max(0,(c.points||0)-1); if(np!==c.points)await db.from('children').update({points:np}).eq('id',c.id); c.points=np;}
   myAbs=myAbs.filter(a=>a.id!==absId);
+  await syncPoints();
   showLoad(false); toast('欠席を取り消しました'); renderMy();
 }
 async function cancelFur(furId){
@@ -866,11 +862,8 @@ async function cancelFur(furId){
   showLoad(true);
   const dr=await db.from('furikae').delete().eq('id',furId);
   if(dr.error){showLoad(false);toast('取り消しに失敗：'+dr.error.message);return;}
-  // 振替で使ったポイントを1つ戻す（本人優先・上限3、満たなければ兄弟へ）
-  let tgt=kids.find(k=>k.id===f.child_id&&(k.points||0)<maxPerChild(k));
-  if(!tgt)tgt=kids.find(k=>(k.points||0)<maxPerChild(k));
-  if(tgt){tgt.points=(tgt.points||0)+1; await db.from('children').update({points:tgt.points}).eq('id',tgt.id);}
   myFur=myFur.filter(x=>x.id!==furId);
+  await syncPoints();
   showLoad(false); toast('振替を取り消しました（ポイントを1つ戻しました）'); renderMy();
 }
 
