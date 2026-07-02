@@ -553,7 +553,7 @@ const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","�
 const REG_N=REG_TITLES.length;
 function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
 function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
-const FEE_BY_ROOM={"論田":7000,"北島":6500,"吉野川":6500,"小松島":5500,"上板":5500,"米子":5500,"松江":5500,"糸島":5500,"keydance":4900};
+const FEE_BY_ROOM={"論田":7000,"北島":6500,"吉野川":6500,"阿南":6500,"小松島":5500,"上板":5500,"米子":5500,"松江":5500,"糸島":5500,"福山":5500,"北谷":5500,"室川":3500,"keydance":4900};
 function feeFor(room){return (room in FEE_BY_ROOM)?FEE_BY_ROOM[room]:7000;}
 function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:feeFor(cr),enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
 function renderReg(){
