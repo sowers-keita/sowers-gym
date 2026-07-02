@@ -359,7 +359,7 @@ const ROOM_DAY_VARIANT={
   }
 };
 // 曜日別の色分け表示は「そのダンススクールのスタッフ（オーナー/アルバイト）」のみ。管理者・保護者は通常色（ピンク）。
-function danceStaffView(){return (typeof staffRole!=='undefined')&&(staffRole==='staff'||staffRole==='parttime');}
+function danceStaffView(){return !(profile&&profile.role==='admin');}
 function roomChip(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];if(v&&danceStaffView())return {label:v.label,bg:v.bg,fg:"#fff"};const c=scolor(room);return {label:roomLabel(room),bg:c.bg,fg:c.fg};}
 function variantPlace(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];return v?v.place:'';}
 function legendChipsHtml(rooms){let h='';rooms.forEach(s=>{const v=ROOM_DAY_VARIANT[s];if(v&&danceStaffView()){Object.keys(v).forEach(wd=>{h+=`<span class="ev" style="background:${v[wd].bg};color:#fff">${v[wd].label}</span>`;});}else{h+=`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${roomLabel(s)}</span>`;}});return h;}
@@ -782,7 +782,7 @@ if(!dis){const _dF=myFur.find(f=>f.child_id===c.id&&(''+f.date).slice(0,10)===se
       if(ab){
         html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
       }else{
-        html+=(c.classroom!==selClass.room||c.class_name!==cls)?`<div class="opt disabled"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name}に在籍 ・ このクラスの欠席対象外</div></div></div>`:`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild(c)}</div></div></div>`;
+        html+=(c.classroom!==selClass.room)?`<div class="opt disabled"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室に在籍 ・ この教室の欠席対象外</div></div></div>`:`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild(c)}</div></div></div>`;
       }
     }});
   openSheet(html);
@@ -791,7 +791,7 @@ async function doAction(mode,i,cls){
   const c=kids[i];showLoad(true);
   try{
     if(mode==='absent'){
-      if(c.classroom!==selClass.room||c.class_name!==selClass.cls){showLoad(false);toast('在籍クラス以外の欠席連絡は不要です');return;}
+      if(c.classroom!==selClass.room){showLoad(false);toast('在籍教室以外の欠席連絡は不要です');return;}
       const _dA=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===selClass.cls);
       if(_dA){showLoad(false);toast('この日の欠席はすでに受付済みです');return;}
       const np=Math.min(maxPerChild(c), c.points+1); const gained=np>c.points;
