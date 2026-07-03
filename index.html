@@ -1516,6 +1516,8 @@ async function refreshApp(){
     if(!READY||!me)return;
     const mask=document.getElementById('mask');
     if(mask&&mask.classList.contains('show'))return; // 入力中シート表示中はスキップ
+    if(document.querySelector('details[open]'))return; // プルダウン(アコーディオン)を開いている間はスキップ
+    const ae=document.activeElement; if(ae&&['SELECT','INPUT','TEXTAREA'].includes(ae.tagName))return; // 入力・選択中はスキップ
     if(Date.now()-_last<4000)return;
     _last=Date.now();
     refreshApp().catch(()=>{});
