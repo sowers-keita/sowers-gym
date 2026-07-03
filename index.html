@@ -308,7 +308,7 @@ Object.assign(SCHOOLS,{
   "福山":["Aクラス","Bクラス"],
   "北谷":["ジュニアAクラス","ジュニアBクラス"],
   "室川":["キッズ体操","キッズバク転","子どもバク転B","子どもバク転C"],
-  "keydance":["キッズクラス","ステップアップクラス"]
+  "keydance":["キッズクラス","ジュニアクラス"]
 });
 Object.assign(SCHOOL_INFO,{
   "米子":{full:"米子タンブ体操教室",place:"米子市産業体育館（鳥取県米子市東福原8-27-1）",day:"日曜・木曜 月3回",teachers:"大野達也・高原圭吾"},
@@ -329,9 +329,9 @@ Object.assign(SCHEDULE,{
   "福山":{0:[{c:"Aクラス",t:"10:00–11:00",g:"5歳〜"},{c:"Bクラス",t:"11:10–12:10",g:"5歳〜"}]},
   "北谷":{4:[{c:"ジュニアAクラス",t:"16:50–17:50",g:"小学生"},{c:"ジュニアBクラス",t:"18:00–19:00",g:"小学生"}]},
   "室川":{1:[{c:"キッズ体操",t:"18:10–19:10",g:"小学生以上"},{c:"キッズバク転",t:"19:20–20:20",g:"小学生以上"}],2:[{c:"子どもバク転B",t:"17:50–18:50",g:"小学生以上"},{c:"子どもバク転C",t:"19:00–20:00",g:"小学生以上"}]},
-  "keydance":{3:[{c:"キッズクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"ステップアップクラス",t:"17:30–18:30",g:"5歳〜小学生"}],4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ステップアップクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
+  "keydance":{3:[{c:"キッズクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"17:30–18:30",g:"5歳〜小学生"}],4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
 });
-Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20,"ステップアップクラス":20});
+Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20});
 const CLASSROOM_META={
   "論田":{p:"体操",r:"徳島"},"北島":{p:"体操",r:"徳島"},"吉野川":{p:"体操",r:"徳島"},"阿南":{p:"体操",r:"徳島"},"上板":{p:"体操",r:"徳島"},"小松島":{p:"体操",r:"徳島"},
   "米子":{p:"体操",r:"鳥取"},"松江":{p:"体操",r:"島根"},"糸島":{p:"体操",r:"福岡"},"福山":{p:"体操",r:"広島"},"北谷":{p:"体操",r:"沖縄"},"室川":{p:"体操",r:"沖縄"},
@@ -475,7 +475,8 @@ function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.g
 function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
-function canFurikaeTo(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return false;return true;}
+function furikaeNgReason(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
+function canFurikaeTo(child,cls){return furikaeNgReason(child,cls)==='';}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
 function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
@@ -759,7 +760,7 @@ function chooseChild(mode,cls){
   kids.forEach((c,i)=>{
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
-      if(!dis&&!canFurikaeTo(c,cls)){dis=true;rs='満5歳未満はスタートのみ';}
+      if(!dis){const _ng=furikaeNgReason(c,cls);if(_ng){dis=true;rs=_ng;}}
       html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild()}${rs?' ・ '+rs:''}</div></div></div>`;
     }else{
       const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
@@ -784,7 +785,7 @@ async function doAction(mode,i,cls){
       toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
     }else{
       if(totalPoints()<=0){toast('家族の振替ポイントが足りません');return;}
-      if(!canFurikaeTo(c,cls)){toast('満5歳未満のお子様はスタートクラスのみ参加できます');return;}
+      {const _ng=furikaeNgReason(c,cls);if(_ng){toast(_ng==='同じクラス内のみ振替可'?'振替は同じクラス内のみ参加できます':'満5歳未満のお子様はスタートクラスのみ参加できます');return;}}
       // 兄弟共有：本人→なければ兄弟から1消費
       let target=c.points>0?c:kids.find(k=>k.points>0);
       const np=target.points-1;
