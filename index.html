@@ -404,7 +404,7 @@ function renderEventEditor(){
   h+=`<label class="fld">場所</label><input value="${(evEdit.place||'').replace(/"/g,'&quot;')}" oninput="evEdit.place=this.value" placeholder="例：◯◯体育館">`;
   evEdit.classes.forEach((c,i)=>{h+=`<div class="row2" style="margin-top:8px"><input value="${(c.c||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'c',this.value)" placeholder="クラス名"><input value="${(c.t||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'t',this.value)" placeholder="時間 例：16:00–17:00"></div><button class="linkbtn" style="color:var(--red);padding:2px 4px" onclick="evDelClass(${i})">－ この行を削除</button>`;});
   h+=`<div><button class="btn soft sm" style="margin-top:6px" onclick="evAddClass()">＋ クラスを追加</button></div>`;
-  h+=`<button class="btn gray sm" style="margin-top:8px" onclick="saveTemplate()">この内容をひな形として保存</button></div>`;
+  h+=`<div style="display:flex;gap:6px;margin-top:8px">${roomTpl[room]?`<button class="btn soft sm" style="flex:1" onclick="loadTemplateIntoEditor()">保存したひな形を呼び出す</button>`:''}<button class="btn gray sm" style="flex:1" onclick="saveTemplate()">この内容をひな形として保存</button></div></div>`;
   const wsel=[1,2,3,4,5].map(n=>`<button class="btn sm ${evEdit.rweeks.includes(n)?'':'gray'}" style="flex:1;padding:9px 0" onclick="evToggleWeek(${n})">第${n}</button>`).join('');
   h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">定期開催ルール（自動で先まで作成）</div>
     <label class="fld">曜日</label><select onchange="evEdit.rw=this.value"><option value="">選択してください</option>${DOW.map((d,i)=>`<option value="${i}" ${(''+i)===(''+evEdit.rw)?'selected':''}>${d}曜</option>`).join('')}</select>
@@ -419,6 +419,7 @@ function renderEventEditor(){
   h+=`<button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
 }
+function loadTemplateIntoEditor(){const room=evEdit.room;if(!roomTpl[room]){toast('保存済みのひな形がありません');return;}evEdit.place=roomTpl[room].place||'';evEdit.classes=(roomTpl[room].classes||[]).map(c=>({...c}));renderEventEditor();toast('ひな形を呼び出しました');}
 async function saveTemplate(){const room=evEdit.room;showLoad(true);const r=await db.from('room_templates').upsert({room,place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room'});await loadTemplates();showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形を保存しました');}
 async function addOneDate(){const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
 async function delEventDate(k){const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
@@ -710,7 +711,7 @@ function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replac
 /* ============ カレンダー ============ */
 function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=legendChipsHtml(classroomsIn(sc.p,sc.r));}
 function calMove(d){cal.m+=d;if(cal.m<0){cal.m=11;cal.y--;}if(cal.m>11){cal.m=0;cal.y++;}renderCal();}
-function schoolsOn(wd,scope){return Object.keys(SCHEDULE).filter(s=>SCHEDULE[s][wd]&&(!scope||(metaOf(s).p===scope.p&&metaOf(s).r===scope.r)));}
+function schoolsOn(wd,scope){return Object.keys(SCHEDULE).filter(s=>{if(scope&&!(metaOf(s).p===scope.p&&metaOf(s).r===scope.r))return false;return WEEKLY_ROOMS.has(s)?!!(SCHEDULE[s]&&SCHEDULE[s][wd]):true;});}
 function renderCal(){
   document.getElementById('cal-label').textContent=`${cal.y}年 ${MONTHS[cal.m]}`;
   document.getElementById('cal-holi').innerHTML=holidayBars(cal.y,cal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
@@ -1151,7 +1152,7 @@ function stFurikae(){
   allFurikae.forEach(f=>{if(rooms.includes(f.to_room))ds.add(norm(f.date));});
   // 開催日（前後約1.5〜3ヶ月）も候補に含める＝記録が無い日でも選べる
   const t0=new Date();t0.setHours(0,0,0,0);const st=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-45);
-  for(let i=0;i<135;i++){const d=new Date(st.getFullYear(),st.getMonth(),st.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;rooms.forEach(room=>{if(SCHEDULE[room]&&SCHEDULE[room][wd]&&isHeld(room,key))ds.add(key);});}
+  for(let i=0;i<135;i++){const d=new Date(st.getFullYear(),st.getMonth(),st.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;rooms.forEach(room=>{const ok=WEEKLY_ROOMS.has(room)?!!(SCHEDULE[room]&&SCHEDULE[room][wd]):isHeld(room,key);if(ok)ds.add(key);});}
   const dates=[...ds].sort();
   let h=`<h2 class="title">欠席・振替</h2>`;
   if(dates.length===0)return h+`<div class="card center"><span class="muted">開催日がまだありません。月3回の教室は「予定」タブの「開催日・予定を作成/編集」で開催日を登録してください。</span></div>`;
