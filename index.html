@@ -503,7 +503,7 @@ let selClass=null;
 
 /* ============ 共通 ============ */
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
-function tab(id,btn){go(id);document.querySelectorAll('#tabbar button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');}
+function tab(id,btn){go(id);document.querySelectorAll('#tabbar button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');if(window._gymFlushRefresh)window._gymFlushRefresh();}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
 function showLoad(b){document.getElementById('loading').classList.toggle('show',b);}
 function showErr(id,msg){const e=document.getElementById(id);if(!msg){e.style.display='none';return;}e.textContent=msg;e.style.display='block';}
@@ -1091,7 +1091,7 @@ function renderStaffNav(){
   }).join('');
   document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
 }
-function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);}
+function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);if(window._gymFlushRefresh)window._gymFlushRefresh();}
 function renderStaff(){const b=document.getElementById('staff-body');
   if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
   else if(staffSection==='furikae')b.innerHTML=stFurikae();
@@ -1545,17 +1545,22 @@ async function refreshApp(){
 
 /* ============ アプリに戻ったとき自動更新（休講・欠席などを反映） ============ */
 (function setupAutoRefresh(){
-  let _last=0;
+  let _last=0,_dirty=false;
+  function busy(){
+    const mask=document.getElementById('mask');
+    if(mask&&mask.classList.contains('show'))return true; // 入力シート表示中
+    if(document.querySelector('.screen.active details[open]'))return true; // 表示中画面のアコーディオン展開中のみスキップ（他画面の開きっぱなしでは止めない）
+    const ae=document.activeElement; if(ae&&['SELECT','INPUT','TEXTAREA'].includes(ae.tagName))return true; // 入力・選択中
+    return false;
+  }
   function maybe(){
     if(!READY||!me)return;
-    const mask=document.getElementById('mask');
-    if(mask&&mask.classList.contains('show'))return; // 入力中シート表示中はスキップ
-    if(document.querySelector('details[open]'))return; // プルダウン(アコーディオン)を開いている間はスキップ
-    const ae=document.activeElement; if(ae&&['SELECT','INPUT','TEXTAREA'].includes(ae.tagName))return; // 入力・選択中はスキップ
+    if(busy()){_dirty=true;return;} // 今は更新不可→保留し、後で必ず更新
     if(Date.now()-_last<4000)return;
-    _last=Date.now();
+    _last=Date.now();_dirty=false;
     refreshApp().catch(()=>{});
   }
+  window._gymFlushRefresh=function(){ if(_dirty&&READY&&me&&!busy()){_dirty=false;_last=Date.now();refreshApp().catch(()=>{});} };
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden)maybe(); });
   window.addEventListener('focus',maybe);
 })();
