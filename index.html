@@ -509,6 +509,37 @@ function showLoad(b){document.getElementById('loading').classList.toggle('show',
 function showErr(id,msg){const e=document.getElementById(id);if(!msg){e.style.display='none';return;}e.textContent=msg;e.style.display='block';}
 function openSheet(html){document.getElementById('sheet').innerHTML='<div class="grab"></div>'+html;document.getElementById('mask').classList.add('show');}
 function closeSheet(){document.getElementById('mask').classList.remove('show');}
+/* ==== クラス未設定の強制選択ポップアップ（中央・閉じられない） ==== */
+let _cfSel={};
+function classFixNeeded(){return (kids||[]).filter(c=>{const l=SCHOOLS[c.classroom]||[];return l.length&&!l.includes(c.class_name);});}
+function showClassFixModal(){
+  const ex=document.getElementById('classfix'); if(ex)ex.remove();
+  const need=classFixNeeded(); if(!need.length)return;
+  _cfSel={};
+  let h=`<div id="classfix" style="position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:18px"><div style="background:#fff;border-radius:18px;max-width:420px;width:100%;max-height:88vh;overflow:auto;padding:20px 16px;box-shadow:0 20px 60px rgba(0,0,0,.35)"><div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">クラスの確認をお願いします</div><p class="muted" style="text-align:center;margin:0 0 14px">お子様のクラスを選んでください。<br>選択するまで先に進めません。</p>`;
+  need.forEach(c=>{
+    const opts=(SCHOOLS[c.classroom]||[]).map(cl=>`<button type="button" onclick="pickClassFix('${c.id}','${(''+cl).replace(/'/g,"\\'")}',this)" style="text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;font-weight:700;font-size:15px">${cl}</button>`).join('');
+    h+=`<div style="margin-bottom:14px;border:1px solid var(--line);border-radius:12px;padding:12px"><div style="font-weight:800">${c.name}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室</div><div style="display:flex;flex-direction:column;gap:8px">${opts}</div></div>`;
+  });
+  h+=`<button id="cfsave" onclick="saveClassFix()" disabled style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:16px;opacity:.45">選択して進む</button></div></div>`;
+  const w=document.createElement('div'); w.innerHTML=h; document.body.appendChild(w.firstElementChild);
+}
+function pickClassFix(cid,cls,btn){
+  _cfSel[cid]=cls;
+  const box=btn.parentElement; [...box.children].forEach(b=>{b.style.background='#fff';b.style.color='';b.style.borderColor='var(--line)';});
+  btn.style.background='var(--accent)';btn.style.color='#fff';btn.style.borderColor='var(--accent)';
+  const need=classFixNeeded(); const all=need.every(c=>_cfSel[c.id]);
+  const sv=document.getElementById('cfsave'); if(sv){sv.disabled=!all;sv.style.opacity=all?'1':'.45';}
+}
+async function saveClassFix(){
+  const need=classFixNeeded(); if(!need.every(c=>_cfSel[c.id]))return;
+  showLoad(true);
+  for(const c of need){const r=await db.from('children').update({class_name:_cfSel[c.id]}).eq('id',c.id); if(r.error){showLoad(false);toast('保存エラー：'+r.error.message);return;} c.class_name=_cfSel[c.id];}
+  showLoad(false);
+  const ex=document.getElementById('classfix'); if(ex)ex.remove();
+  toast('クラスを設定しました');
+  if(typeof renderMy==='function')renderMy();
+}
 
 /* ============ 認証 ============ */
 async function login(){
@@ -666,6 +697,7 @@ async function afterAuth(preUser){
   await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur()]);
   showLoad(false);
   enterApp();
+  showClassFixModal();
 }
 async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=r.data||[];}
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
