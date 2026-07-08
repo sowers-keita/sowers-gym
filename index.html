@@ -169,6 +169,21 @@
     </div>
   </section>
 
+  <!-- RESET (メールリンクから戻ってきて新パスワードを設定) -->
+  <section class="screen auth" id="s-reset">
+    <div class="pad">
+      <h2 class="title">新しいパスワードの設定</h2>
+      <div class="err" id="reset-err" style="display:none"></div>
+      <div class="card">
+        <p class="muted">新しいパスワードを入力してください（6文字以上）。</p>
+        <label class="fld">新しいパスワード</label><input id="rs-pass" type="password" placeholder="••••••••">
+        <label class="fld">新しいパスワード（確認）</label><input id="rs-pass2" type="password" placeholder="••••••••">
+        <div style="height:14px"></div>
+        <button class="btn" onclick="doReset()">この内容で設定する</button>
+      </div>
+    </div>
+  </section>
+
   <!-- REGISTER -->
   <section class="screen auth" id="s-reg">
     <div class="pad">
@@ -267,6 +282,14 @@ if (READY) { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, 
   auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage, storageKey: 'sowers-gym-auth' }
 }); }
 else { document.getElementById('setup-warn').style.display='block'; }
+
+/* パスワード再設定リンクから開いたかどうか（起動時のログイン処理をスキップして再設定画面へ） */
+window._recovery = /type=recovery/.test(location.hash || '') || /type=recovery/.test(location.search || '');
+if (db) {
+  db.auth.onAuthStateChange((event)=>{
+    if(event==='PASSWORD_RECOVERY'){ window._recovery=true; try{go('s-reset');}catch(_){ } }
+  });
+}
 
 /* ============ 教室マスタ（設定） ============ */
 const SCHOOLS = {
@@ -559,10 +582,29 @@ async function forgot(){
   const email=document.getElementById('fg-mail').value.trim();
   if(!email){toast('メールアドレスを入力してください');return;}
   showLoad(true);
-  const {error}=await db.auth.resetPasswordForEmail(email);
+  const redirectTo=location.origin+location.pathname;
+  const {error}=await db.auth.resetPasswordForEmail(email,{redirectTo});
   showLoad(false);
-  toast(error?('送信エラー：'+error.message):'再設定メールを送信しました');
+  toast(error?('送信エラー：'+error.message):'再設定メールを送信しました。メール内のリンクを開いてください');
   if(!error)go('s-login');
+}
+async function doReset(){
+  if(!READY){toast('初期設定が未完了です');return;}
+  showErr('reset-err','');
+  const p1=document.getElementById('rs-pass').value;
+  const p2=document.getElementById('rs-pass2').value;
+  if(p1.length<6){showErr('reset-err','パスワードは6文字以上で入力してください');return;}
+  if(p1!==p2){showErr('reset-err','確認用のパスワードが一致しません');return;}
+  showLoad(true);
+  const {error}=await db.auth.updateUser({password:p1});
+  showLoad(false);
+  if(error){showErr('reset-err','再設定に失敗しました：'+error.message);return;}
+  window._recovery=false;
+  try{await db.auth.signOut();}catch(_){ }
+  try{history.replaceState(null,'',location.pathname+location.search);}catch(_){ }
+  document.getElementById('rs-pass').value='';document.getElementById('rs-pass2').value='';
+  toast('パスワードを再設定しました。新しいパスワードでログインしてください');
+  go('s-login');
 }
 async function logout(){ await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
 function openDeleteAccount(){openSheet(`<h3 style="color:var(--red)">アカウントの削除（退会）</h3>
@@ -1568,7 +1610,9 @@ async function refreshApp(){
 /* ============ 起動時：セッション確認 ============ */
 window.addEventListener('load',async()=>{
   if(!READY)return;
+  if(window._recovery){ go('s-reset'); return; }  // 再設定リンクから開いた場合はログインせず再設定画面へ
   const {data:{session}}=await db.auth.getSession();
+  if(window._recovery){ go('s-reset'); return; }
   if(session){await afterAuth(session.user);}
 });
 </script>
