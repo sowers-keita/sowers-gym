@@ -385,10 +385,11 @@ function legendChipsHtml(rooms){let h='';rooms.forEach(s=>{const v=ROOM_DAY_VARI
 const WEEKLY_ROOMS=new Set(["論田","北島","吉野川","阿南"]); // 徳島直営4＝毎週（自動表示）
 function isMonthlyRoom(room){return !WEEKLY_ROOMS.has(room);}   // それ以外＝月3回（開催日を作成）
 let events={};  // {room:{key:{place,classes}}} 月3回教室の開催日（内容つき）
-let roomTpl={};  // {room:{place,classes}} ひな形
+let roomTpl={};  // {room:{place,classes}} ひな形（後方互換：各教室の先頭ひな形）
+let PT={};       // {room:[{id,name,place,classes}]} 複数ひな形（practice_templates）
 let rules=[];    // 定期開催ルール
 async function loadEvents(){events={};const r=await db.from('events').select('*');(r.data||[]).forEach(e=>{const k=(''+e.date).slice(0,10);(events[e.room]=events[e.room]||{})[k]={place:e.place||'',classes:Array.isArray(e.classes)?e.classes:[]};});}
-async function loadTemplates(){roomTpl={};const r=await db.from('room_templates').select('*');(r.data||[]).forEach(t=>{roomTpl[t.room]={place:t.place||'',classes:Array.isArray(t.classes)?t.classes:[]};});}
+async function loadTemplates(){roomTpl={};PT={};const r=await db.from('practice_templates').select('*').order('name');(r.data||[]).forEach(function(t){const it={id:t.id,name:t.name,place:t.place||'',classes:Array.isArray(t.classes)?t.classes:[]};(PT[t.room]=PT[t.room]||[]).push(it);if(!roomTpl[t.room])roomTpl[t.room]={place:it.place,classes:it.classes};});}
 async function loadRules(){const r=await db.from('event_rules').select('*');rules=r.data||[];}
 function isHeld(room,key){if(WEEKLY_ROOMS.has(room))return true;return !!(events[room]&&events[room][key]);}
 function contentOn(room,key,wd){if(WEEKLY_ROOMS.has(room)){return {place:(SCHOOL_INFO[room]||{}).place||'',classes:(SCHEDULE[room]&&SCHEDULE[room][wd])||[]};}const ev=events[room]&&events[room][key];return {place:(ev&&ev.place)||variantPlace(room,wd)||((SCHOOL_INFO[room]||{}).place||''),classes:(ev&&ev.classes)||[]};}
@@ -410,7 +411,7 @@ function renderAreaPicker(){
 async function saveStaffArea(){showLoad(true);const r=await db.from('profiles').update({staff_program:areaDraft.p,staff_region:areaDraft.r}).eq('id',me.id);showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}profile.staff_program=areaDraft.p;profile.staff_region=areaDraft.r;closeSheet();toast('担当エリアを設定しました');renderStaff();}
 
 /* --- 開催日・予定の編集（月3回教室・ひな形/定期ルール/個別追加） --- */
-let evEdit={room:null,place:'',classes:[],rw:'',rweeks:[],dadd:''};
+let evEdit={room:null,place:'',classes:[],rw:'',rweeks:[],dadd:'',tplSel:'',tplName:''};
 function openEventEditor(room){const rooms=monthlyRoomsInScope();if(!rooms.length){toast('対象の教室がありません');return;}evEdit.room=room||rooms[0];loadEvEditContent();renderEventEditor();}
 function loadEvEditContent(){const c=defaultContent(evEdit.room);evEdit.place=c.place;evEdit.classes=c.classes.map(x=>({...x}));evEdit.rw='';evEdit.rweeks=[];evEdit.dadd='';}
 function evAddClass(){evEdit.classes.push({c:'',t:''});renderEventEditor();}
@@ -423,11 +424,11 @@ function renderEventEditor(){
   let h=`<h3>開催日・予定の設定</h3><p class="muted" style="margin:-2px 0 8px">普段の練習日は「定期ルール」で自動作成。先生のお休みや臨時開催・場所変更は「個別に日を追加」で対応できます。</p>`;
   if(rooms.length>1){h+=`<label class="fld">教室</label><select onchange="evEdit.room=this.value;loadEvEditContent();renderEventEditor()">${rooms.map(r=>`<option value="${r}" ${r===room?'selected':''}>${SCHOOL_INFO[r].full}</option>`).join('')}</select>`;}
   else{h+=`<div style="font-weight:800;margin:4px 0">${SCHOOL_INFO[room].full}</div>`;}
-  h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">内容（クラス・時間・場所）</div>`;
+  h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">ひな形（最大5個）</div><label class="fld">保存済みひな形</label><select onchange="evEdit.tplSel=this.value">${(PT[room]||[]).map(function(t){return '<option value="'+t.id+'"'+((evEdit.tplSel===t.id)?' selected':'')+'>'+t.name+'</option>';}).join('')||'<option value="">（なし）</option>'}</select><div style="display:flex;gap:6px;margin-top:8px"><button class="btn soft sm" style="flex:1" onclick="applyTemplate(evEdit.tplSel)">呼び出す</button><button class="btn gray sm" style="flex:1" onclick="delTemplate(evEdit.tplSel)">削除</button></div><label class="fld" style="margin-top:10px">ひな形の名前（保存用）</label><input value="${evEdit.tplName||''}" oninput="evEdit.tplName=this.value" placeholder="例：通常・イベント・短縮"></div><div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">内容（クラス・時間・場所）</div>`;
   h+=`<label class="fld">場所</label><input value="${(evEdit.place||'').replace(/"/g,'&quot;')}" oninput="evEdit.place=this.value" placeholder="例：◯◯体育館">`;
   evEdit.classes.forEach((c,i)=>{h+=`<div class="row2" style="margin-top:8px"><input value="${(c.c||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'c',this.value)" placeholder="クラス名"><input value="${(c.t||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'t',this.value)" placeholder="時間 例：16:00–17:00"></div><button class="linkbtn" style="color:var(--red);padding:2px 4px" onclick="evDelClass(${i})">－ この行を削除</button>`;});
   h+=`<div><button class="btn soft sm" style="margin-top:6px" onclick="evAddClass()">＋ クラスを追加</button></div>`;
-  h+=`<div style="display:flex;gap:6px;margin-top:8px">${roomTpl[room]?`<button class="btn soft sm" style="flex:1" onclick="loadTemplateIntoEditor()">保存したひな形を呼び出す</button>`:''}<button class="btn gray sm" style="flex:1" onclick="saveTemplate()">この内容をひな形として保存</button></div></div>`;
+  h+=`<div style="margin-top:8px"><button class="btn gray sm" style="width:100%" onclick="saveTemplate()">この内容を上の名前でひな形として保存</button></div></div>`;
   const wsel=[1,2,3,4,5].map(n=>`<button class="btn sm ${evEdit.rweeks.includes(n)?'':'gray'}" style="flex:1;padding:9px 0" onclick="evToggleWeek(${n})">第${n}</button>`).join('');
   h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">定期開催ルール（自動で先まで作成）</div>
     <label class="fld">曜日</label><select onchange="evEdit.rw=this.value"><option value="">選択してください</option>${DOW.map((d,i)=>`<option value="${i}" ${(''+i)===(''+evEdit.rw)?'selected':''}>${d}曜</option>`).join('')}</select>
@@ -442,8 +443,9 @@ function renderEventEditor(){
   h+=`<button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
 }
-function loadTemplateIntoEditor(){const room=evEdit.room;if(!roomTpl[room]){toast('保存済みのひな形がありません');return;}evEdit.place=roomTpl[room].place||'';evEdit.classes=(roomTpl[room].classes||[]).map(c=>({...c}));renderEventEditor();toast('ひな形を呼び出しました');}
-async function saveTemplate(){const room=evEdit.room;showLoad(true);const r=await db.from('room_templates').upsert({room,place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room'});await loadTemplates();showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形を保存しました');}
+function applyTemplate(id){const room=evEdit.room;const list=PT[room]||[];if(!id){const f=list[0];id=f&&f.id;}const t=list.find(function(x){return x.id===id;});if(!t){toast('呼び出すひな形を選んでください');return;}evEdit.place=t.place;evEdit.classes=(t.classes||[]).map(function(x){return Object.assign({},x);});evEdit.tplSel=id;toast('ひな形『'+t.name+'』を呼び出しました');renderEventEditor();}
+async function delTemplate(id){if(!id){toast('削除するひな形を選んでください');return;}showLoad(true);const r=await db.from('practice_templates').delete().eq('id',id);await loadTemplates();showLoad(false);if(r&&r.error){toast('削除エラー：'+r.error.message);return;}evEdit.tplSel='';toast('ひな形を削除しました');renderEventEditor();}
+async function saveTemplate(){const room=evEdit.room;const list=PT[room]||[];const name=(evEdit.tplName||'').trim()||('ひな形'+(list.length+1));const existing=list.find(function(x){return x.name===name;});if(!existing&&list.length>=5){toast('ひな形は1教室5個までです');return;}showLoad(true);let r;if(existing){r=await db.from('practice_templates').update({place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()}).eq('id',existing.id);}else{r=await db.from('practice_templates').insert({room:room,name:name,place:evEdit.place,classes:evEdit.classes,updated_by:me.id});}await loadTemplates();showLoad(false);if(r&&r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形『'+name+'』を保存しました');evEdit.tplName='';renderEventEditor();}
 async function addOneDate(){const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
 async function delEventDate(k){const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
 async function addRule(){const room=evEdit.room;if(evEdit.rw===''){toast('曜日を選んでください');return;}showLoad(true);const r=await db.from('event_rules').insert({room,weekday:Number(evEdit.rw),weeks:evEdit.rweeks.slice().sort((a,b)=>a-b),place:evEdit.place,classes:evEdit.classes,active:true,created_by:me.id});if(r.error){showLoad(false);toast('ルール保存エラー：'+r.error.message);return;}await loadRules();await ensureRuleEvents();await loadEvents();showLoad(false);toast('ルールを保存し、予定を作成しました');renderEventEditor();renderStaff();}
