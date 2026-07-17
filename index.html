@@ -501,7 +501,7 @@ function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.g
 function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
-function furikaeNgReason(child,cls){const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
+function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
 function canFurikaeTo(child,cls){return furikaeNgReason(child,cls)==='';}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
@@ -862,7 +862,7 @@ async function doAction(mode,i,cls){
       toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
     }else{
       if(totalPoints()<=0){toast('家族の振替ポイントが足りません');return;}
-      {const _ng=furikaeNgReason(c,cls);if(_ng){toast(_ng==='同じクラス内のみ振替可'?'振替は同じクラス内のみ参加できます':'満5歳未満のお子様はスタートクラスのみ参加できます');return;}}
+      {const _ng=furikaeNgReason(c,cls);if(_ng){toast(_ng==='同じクラス内のみ振替可'?'振替は同じクラス内のみ参加できます':_ng==='満5歳未満はスタートのみ'?'満5歳未満のお子様はスタートクラスのみ参加できます':_ng);return;}}
       // 兄弟共有：本人→なければ兄弟から1消費
       let target=c.points>0?c:kids.find(k=>k.points>0);
       const np=target.points-1;
