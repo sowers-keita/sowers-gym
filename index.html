@@ -391,7 +391,7 @@ let rules=[];    // 定期開催ルール
 async function loadEvents(){events={};const r=await db.from('events').select('*');(r.data||[]).forEach(e=>{const k=(''+e.date).slice(0,10);(events[e.room]=events[e.room]||{})[k]={place:e.place||'',classes:Array.isArray(e.classes)?e.classes:[]};});}
 async function loadTemplates(){roomTpl={};PT={};const r=await db.from('practice_templates').select('*').order('name');(r.data||[]).forEach(function(t){const it={id:t.id,name:t.name,place:t.place||'',classes:Array.isArray(t.classes)?t.classes:[]};(PT[t.room]=PT[t.room]||[]).push(it);if(!roomTpl[t.room])roomTpl[t.room]={place:it.place,classes:it.classes};});}
 async function loadRules(){const r=await db.from('event_rules').select('*');rules=r.data||[];}
-function isHeld(room,key){if(WEEKLY_ROOMS.has(room))return true;return !!(events[room]&&events[room][key]);}
+function isHeld(room,key){if(hidden[room]&&hidden[room][key])return false;if(WEEKLY_ROOMS.has(room))return true;return !!(events[room]&&events[room][key]);}
 function contentOn(room,key,wd){if(WEEKLY_ROOMS.has(room)){return {place:(SCHOOL_INFO[room]||{}).place||'',classes:(SCHEDULE[room]&&SCHEDULE[room][wd])||[]};}const ev=events[room]&&events[room][key];return {place:(ev&&ev.place)||variantPlace(room,wd)||((SCHOOL_INFO[room]||{}).place||''),classes:(ev&&ev.classes)||[]};}
 function defaultContent(room){if(roomTpl[room])return {place:roomTpl[room].place,classes:roomTpl[room].classes.map(c=>({...c}))};const wd=Object.keys(SCHEDULE[room]||{})[0];const cls=((SCHEDULE[room]&&SCHEDULE[room][wd])||[]).map(it=>({c:it.c,t:it.t}));return {place:(SCHOOL_INFO[room]||{}).place||'',classes:cls};}
 // スタッフ（オーナー）の担当エリア
@@ -435,7 +435,7 @@ function renderEventEditor(){
     <label class="fld" style="margin-top:8px">第何週（複数選択可・未選択＝毎週）</label><div style="display:flex;gap:5px">${wsel}</div>
     <button class="btn sm" style="margin-top:10px" onclick="addRule()">このルールを保存して反映</button></div>`;
   h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">個別に日を追加（どの日でも可）</div>
-    <input type="date" oninput="evEdit.dadd=this.value" onchange="evEdit.dadd=this.value"><button class="btn sm" style="margin-top:8px" onclick="addOneDate()">この日を上の内容で追加</button></div>`;
+    <input type="date" value="${evEdit.dadd||''}" oninput="evEdit.dadd=this.value" onchange="evEdit.dadd=this.value"><button class="btn sm" style="margin-top:8px" onclick="addOneDate()">この日を上の内容で追加</button></div>`;
   const rrules=rules.filter(r=>r.room===room);
   if(rrules.length){h+=`<div style="font-weight:800;margin:10px 0 4px">登録済みルール</div>`;rrules.forEach(r=>{const wk=(r.weeks&&r.weeks.length)?r.weeks.map(n=>'第'+n).join('・'):'毎週';h+=`<div class="card" style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center"><div>${DOW[r.weekday]}曜・${wk}</div><button class="btn sm gray" style="width:auto;padding:6px 10px" onclick="delRule('${r.id}')">削除</button></div>`;});}
   const ups=upcomingEvents(room);
@@ -517,6 +517,7 @@ let profile=null;       // profiles row
 let kids=[];            // children rows
 let anns=[];            // announcements
 let cancels={};         // {room:{'YYYY-MM-DD':true}}
+let hidden={};          // {room:{'YYYY-MM-DD':true}} カレンダーから削除した日
 let msgs=[];
 let myAbs=[];           // 自分の欠席記録（取り消し用）
 let myReqs=[];          // 自分のクラス変更申請
@@ -728,7 +729,7 @@ async function afterAuth(preUser){
   // プロフィール取得と共通データ読み込みを並列化（互いに独立）
   const [p]=await Promise.all([
     db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
-    loadAnns(), loadCancels(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts()
+    loadAnns(), loadCancels(), loadHidden(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts()
   ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
@@ -746,6 +747,7 @@ async function afterAuth(preUser){
 async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=r.data||[];}
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
 async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
+async function loadHidden(){hidden={};const r=await db.from('hidden_days').select('*');(r.data||[]).forEach(h=>{const k=(''+h.date).slice(0,10);(hidden[h.room]=hidden[h.room]||{})[k]=true;});}
 async function loadOverrides(){
   const [v,t]=await Promise.all([
     db.from('venue_overrides').select('*'),
@@ -761,6 +763,7 @@ async function loadMyAbs(){const r=await db.from('absences').select('*').eq('par
 async function loadMyReqs(){const r=await db.from('change_requests').select('*').eq('parent_id',me.id).eq('status','pending');myReqs=r.data||[];}
 async function loadMyFur(){const r=await db.from('furikae').select('*').eq('parent_id',me.id);myFur=r.data||[];}
 function isCancelled(room,key){return !!(cancels[room]&&cancels[room][key]);}
+function isHidden(room,key){return !!(hidden[room]&&hidden[room][key]);}
 
 function enterApp(){
   const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();
@@ -1178,6 +1181,7 @@ function renderStaffCal(){
     const key=dateKey(scal.y,scal.m,d);
     schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);const chip=roomChip(s,wd);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?chip.label+' 休':chip.label;if(!cx){ev.style.background=chip.bg;ev.style.color=chip.fg;}e.appendChild(ev);});
     if(schools.length&&!past)e.onclick=()=>openStaffDay(scal.y,scal.m,d,schools);
+    else if(!past)e.onclick=()=>openCreateDay(scal.y,scal.m,d);
     cv.appendChild(e);}
 }
 function openStaffDay(y,m,d,schools){
@@ -1188,16 +1192,16 @@ function openStaffDay(y,m,d,schools){
     h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full}</div>`;
     if(cx){
       h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
-        <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button>`;
+        <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else if(monthly){
       h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div>`;
       ct.classes.forEach(it=>{h+=`<div class="timeitem"><span class="cn">${it.c}</span><span class="tm">⏰ ${it.t}</span></div>`;});
       h+=`<button class="btn soft sm" style="margin-top:8px" onclick="closeSheet();openEventEditor('${s}')">この教室の予定を編集（場所・クラス・日程）</button>`;
-      h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
+      h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else {
       h+=`<label class="fld">開催場所</label><input value="${(inf.place||'').replace(/"/g,'&quot;')}" onchange="saveVenue('${s}',this.value)">`;
       (SCHEDULE[s][wd]||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
-      h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button>`;
+      h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     }
     if(!cx)h+=shiftSection(s,key);
     h+=`</div>`;});
@@ -1213,6 +1217,40 @@ async function setCancel(room,key,on){
   toast(on?'休講にしました':'休講を取り消しました');
   const schools=schoolsOn(new Date(key).getDay());
   closeSheet();renderStaffCal();
+}
+async function delDay(room,key){
+  showLoad(true);
+  const r=await db.from('hidden_days').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'});
+  if(!(r&&r.error)) await db.from('cancellations').delete().eq('room',room).eq('date',key);
+  if(r&&r.error){showLoad(false);toast('削除できませんでした：'+r.error.message);return;}
+  await loadHidden(); await loadCancels();
+  showLoad(false);toast('カレンダーから削除しました');closeSheet();renderStaffCal();
+}
+async function restoreDay(room,key){
+  showLoad(true);
+  const r=await db.from('hidden_days').delete().eq('room',room).eq('date',key);
+  await loadHidden(); showLoad(false);
+  if(r&&r.error){toast('復活できませんでした：'+r.error.message);return;}
+  toast('復活しました');closeSheet();renderStaffCal();
+}
+function createDayFor(room,key){closeSheet();openEventEditor(room);evEdit.dadd=key;renderEventEditor();}
+function openCreateDay(y,m,d){
+  const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);
+  const sc=(staffRole==='admin')?null:staffScope();
+  const hiddenRooms=Object.keys(SCHEDULE).filter(s=>(!sc||(metaOf(s).p===sc.p&&metaOf(s).r===sc.r))&&isHidden(s,key));
+  const monthlyRooms=monthlyRoomsInScope();
+  let h=`<h3>${m+1}月${d}日（${DOW[wd]}）</h3><p class="muted" style="margin:-4px 0 10px">この日はまだ予定がありません。</p>`;
+  if(hiddenRooms.length){
+    h+=`<div style="font-weight:800;margin:6px 0 4px">削除した教室を復活</div>`;
+    hiddenRooms.forEach(s=>{h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;padding:10px 12px"><span style="color:${scolor(s).bg};font-weight:800">${(SCHOOL_INFO[s]&&SCHOOL_INFO[s].full)||s}</span><button class="btn green sm" style="width:auto;padding:7px 12px" onclick="restoreDay('${s}','${key}')">復活</button></div>`;});
+  }
+  if(monthlyRooms.length){
+    h+=`<div style="font-weight:800;margin:12px 0 4px">この日に予定を作成（月3回の教室）</div>`;
+    monthlyRooms.forEach(s=>{h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;padding:10px 12px"><span style="color:${scolor(s).bg};font-weight:800">${(SCHOOL_INFO[s]&&SCHOOL_INFO[s].full)||s}</span><button class="btn soft sm" style="width:auto;padding:7px 12px" onclick="createDayFor('${s}','${key}')">この日を作成</button></div>`;});
+  }
+  if(!hiddenRooms.length&&!monthlyRooms.length){h+=`<div class="card center"><span class="muted">この日に作成できる教室がありません。</span></div>`;}
+  h+=`<button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);
 }
 /* --- 振替の参加予定 --- */
 function attDateLabel(d){const x=new Date(d+'T00:00:00');return `${x.getFullYear()}年${x.getMonth()+1}月${x.getDate()}日（${DOW[x.getDay()]}）`;}
@@ -1597,7 +1635,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
 /* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
 async function refreshApp(){
   if(!READY||!me)return;
-  await loadAnns(); await loadCancels(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
+  await loadAnns(); await loadCancels(); await loadHidden(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
   if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
 }
