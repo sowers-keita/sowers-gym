@@ -1339,13 +1339,40 @@ function roleSelect(p){const r=p.role||'parent';
     <option value="admin" ${r==='admin'?'selected':''}>管理者</option></select>${p.id===me.id?'<p class="muted" style="margin:6px 0 0">※自分の役割は変更できません</p>':''}`;}
 /* ===== Phase C 増分5：オーナーの連絡機能（個別メッセージ・緊急連絡先・アルバイト名簿） ===== */
 function myAreaParentIds(){const sc=staffScope();const rooms=new Set(classroomsIn(sc.p,sc.r));return new Set(allChildren.filter(c=>rooms.has(c.classroom)).map(c=>c.parent_id));}
+function openClassChange(cid){
+  const c=allChildren.find(x=>x.id===cid); if(!c){toast('生徒が見つかりません');return;}
+  const sc=staffScope();
+  const rooms=(staffRole==='admin')?Object.keys(SCHOOLS):classroomsIn(sc.p,sc.r);
+  const startRoom=rooms.includes(c.classroom)?c.classroom:(rooms[0]||c.classroom);
+  const roomOpts=rooms.map(function(sM){return '<option value="'+sM+'"'+(sM===c.classroom?' selected':'')+'>'+((SCHOOL_INFO[sM]&&SCHOOL_INFO[sM].full)||sM)+'</option>';}).join('');
+  const clsOpts=(SCHOOLS[startRoom]||[]).map(function(x){return '<option'+(x===c.class_name?' selected':'')+'>'+x+'</option>';}).join('');
+  openSheet(`<h3>${c.name} のクラス変更</h3>
+    <p class="muted" style="margin:-2px 0 8px">担当エリアの教室・クラスに変更できます。すぐに名簿・カレンダーへ反映されます。</p>
+    <label class="fld">教室</label>
+    <select id="cc-room" onchange="document.getElementById('cc-cls').innerHTML=(SCHOOLS[this.value]||[]).map(x=>'<option>'+x+'</option>').join('')">${roomOpts}</select>
+    <label class="fld">クラス</label>
+    <select id="cc-cls">${clsOpts}</select>
+    <div style="height:14px"></div>
+    <button class="btn green" onclick="saveClassChange('${cid}')">この内容に変更する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
+}
+async function saveClassChange(cid){
+  const c=allChildren.find(x=>x.id===cid); if(!c)return;
+  const room=document.getElementById('cc-room').value, cls=document.getElementById('cc-cls').value;
+  if(room===c.classroom&&cls===c.class_name){toast('現在と同じ内容です');return;}
+  showLoad(true);
+  const r=await db.from('children').update({classroom:room,class_name:cls,program:metaOf(room).p,region:metaOf(room).r}).eq('id',cid);
+  if(r.error){showLoad(false);toast('変更できませんでした：'+r.error.message);return;}
+  const ch=await db.from('children').select('*');allChildren=ch.data||[];
+  showLoad(false);closeSheet();renderStaff();toast(c.name+'のクラスを変更しました');
+}
 function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
     <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span></div>
     <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
     <div class="muted" style="margin-top:4px">🚨 緊急連絡先1：${c.ec1||'未登録'}${c.ec1_note?'（'+c.ec1_note+'）':''}</div>
     <div class="muted">🚨 緊急連絡先2：${c.ec2||'未登録'}${c.ec2_note?'（'+c.ec2_note+'）':''}</div>
-    <button class="btn sm soft" style="width:auto;padding:7px 12px;margin-top:8px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button></div>
   </div>`;}
 function openParentMsg(pid){
   const ms=allMsgs.filter(m=>m.parent_id===pid);
