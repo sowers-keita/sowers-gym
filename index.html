@@ -6,6 +6,11 @@
 <title>教室出席管理アプリ</title>
 <link rel="icon" type="image/png" href="logo.png">
 <link rel="apple-touch-icon" href="logo.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="教室出席管理">
 <meta name="theme-color" content="#2f7df6">
 <meta property="og:type" content="website">
 <meta property="og:title" content="教室出席管理アプリ">
@@ -38,6 +43,22 @@
   textarea{resize:vertical;min-height:80px}
   .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff;transition:.15s;font-family:inherit}
   .btn:active{transform:scale(.985)}
+  .featp{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;background:rgba(8,12,24,.55);padding:22px;box-sizing:border-box;opacity:0;animation:featf .35s ease forwards;transition:opacity .25s}
+  @keyframes featf{to{opacity:1}}
+  .featc{width:min(360px,92vw);background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 20px 56px rgba(0,0,0,.4);transform:scale(.85);animation:featzoom .5s cubic-bezier(.18,.9,.25,1.4) forwards}
+  @keyframes featzoom{to{transform:scale(1)}}
+  .feath{background:linear-gradient(135deg,var(--brand),var(--accent));color:#fff;padding:20px 18px 16px;text-align:center}
+  .featbadge{display:inline-block;background:rgba(255,255,255,.22);border:1px solid rgba(255,255,255,.5);border-radius:999px;font-size:11px;font-weight:800;letter-spacing:1px;padding:3px 12px;margin-bottom:8px}
+  .featmc{font-size:50px;line-height:1;margin:2px 0 6px}
+  .feattt{font-size:19px;font-weight:800}
+  .featb{padding:18px}
+  .featli{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px;font-size:13px;color:#384055;line-height:1.6}
+  .featli .e{flex:0 0 auto;font-size:20px}
+  .featli b{color:var(--ink)}
+  .featbtns{display:flex;gap:10px;margin-top:6px}
+  .featbtns button{flex:1;min-height:48px;border-radius:14px;font-weight:800;font-size:15px;cursor:pointer;border:none;font-family:inherit}
+  .featclose{border:1px solid var(--line)!important;background:#fff;color:var(--sub)}
+  .featok{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(47,125,246,.35)}
   .btn:disabled{background:#c7cfe0;cursor:not-allowed}
   .btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
   .btn.soft{background:var(--soft);color:var(--brand-d)}
@@ -276,6 +297,9 @@ const SUPABASE_URL = "https://ihdrkukgeqqktzxmlrzy.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_-Q-BiuJ-PqeUG04nOcVnRA_LL9Ri3J3";
 /* ============================================================ */
 
+/* ===== プッシュ通知（新しい練習日の追加・休校のお知らせ）用 VAPID公開鍵 ===== */
+const VAPID_PUBLIC_KEY = "BOEeDQcQpmrHm0pbe5r8Wu2re-ZB3DMGAwjFqZn0dUclCbF8YT4SuwWHS_mrGtVR0Umm3aVJvSuim89oaqd7oP8";
+
 const READY = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
 let db = null;
 if (READY) { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -290,6 +314,136 @@ if (db) {
     if(event==='PASSWORD_RECOVERY'){ window._recovery=true; try{go('s-reset');}catch(_){ } }
   });
 }
+
+/* ===== プッシュ通知（新しい練習日の追加／休校のお知らせ） ===== */
+window.__pushOn=false;
+function pushSupported(){return 'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window;}
+function isStandalonePWA(){try{return window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;}catch(e){return false;}}
+function isIOSDevice(){return /iPad|iPhone|iPod/.test(navigator.userAgent);}
+function urlB64ToU8(b){const p='='.repeat((4-b.length%4)%4);const r=atob((b+p).replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(r,c=>c.charCodeAt(0));}
+async function pushBoot(){try{
+  if(!('serviceWorker' in navigator))return;
+  await navigator.serviceWorker.register('/sw.js');
+  if(!pushSupported())return;
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  window.__pushOn=!!sub&&Notification.permission==='granted';
+  if(window.__pushOn)await pushSubscribe(true); // 端末変更・ユーザー切替対策でDBへ同期
+  await badgeSync();
+}catch(e){}}
+async function pushSubscribe(silent){try{
+  if(!pushSupported()){if(!silent)toast('この端末では通知を使えません');return false;}
+  if(!me||!me.id)return false;
+  const reg=await navigator.serviceWorker.ready;
+  if(Notification.permission!=='granted'){
+    if(silent)return false;
+    const p=await Notification.requestPermission();
+    if(p!=='granted'){toast('通知が許可されませんでした');return false;}
+  }
+  let sub=await reg.pushManager.getSubscription();
+  if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlB64ToU8(VAPID_PUBLIC_KEY)});
+  const j=sub.toJSON();
+  await db.from('push_subscriptions').upsert({user_id:me.id,endpoint:sub.endpoint,p256dh:j.keys.p256dh,auth:j.keys.auth},{onConflict:'endpoint'});
+  window.__pushOn=true;
+  if(!silent){toast('通知をオンにしました🔔');try{renderMy();}catch(e){}}
+  return true;
+}catch(e){if(!silent)toast('通知の設定に失敗しました');return false;}}
+async function pushUnsubscribe(){try{
+  const reg=await navigator.serviceWorker.ready;
+  const sub=await reg.pushManager.getSubscription();
+  if(sub){try{await db.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);}catch(e){}await sub.unsubscribe();}
+  window.__pushOn=false;toast('通知をオフにしました');try{renderMy();}catch(e){}
+}catch(e){}}
+async function badgeSync(){try{
+  if(!me||!me.id)return;
+  const {data:unread}=await db.from('notifications').select('title,body,created_at').eq('user_id',me.id).is('read_at',null).order('created_at',{ascending:false}).limit(20);
+  await db.from('notifications').update({read_at:new Date().toISOString()}).eq('user_id',me.id).is('read_at',null);
+  if('clearAppBadge' in navigator){try{await navigator.clearAppBadge();}catch(e){}}
+  if(unread&&unread.length)showUnreadPopup(unread);
+}catch(e){}}
+/* アプリを開いた瞬間、未読のお知らせがあれば内容をポップアップ表示（バッジの中身が一目でわかる） */
+function showUnreadPopup(items){try{
+  if(window.__unreadPop)return;
+  if(document.querySelector('.featp'))return; // 他のポップアップと重ねない
+  window.__unreadPop=true;
+  const rows=items.map(n=>`<div class="featli"><span class="e">🔔</span><div><b>${esc(n.title||'お知らせ')}</b><div class="muted" style="font-size:11px">${fmtNotifTime(n.created_at)}</div><div style="font-size:13px">${esc(n.body||'')}</div></div></div>`).join('');
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc"><div class="feath"><div class="featmc">🔔</div><div class="feattt">届いていたお知らせ（${items.length}件）</div></div><div class="featb" style="max-height:52vh;overflow:auto">${rows}<p class="muted" style="font-size:12px;margin:8px 0 0">あとから見たいときは、マイページの「🔔 お知らせ履歴」でいつでも確認できます。</p><div class="featbtns"><button class="featok">OK</button></div></div></div>`;
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>{w.remove();window.__unreadPop=false;},250);};
+  const ok=w.querySelector('.featok');if(ok)ok.onclick=close;
+}catch(e){window.__unreadPop=false;}}
+/* iOSのPWAはバックグラウンド復帰時に起動処理が走らないため、復帰時にもバッジを消す */
+document.addEventListener('visibilitychange',function(){try{if(document.visibilityState==='visible')badgeSync();}catch(e){}});
+window.addEventListener('pageshow',function(){try{badgeSync();}catch(e){}});
+function fmtNotifTime(ts){try{const d=new Date(ts);if(isNaN(d))return '';const p=n=>String(n).padStart(2,'0');return `${d.getMonth()+1}/${d.getDate()}(${'日月火水木金土'[d.getDay()]}) ${d.getHours()}:${p(d.getMinutes())}`;}catch(e){return '';}}
+function notifCard(){
+  return `<details class="card" style="padding:16px" ontoggle="if(this.open)loadNotifHistory()"><summary style="font-weight:800;cursor:pointer">🔔 お知らせ履歴</summary><div id="notifHist" style="margin-top:10px"><div class="muted">読み込み中…</div></div></details>`;
+}
+async function loadNotifHistory(){try{
+  if(!me||!me.id)return;const box=document.getElementById('notifHist');if(!box)return;
+  const {data,error}=await db.from('notifications').select('title,body,created_at').eq('user_id',me.id).order('created_at',{ascending:false}).limit(30);
+  if(error){box.innerHTML='<div class="muted">読み込みに失敗しました。時間をおいてもう一度お試しください。</div>';return;}
+  if(!data||!data.length){box.innerHTML='<div class="muted">まだお知らせはありません</div>';return;}
+  box.innerHTML=data.map(n=>`<div style="border-bottom:1px solid var(--line);padding:8px 0"><div class="muted" style="font-size:11px">${fmtNotifTime(n.created_at)}</div><div style="font-weight:700">${esc(n.title||'お知らせ')}</div><div style="font-size:13px">${esc(n.body||'')}</div></div>`).join('');
+}catch(e){}}
+function pushHowToGuide(){
+  return `<details class="acc" style="margin-top:10px"><summary style="font-weight:700;cursor:pointer;font-size:13px">🔔 通知をオンにする手順（iPhone／Android・パソコン）</summary>
+    <div class="muted" style="font-size:13px;line-height:1.8;margin-top:8px">
+      <b>📱 iPhone（Safariで開いている場合）</b><br>
+      ① 画面下の共有ボタン（□に↑のマーク）をタップ<br>
+      ② 「ホーム画面に追加」を選ぶ<br>
+      ③ ホーム画面にできたアイコンからアプリを開き直す<br>
+      ④ マイページの「通知をオンにする」をタップ<br>
+      ⑤「通知を送信しますか？」と出たら「許可」を選ぶ<br><br>
+      <b>💻 Android・パソコンの場合</b><br>
+      ① マイページの「通知をオンにする」をタップ<br>
+      ② 画面に出る許可のポップアップで「許可」を選ぶだけで完了です
+    </div>
+  </details>`;
+}
+function pushCard(){
+  if(window.__pushOn)return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px">通知はオンです。<b>新しい練習日の追加</b>や<b>休校のお知らせ</b>が届きます。</p><button class="btn gray sm" onclick="pushUnsubscribe()">通知をオフにする</button>${pushHowToGuide()}</div>`;
+  if(pushSupported())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px"><b>新しい練習日の追加</b>や<b>休校のお知らせ</b>を、スマホの通知でお届けします。</p><button class="btn sm" onclick="pushSubscribe(false)">通知をオンにする</button>${pushHowToGuide()}</div>`;
+  if(isIOSDevice()&&!isStandalonePWA())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">iPhoneでは<b>ホーム画面に追加</b>したアプリから通知を受け取れます。</p>${pushHowToGuide()}</div>`;
+  return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">この端末・ブラウザはプッシュ通知に対応していません。</p></div>`;
+}
+function pushIntroAnnounce(){try{
+  if(!me||!me.id)return false;
+  const key='sowers_gym_pushintro_v1_'+me.id;let seen=false;try{seen=localStorage.getItem(key)==='1';}catch(e){}
+  if(seen)return false;
+  const canAsk=pushSupported()&&Notification.permission!=='granted';
+  const iosGuide=!pushSupported()&&isIOSDevice()&&!isStandalonePWA();
+  if(!canAsk&&!iosGuide)return false;
+  if(document.querySelector('.featp'))return false;
+  try{localStorage.setItem(key,'1');}catch(e){}
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML='<div class="featc"><div class="feath"><div class="featbadge">NEW</div><div class="featmc">🔔</div><div class="feattt">プッシュ通知がはじまりました</div></div><div class="featb">'
+    +'<div class="featli"><span class="e">📅</span><div><b>新しい練習日が追加された</b>とき、すぐ通知でお知らせします！</div></div>'
+    +'<div class="featli"><span class="e">⛔</span><div><b>練習が休校になった</b>ときも、通知でお知らせします</div></div>'
+    +(iosGuide?'<p class="muted" style="font-size:12px;margin:6px 0 0">iPhoneの方は、Safariの共有ボタン（□↑）→「ホーム画面に追加」で追加したアイコンから開くと通知を使えます。</p>':'')
+    +'<div class="featbtns"><button class="featclose">あとで</button>'+(canAsk?'<button class="featok">通知をオンにする</button>':'<button class="featok">わかった</button>')+'</div></div></div>';
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featclose').onclick=close;
+  const ok=w.querySelector('.featok');if(ok)ok.onclick=async()=>{close();if(canAsk){try{await pushSubscribe(false);}catch(e){}}};
+}catch(e){}}
+/* ===== 緊急連絡先3件化のお知らせ（初回のみ） ===== */
+function showEcUpgradeAnnounce(){try{
+  const key='sowers_gym_ec3_announce_v1';let seen=false;try{seen=localStorage.getItem(key)==='1';}catch(e){}
+  if(seen)return;
+  if(document.querySelector('.featp'))return;
+  try{localStorage.setItem(key,'1');}catch(e){}
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML='<div class="featc"><div class="feath"><div class="featbadge">NEW</div><div class="featmc">📋</div><div class="feattt">緊急連絡先が3件まで登録できます</div></div><div class="featb">'
+    +'<div class="featli"><span class="e">👨‍👩‍👧</span><div>緊急連絡先を<b>3件まで</b>登録できるようになりました</div></div>'
+    +'<div class="featli"><span class="e">🏷️</span><div>それぞれの連絡先の<b>続柄（母・父など）</b>も選べます</div></div>'
+    +'<div class="featli"><span class="e">✏️</span><div>マイページの「お子様の情報・お月謝・緊急連絡先を編集」から追加・変更できます</div></div>'
+    +'<div class="featbtns"><button class="featok">わかった</button></div></div></div>';
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featok').onclick=close;
+}catch(e){}}
 
 /* ============ 教室マスタ（設定） ============ */
 const SCHOOLS = {
@@ -657,7 +811,7 @@ const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","�
 const REG_N=REG_TITLES.length;
 function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
 function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
-function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec2:"",ec2_note:""};}
+function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec1_rel:"",ec2:"",ec2_note:"",ec2_rel:"",ec3:"",ec3_note:"",ec3_rel:""};}
 function renderReg(){
   const s=document.getElementById('reg-steps');s.innerHTML='';for(let i=0;i<REG_N;i++){const d=document.createElement('div');d.className='dot'+(i<=reg.step?' on':'');s.appendChild(d);}
   const b=document.getElementById('reg-body');const pill=`<span class="pill">STEP ${reg.step+1} / ${REG_N} ・ ${REG_TITLES[reg.step]}</span>`;
@@ -747,7 +901,7 @@ async function finishRegister(){
   const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:draft.parent.name,relation:draft.parent.rel,tel:draft.parent.tel,payment:draft.payment,email:draft.email});
   if(pe.error){showLoad(false);showErr('reg-err','保護者情報の保存に失敗：'+pe.error.message);return;}
   // children
-  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,program:metaOf(c.classroom).p,region:metaOf(c.classroom).r,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec2:'',ec2_note:''}));
+  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,program:metaOf(c.classroom).p,region:metaOf(c.classroom).r,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec1_rel:'',ec2:'',ec2_note:'',ec2_rel:'',ec3:'',ec3_note:'',ec3_rel:''}));
   const ce=await db.from('children').insert(rows);
   showLoad(false);
   if(ce.error){showErr('reg-err','お子様情報の保存に失敗：'+ce.error.message);return;}
@@ -811,6 +965,9 @@ function enterApp(){
   document.getElementById('home-fam').textContent=fam;document.getElementById('my-fam').textContent=fam;
   renderLegend();renderCal();renderMy();renderMsgs();renderHomeAnn();
   setTimeout(checkPaymentReminder,400);
+  pushBoot();
+  setTimeout(showEcUpgradeAnnounce,900);
+  setTimeout(pushIntroAnnounce,1700);
 }
 
 /* ============ お知らせ ============ */
@@ -975,6 +1132,13 @@ async function changePayment(val){
   profile.payment=val;
   toast('お支払い方法を「'+nm+'」に変更しました');
 }
+const ECREL=["母","父","祖母","祖父","その他"];
+function ecField(i,n,c){const ph=(c['ec'+n]||'').replace(/"/g,'&quot;');const rel=c['ec'+n+'_rel']||'';const note=(c['ec'+n+'_note']||'').replace(/"/g,'&quot;');
+  return `<label class="fld">緊急連絡先${n}</label><input id="ec${n}-${i}" value="${ph}" placeholder="電話番号">
+    <select id="ec${n}rel-${i}" style="margin-top:6px">${['',...ECREL].map(r=>`<option value="${r}" ${rel===r?'selected':''}>${r||'続柄を選択'}</option>`).join('')}</select>
+    <input style="margin-top:6px" id="ec${n}n-${i}" value="${note}" placeholder="つながりやすい時間など（任意）">`;}
+function ecLine(c,n){const v=c['ec'+n],rel=c['ec'+n+'_rel'],note=c['ec'+n+'_note'];
+  return `<div class="muted"${n===1?' style="margin-top:4px"':''}>🚨 緊急連絡先${n}${rel?'（'+rel+'）':''}：${v||'未登録'}${note?'（'+note+'）':''}</div>`;}
 function renderMy(){
   const b=document.getElementById('my-body');const cap=3*kids.length;
   let html=`<div class="card">
@@ -984,6 +1148,8 @@ function renderMy(){
     </div>
     <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
     <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
+  html+=pushCard();
+  html+=notifCard();
   html+=manageBlock();
   kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;
     html+=`<div class="card childcard"><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}</h3>
@@ -999,10 +1165,9 @@ function renderMy(){
         <label class="fld">小学校名</label><input id="sc-${i}" value="${(c.school||'').replace(/"/g,'&quot;')}" placeholder="○○小学校">
         <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000">
         <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>
-        <label class="fld">緊急連絡先1</label><input id="ec1-${i}" value="${c.ec1||''}" placeholder="電話番号">
-        <input style="margin-top:6px" id="ec1n-${i}" value="${c.ec1_note||''}" placeholder="特につながりやすい時間・関係（例：母・日中）">
-        <label class="fld">緊急連絡先2</label><input id="ec2-${i}" value="${c.ec2||''}" placeholder="電話番号">
-        <input style="margin-top:6px" id="ec2n-${i}" value="${c.ec2_note||''}" placeholder="特につながりやすい時間・関係（例：父・夜のみ）">
+        ${ecField(i,1,c)}
+        ${ecField(i,2,c)}
+        ${ecField(i,3,c)}
         <button class="btn sm" style="margin-top:10px" onclick="saveChild(${i})">このお子様の情報を保存</button>
       </details></div>`;});
   html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>
@@ -1012,7 +1177,7 @@ function renderMy(){
   b.innerHTML=html;
 }
 async function saveChild(i){const c=kids[i];showLoad(true);
-  const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value};
+  const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   Object.assign(c,patch);toast('保存しました');renderMy();}
@@ -1147,6 +1312,40 @@ function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_
 // スタッフ・管理者の登録は「生徒」として扱わない（名簿・分析等から除外）
 function isStaffParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&(p.role==='staff'||p.role==='admin'));}
 function students(){return allChildren.filter(c=>!isStaffParent(c.parent_id));}
+/* ===== スタッフ・管理者向け：練習がある日の欠席・振替まとめポップアップ ===== */
+function todaysPracticeRoomsForStaff(){
+  const now=new Date();const key=dateKey(now.getFullYear(),now.getMonth(),now.getDate());
+  return furikaeRooms().filter(room=>isHeld(room,key));
+}
+function showStaffTodaySummary(){try{
+  if(!(staffRole==='staff'||staffRole==='admin'))return;
+  const now=new Date();const todayKey=dateKey(now.getFullYear(),now.getMonth(),now.getDate());
+  const seenKey='sowers_gym_daysum_'+((me&&me.id)||'')+'_'+todayKey;
+  let seen=false;try{seen=localStorage.getItem(seenKey)==='1';}catch(e){}
+  if(seen)return;
+  if(document.querySelector('.featp'))return;
+  const rooms=todaysPracticeRoomsForStaff();
+  if(!rooms.length)return;
+  try{localStorage.setItem(seenKey,'1');}catch(e){}
+  const norm=s=>(''+s).slice(0,10);
+  const absOf=allAbsences.filter(a=>norm(a.date)===todayKey&&rooms.includes(a.classroom));
+  const furOf=allFurikae.filter(f=>norm(f.date)===todayKey&&rooms.includes(f.to_room));
+  let body='';
+  rooms.forEach(room=>{
+    const a=absOf.filter(x=>x.classroom===room);
+    const f=furOf.filter(x=>x.to_room===room);
+    body+=`<div style="margin-bottom:12px"><div style="font-weight:800;color:${scolor(room).bg}">${(SCHOOL_INFO[room]||{}).full||room}</div>
+      <div style="font-size:13px;margin-top:4px">🙅 欠席：<b>${a.length}人</b>${a.length?'　'+a.map(x=>childName(x.child_id)).join('、'):''}</div>
+      <div style="font-size:13px;margin-top:2px">🔁 振替で参加：<b>${f.length}人</b>${f.length?'　'+f.map(x=>childName(x.child_id)+(x.from_room!==room?`（${x.from_room}から）`:'')).join('、'):''}</div>
+    </div>`;
+  });
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc"><div class="feath"><div class="featmc">📋</div><div class="feattt">本日の欠席・振替まとめ</div><div style="font-size:12px;opacity:.9;margin-top:2px">${attDateLabel(todayKey)}</div></div><div class="featb" style="max-height:56vh;overflow:auto">${body}<div class="featbtns"><button class="featok">OK</button></div></div></div>`;
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featok').onclick=close;
+}catch(e){}}
+
 function enterStaffApp(role){
   staffRole=role; staffSection=(ROLE_TABS[role]||['schedule'])[0];
   const t=new Date(); scal.y=t.getFullYear(); scal.m=t.getMonth();
@@ -1154,6 +1353,7 @@ function enterStaffApp(role){
   document.getElementById('staff-tabbar').style.display='flex';
   go('s-staff'); renderStaffNav(); renderStaff();
   if((role==='staff'||role==='parttime')&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
+  else{setTimeout(showStaffTodaySummary,700);}
 }
 // 未返信（最後が保護者発言のスレッド）の件数。オーナーは担当エリアのみ。
 function unrepliedCount(){
@@ -1443,8 +1643,7 @@ function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
     <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span></div>
     <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
-    <div class="muted" style="margin-top:4px">🚨 緊急連絡先1：${c.ec1||'未登録'}${c.ec1_note?'（'+c.ec1_note+'）':''}</div>
-    <div class="muted">🚨 緊急連絡先2：${c.ec2||'未登録'}${c.ec2_note?'（'+c.ec2_note+'）':''}</div>
+    ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button></div>
   </div>`;}
 function openParentMsg(pid){
@@ -1481,8 +1680,7 @@ function memberCard(c){
     <div style="font-weight:800">${c.name} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
     <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
     ${p.email?`<div class="muted">${p.email}</div>`:''}
-    <div class="muted" style="margin-top:4px">🚨 緊急連絡先1：${c.ec1||'未登録'}${c.ec1_note?'（'+c.ec1_note+'）':''}</div>
-    <div class="muted">🚨 緊急連絡先2：${c.ec2||'未登録'}${c.ec2_note?'（'+c.ec2_note+'）':''}</div>
+    ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
     ${roleSelect(p)}
   </div>`;
 }
