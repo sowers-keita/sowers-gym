@@ -96,7 +96,9 @@
   .cal .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
   .cal .day.past{opacity:.4;pointer-events:none;background:#f1f3f7;filter:grayscale(.6)}
   .cal .day.past span{color:#aeb6c6}
-  .cal .day.holi{background:#fdecef;border-color:#f7d3da}.cal .day.holi span{color:#cf5f72}
+  .cal .day.holi{background:#fdecef;border-color:#f7d3da}.cal .day.holi span{color:#d92330;font-weight:800}
+  .cal .day.natholi span{color:#d92330;font-weight:800}
+  .natholi-lb{margin-top:1px;font-size:9px;font-weight:800;color:#d92330;line-height:1}
   .holibar{display:flex;align-items:center;gap:8px;background:#fdecef;border:1px solid #f7d3da;color:#c0455c;font-weight:800;font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:8px}
   .legend{font-size:12px;color:var(--sub);margin-top:10px;display:flex;align-items:center;gap:6px}
   .legend .ev{font-size:9px;font-weight:800;color:#fff;border-radius:6px;padding:1px 6px}
@@ -696,6 +698,41 @@ function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
 function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
 function holidayBars(y,m){const mo=m+1;const o=[];if(mo===4||mo===5)o.push('🎌 ゴールデンウィーク休み（4/29〜5/6）');if(mo===8)o.push('🎌 お盆休み（8/11〜8/16）');if(mo===12||mo===1)o.push('🎌 年末年始休み（12/29〜1/3）');return o;}
+/* ============ 国民の祝日（自動計算） ============ */
+const _natHoliCache={};
+function _nthMonday(y,mo,n){const first=new Date(y,mo-1,1).getDay();const firstMon=1+((8-first)%7);return firstMon+(n-1)*7;}
+function nationalHolidaysOfYear(y){
+  if(_natHoliCache[y])return _natHoliCache[y];
+  const list=[];const push=(mo,d,name)=>list.push({mo,d,name});
+  push(1,1,'元日');
+  push(1,_nthMonday(y,1,2),'成人の日');
+  push(2,11,'建国記念の日');
+  if(y>=2020)push(2,23,'天皇誕生日');else if(y>=1989)push(12,23,'天皇誕生日');
+  const shun=Math.floor(20.8431+0.242194*(y-1980)-Math.floor((y-1980)/4));push(3,shun,'春分の日');
+  push(4,29,'昭和の日');
+  push(5,3,'憲法記念日');push(5,4,'みどりの日');push(5,5,'こどもの日');
+  if(y===2021)push(7,22,'海の日');else if(y===2020)push(7,23,'海の日');else push(7,_nthMonday(y,7,3),'海の日');
+  if(y>=2016){if(y===2021)push(8,8,'山の日');else if(y===2020)push(8,10,'山の日');else push(8,11,'山の日');}
+  push(9,_nthMonday(y,9,3),'敬老の日');
+  const shuu=Math.floor(23.2488+0.242194*(y-1980)-Math.floor((y-1980)/4));push(9,shuu,'秋分の日');
+  if(y===2021)push(7,23,'スポーツの日');else if(y===2020)push(7,24,'スポーツの日');else push(10,_nthMonday(y,10,2),y>=2020?'スポーツの日':'体育の日');
+  push(11,3,'文化の日');push(11,23,'勤労感謝の日');
+  // 振替休日：祝日が日曜なら、その直後で祝日でない日を振替休日にする
+  const ts=(mo,d)=>new Date(y,mo-1,d).getTime();const oneDay=86400000;
+  const dset=new Set(list.map(h=>ts(h.mo,h.d)));
+  list.filter(h=>new Date(y,h.mo-1,h.d).getDay()===0).forEach(h=>{
+    let t=ts(h.mo,h.d)+oneDay;while(dset.has(t))t+=oneDay;
+    dset.add(t);const dt=new Date(t);list.push({mo:dt.getMonth()+1,d:dt.getDate(),name:'振替休日'});
+  });
+  // 国民の休日：祝日と祝日に挟まれた（日曜でない）平日
+  const dset2=new Set(list.map(h=>ts(h.mo,h.d)));
+  list.slice().forEach(h=>{const t=ts(h.mo,h.d);const mid=t+oneDay;const next=t+2*oneDay;
+    if(dset2.has(next)&&!dset2.has(mid)){const dt=new Date(mid);if(dt.getDay()!==0){list.push({mo:dt.getMonth()+1,d:dt.getDate(),name:'国民の休日'});dset2.add(mid);}}
+  });
+  const map={};list.forEach(h=>{map[`${h.mo}-${h.d}`]=h.name;});
+  _natHoliCache[y]=map;return map;
+}
+function nationalHolidayName(y,m,d){const map=nationalHolidaysOfYear(y);return map[`${m+1}-${d}`]||null;}
 function maxPerChild(){return 3;}
 function totalPoints(){return kids.reduce((a,c)=>a+(c.points||0),0);}
 function yen(n){return "¥"+Number(n||0).toLocaleString('ja-JP');}
@@ -992,9 +1029,10 @@ function renderCal(){
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
   for(let d=1;d<=days;d++){
     const wd=new Date(cal.y,cal.m,d).getDay();const schools=schoolsOn(wd,currentScope()).filter(s=>isHeld(s,dateKey(cal.y,cal.m,d)));
-    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
+    const nh=nationalHolidayName(cal.y,cal.m,d);
+    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'')+(nh?' natholi':'');
     if(today.getFullYear()===cal.y&&today.getMonth()===cal.m&&today.getDate()===d)e.classList.add('today');
-    e.innerHTML=`<span>${d}</span>`;
+    e.innerHTML=`<span>${d}</span>`+(nh?`<div class="natholi-lb" title="${esc(nh)}">祝</div>`:'');
     const past=isPast(cal.y,cal.m,d);if(past)e.classList.add('past');
     if(holidayName(cal.y,cal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
     const key=dateKey(cal.y,cal.m,d);
@@ -1409,9 +1447,10 @@ function renderStaffCal(){
   const first=new Date(scal.y,scal.m,1).getDay(),days=new Date(scal.y,scal.m+1,0).getDate(),today=new Date();
   for(let i=0;i<first;i++){const e=document.createElement('div');e.className='day empty';cv.appendChild(e);}
   for(let d=1;d<=days;d++){const wd=new Date(scal.y,scal.m,d).getDay();const schools=staffCalRooms(wd,dateKey(scal.y,scal.m,d));
-    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'');
+    const nh=nationalHolidayName(scal.y,scal.m,d);
+    const e=document.createElement('div');e.className='day'+(wd===0?' sun':wd===6?' sat':'')+(schools.length?' has':'')+(nh?' natholi':'');
     if(today.getFullYear()===scal.y&&today.getMonth()===scal.m&&today.getDate()===d)e.classList.add('today');
-    e.innerHTML=`<span>${d}</span>`;const past=isPast(scal.y,scal.m,d);if(past)e.classList.add('past');
+    e.innerHTML=`<span>${d}</span>`+(nh?`<div class="natholi-lb" title="${esc(nh)}">祝</div>`:'');const past=isPast(scal.y,scal.m,d);if(past)e.classList.add('past');
     if(holidayName(scal.y,scal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
     const key=dateKey(scal.y,scal.m,d);
     schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);const chip=roomChip(s,wd);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?chip.label+' 休':chip.label;if(!cx){ev.style.background=chip.bg;ev.style.color=chip.fg;}e.appendChild(ev);});
