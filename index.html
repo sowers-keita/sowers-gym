@@ -692,7 +692,8 @@ function calcGrade(birth){ if(!birth)return null; const b=new Date(birth),by=b.g
 function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new Date(); let a=n.getFullYear()-b.getFullYear(); if(n<new Date(n.getFullYear(),b.getMonth(),b.getDate()))a--; return a; }
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
-function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
+function isRoomTransferBlocked(fromRoom,toRoom){if(!fromRoom||!toRoom||fromRoom===toRoom)return false;return FURIKAE_BLOCKS.some(b=>b.from_room===fromRoom&&b.to_room===toRoom);}
+function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';if(selClass&&child&&child.classroom&&selClass.room!==child.classroom&&isRoomTransferBlocked(child.classroom,selClass.room))return 'この教室へは振替できません';const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
 function canFurikaeTo(child,cls){return furikaeNgReason(child,cls)==='';}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
@@ -748,6 +749,7 @@ let msgs=[];
 let myAbs=[];           // 自分の欠席記録（取り消し用）
 let myReqs=[];          // 自分のクラス変更申請
 let myFur=[];           // 自分の振替予定
+let FURIKAE_BLOCKS=[];  // 振替禁止ペア [{from_room,to_room}] ＝先生が「振替設定」でOFFにした組み合わせ
 let cal={y:0,m:0};
 let reg={step:0,program:null,region:null,classroom:null,cls:null};
 let draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""};
@@ -955,7 +957,7 @@ async function afterAuth(preUser){
   // プロフィール取得と共通データ読み込みを並列化（互いに独立）
   const [p]=await Promise.all([
     db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
-    loadAnns(), loadCancels(), loadHidden(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts()
+    loadAnns(), loadCancels(), loadHidden(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts(), loadFurikaeBlocks()
   ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
@@ -974,6 +976,7 @@ async function loadKids(){const r=await db.from('children').select('*').eq('pare
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
 async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
 async function loadHidden(){hidden={};const r=await db.from('hidden_days').select('*');(r.data||[]).forEach(h=>{const k=(''+h.date).slice(0,10);(hidden[h.room]=hidden[h.room]||{})[k]=true;});}
+async function loadFurikaeBlocks(){const r=await db.from('furikae_blocks').select('*');FURIKAE_BLOCKS=r.data||[];}
 async function loadOverrides(){
   const [v,t]=await Promise.all([
     db.from('venue_overrides').select('*'),
@@ -1319,8 +1322,8 @@ function otherQuit(){closeSheet();tab('s-msg',document.querySelector('#tabbar bu
 let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attDate=null;
 function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
 let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
-const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
-const ROLE_TABS={staff:['schedule','furikae','roster','announce','messages'],admin:['schedule','furikae','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
+const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},furikaeset:{ic:'🔀',l:'振替設定'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
+const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
 async function loadStaffData(){
   // 9件のクエリを並列取得（互いに独立）
   const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
@@ -1383,6 +1386,23 @@ function showStaffTodaySummary(){try{
   const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
   w.querySelector('.featok').onclick=close;
 }catch(e){}}
+/* ===== 振替設定 機能追加のお知らせ（スタッフ・管理者、初回のみ） ===== */
+function showFurikaeSetAnnounce(){try{
+  if(!(staffRole==='staff'||staffRole==='admin'))return;
+  const key='sowers_gym_furikaeset_announce_v1';let seen=false;try{seen=localStorage.getItem(key)==='1';}catch(e){}
+  if(seen)return;
+  if(document.querySelector('.featp'))return;
+  try{localStorage.setItem(key,'1');}catch(e){}
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML='<div class="featc"><div class="feath"><div class="featbadge">NEW</div><div class="featmc">🔀</div><div class="feattt">振替できる教室を設定できます</div></div><div class="featb">'
+    +'<div class="featli"><span class="e">🏫</span><div>新しく「振替設定」タブが増えました。<b>教室ごとに、振替で受け入れる教室</b>を選べます</div></div>'
+    +'<div class="featli"><span class="e">⚙️</span><div>今のところは<b>これまでどおり全部OK</b>のままです。制限したい組み合わせだけオフにしてください</div></div>'
+    +'<div class="featli"><span class="e">🔁</span><div>A→Bだけ許可、のように<b>片方向ずつ</b>設定できます（B→Aは別に設定が必要です）</div></div>'
+    +'<div class="featbtns"><button class="featok">わかった</button></div></div></div>';
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featok').onclick=close;
+}catch(e){}}
 
 function enterStaffApp(role){
   staffRole=role; staffSection=(ROLE_TABS[role]||['schedule'])[0];
@@ -1392,6 +1412,7 @@ function enterStaffApp(role){
   go('s-staff'); renderStaffNav(); renderStaff();
   if((role==='staff'||role==='parttime')&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
   else{setTimeout(showStaffTodaySummary,700);}
+  setTimeout(showFurikaeSetAnnounce,1400);
 }
 // 未返信（最後が保護者発言のスレッド）の件数。オーナーは担当エリアのみ。
 function unrepliedCount(){
@@ -1415,6 +1436,7 @@ function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getE
 function renderStaff(){const b=document.getElementById('staff-body');
   if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
   else if(staffSection==='furikae')b.innerHTML=stFurikae();
+  else if(staffSection==='furikaeset')b.innerHTML=stTransferSettings();
   else if(staffSection==='roster')b.innerHTML=stRoster();
   else if(staffSection==='pay')b.innerHTML=stPay();
   else if(staffSection==='finance')b.innerHTML=stFinance();
@@ -1565,6 +1587,42 @@ function stFurikae(){
   });
   if(!any)h+=`<div class="card center"><span class="muted">この日の欠席・振替はありません。</span></div>`;
   return h;
+}
+/* --- 振替設定（どの教室からどの教室に振替できるか） --- */
+function stTransferSettings(){
+  const isAdmin=staffRole==='admin';
+  const filterBar=isAdmin?`<div class="card" style="padding:10px 14px"><div class="muted" style="margin-bottom:6px">表示する種目・都道府県で絞り込み</div><div style="display:flex;gap:8px"><div style="flex:1"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select></div><div style="flex:1"><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div></div></div>`:'';
+  let h=`<h2 class="title">振替設定</h2><p class="muted" style="margin-top:-8px">教室ごとに、生徒が振替でお休みの代わりに参加できる教室を選べます。✅＝振替OK／⬜＝振替不可。オフにした組み合わせだけ保護者の振替候補から外れます（在籍している教室の別クラスへの振替は、この設定に関係なくいつでもできます）。</p>${filterBar}`;
+  const rooms=furikaeRooms();
+  if(rooms.length===0)return h+`<div class="card center"><span class="muted">種目・都道府県を選ぶと、教室が表示されます。</span></div>`;
+  let any=false;
+  rooms.forEach(room=>{
+    const meta=metaOf(room);
+    const targets=classroomsIn(meta.p,meta.r).filter(r2=>r2!==room);
+    if(targets.length===0)return;
+    any=true;
+    const rows=targets.map(t=>{
+      const blocked=isRoomTransferBlocked(room,t);
+      return `<div class="sumrow"><span>→ ${SCHOOL_INFO[t]?SCHOOL_INFO[t].full:t}</span><button class="paychk" onclick="setRoomTransferBlock('${room}','${t}',${!blocked})">${blocked?'⬜':'✅'}</button></div>`;
+    }).join('');
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room}　<span class="muted" style="font-weight:700">${meta.p}・${meta.r}</span></summary>
+      <p class="muted" style="margin:6px 0 2px">「${SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room}」の生徒が振替で参加できる教室</p>
+      ${rows}
+    </details></div>`;
+  });
+  if(!any)h+=`<div class="card center"><span class="muted">この範囲には振替先となる教室が他にありません（1教室のみのエリアです）。</span></div>`;
+  return h;
+}
+async function setRoomTransferBlock(fromRoom,toRoom,blocked){
+  showLoad(true);
+  const r=blocked
+    ? await db.from('furikae_blocks').upsert({from_room:fromRoom,to_room:toRoom,created_by:me.id},{onConflict:'from_room,to_room'})
+    : await db.from('furikae_blocks').delete().eq('from_room',fromRoom).eq('to_room',toRoom);
+  await loadFurikaeBlocks();
+  showLoad(false);
+  if(r.error){toast('保存エラー：'+r.error.message);return;}
+  toast(blocked?`${fromRoom}→${toRoom} の振替を不可にしました`:`${fromRoom}→${toRoom} の振替を許可しました`);
+  renderStaff();
 }
 /* --- 名簿・生徒数・売上 --- */
 function stRoster(){
