@@ -481,7 +481,7 @@ const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動�
 
 /* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
 Object.assign(SCHOOLS,{
-  "米子":["スタートA","スタートB","スタートC","ステップアップY","ステップアップZ","アクロバット"],
+  "米子":["スタートA","スタートB","スタートC","ステップアップX","ステップアップY","ステップアップZ","アクロバット"],
   "松江":["Aクラス","Bクラス"],
   "糸島":["ジュニアクラス","スタートクラス"],
   "福山":["Aクラス","Bクラス"],
@@ -506,7 +506,7 @@ Object.assign(SCHOOL_COLOR,{
   "米子":{bg:"#0ea5e9",fg:"#fff"},"松江":{bg:"#14b8a6",fg:"#fff"},"糸島":{bg:"#f97316",fg:"#fff"},"福山":{bg:"#ef4444",fg:"#fff"},"北谷":{bg:"#22c55e",fg:"#fff"},"室川":{bg:"#a855f7",fg:"#fff"},"keydance":{bg:"#ec4899",fg:"#fff"},"上八万":{bg:"#f472b6",fg:"#fff"},"八万中央":{bg:"#c026d3",fg:"#fff"}
 });
 Object.assign(SCHEDULE,{
-  "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップZ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"16:30–17:30",g:"5歳以上"},{c:"ステップアップY",t:"17:40–18:40",g:"基礎〜技の習得"}]},
+  "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップZ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"15:50–16:50",g:"5歳以上"},{c:"ステップアップX",t:"17:00–18:00",g:"基礎〜技の習得"},{c:"ステップアップY",t:"18:10–19:10",g:"基礎〜技の習得"}]},
   "松江":{6:[{c:"Aクラス",t:"16:30–17:30",g:"5歳以上"},{c:"Bクラス",t:"17:40–18:40",g:"5歳以上"}]},
   "糸島":{6:[{c:"ジュニアクラス",t:"10:30–11:30",g:"小学生以上推奨"},{c:"スタートクラス",t:"14:00–15:00",g:"年中・年長向け"}]},
   "福山":{0:[{c:"Aクラス",t:"10:00–11:00",g:"5歳〜"},{c:"Bクラス",t:"11:10–12:10",g:"5歳〜"}]},
@@ -516,7 +516,7 @@ Object.assign(SCHEDULE,{
   "上八万":{3:[{c:"キッズクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"17:30–18:30",g:"5歳〜小学生"}]},
   "八万中央":{4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
 });
-Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20,"バク転集中クラス":13});
+Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップX":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20,"バク転集中クラス":13});
 const CLASSROOM_META={
   "論田":{p:"体操",r:"徳島"},"北島":{p:"体操",r:"徳島"},"吉野川":{p:"体操",r:"徳島"},"阿南":{p:"体操",r:"徳島"},"上板":{p:"体操",r:"徳島"},"小松島":{p:"体操",r:"徳島"},
   "米子":{p:"体操",r:"鳥取"},"松江":{p:"体操",r:"島根"},"糸島":{p:"体操",r:"福岡"},"福山":{p:"体操",r:"広島"},"北谷":{p:"体操",r:"沖縄"},"室川":{p:"体操",r:"沖縄"},
@@ -1595,22 +1595,25 @@ function stTransferSettings(){
   let h=`<h2 class="title">振替設定</h2><p class="muted" style="margin-top:-8px">教室ごとに、生徒が振替でお休みの代わりに参加できる教室を選べます。✅＝振替OK／⬜＝振替不可。オフにした組み合わせだけ保護者の振替候補から外れます（在籍している教室の別クラスへの振替は、この設定に関係なくいつでもできます）。</p>${filterBar}`;
   const rooms=furikaeRooms();
   if(rooms.length===0)return h+`<div class="card center"><span class="muted">種目・都道府県を選ぶと、教室が表示されます。</span></div>`;
-  let any=false;
   rooms.forEach(room=>{
     const meta=metaOf(room);
     const targets=classroomsIn(meta.p,meta.r).filter(r2=>r2!==room);
-    if(targets.length===0)return;
-    any=true;
+    const label=SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room;
+    if(targets.length===0){
+      h+=`<div class="card" style="padding:8px 14px"><div style="font-weight:800;color:${scolor(room).bg}">${label}　<span class="muted" style="font-weight:700">${meta.p}・${meta.r}</span></div>
+        <p class="muted" style="margin:6px 0 0">この教室は${meta.p}・${meta.r}で唯一の教室のため、他教室への振替設定はありません（振替先の教室がありません）。教室内の別クラスへの振替は、これまでどおりいつでもご利用いただけます。</p>
+      </div>`;
+      return;
+    }
     const rows=targets.map(t=>{
       const blocked=isRoomTransferBlocked(room,t);
       return `<div class="sumrow"><span>→ ${SCHOOL_INFO[t]?SCHOOL_INFO[t].full:t}</span><button class="paychk" onclick="setRoomTransferBlock('${room}','${t}',${!blocked})">${blocked?'⬜':'✅'}</button></div>`;
     }).join('');
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room}　<span class="muted" style="font-weight:700">${meta.p}・${meta.r}</span></summary>
-      <p class="muted" style="margin:6px 0 2px">「${SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room}」の生徒が振替で参加できる教室</p>
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${label}　<span class="muted" style="font-weight:700">${meta.p}・${meta.r}</span></summary>
+      <p class="muted" style="margin:6px 0 2px">「${label}」の生徒が振替で参加できる教室</p>
       ${rows}
     </details></div>`;
   });
-  if(!any)h+=`<div class="card center"><span class="muted">この範囲には振替先となる教室が他にありません（1教室のみのエリアです）。</span></div>`;
   return h;
 }
 async function setRoomTransferBlock(fromRoom,toRoom,blocked){
