@@ -735,7 +735,18 @@ function nationalHolidaysOfYear(y){
 }
 function nationalHolidayName(y,m,d){const map=nationalHolidaysOfYear(y);return map[`${m+1}-${d}`]||null;}
 function maxPerChild(){return 3;}
-function totalPoints(){return kids.reduce((a,c)=>a+(c.points||0),0);}
+/* ===== 退会状態（2026-09-03）: active=在籍 / leaving=退会予定(last_monthまで) / withdrawn=退会済み ===== */
+const LEAVE_CUTOFF_DAY=15; // 体操教室は15日締め（15日まで→当月末退会、16日以降→翌月末退会）
+function jstNow(){return new Date(Date.now()+9*3600*1000);}
+function nowYM(){const t=jstNow();return t.getUTCFullYear()+'-'+String(t.getUTCMonth()+1).padStart(2,'0');}
+function isWithdrawn(c){return !!c&&(c.status==='withdrawn'||(c.status==='leaving'&&!!c.last_month&&c.last_month<nowYM()));}
+function isLeaving(c){return !!c&&c.status==='leaving'&&!isWithdrawn(c);}
+function activeKids(){return kids.filter(c=>!isWithdrawn(c));}
+function ymLabel(ym){return ym?Number((''+ym).slice(0,4))+'年'+Number((''+ym).slice(5,7))+'月':'';}
+function addMonths(ym,n){let y=Number(ym.slice(0,4)),m=Number(ym.slice(5,7))+n;while(m>12){m-=12;y++;}while(m<1){m+=12;y--;}return y+'-'+String(m).padStart(2,'0');}
+function leaveLastMonth(){const t=jstNow();const ym=nowYM();return t.getUTCDate()<=LEAVE_CUTOFF_DAY?ym:addMonths(ym,1);}
+function statusPill(c){if(isWithdrawn(c))return '<span class="pill" style="background:#ecebe6;color:#8d877d;margin:0 0 0 6px;padding:3px 9px;font-size:11px">退会済み</span>';if(isLeaving(c))return `<span class="pill" style="background:#fdf3e7;color:#b45309;margin:0 0 0 6px;padding:3px 9px;font-size:11px">退会予定・${ymLabel(c.last_month)}末まで</span>`;return '';}
+function totalPoints(){return activeKids().reduce((a,c)=>a+(c.points||0),0);}
 function yen(n){return "¥"+Number(n||0).toLocaleString('ja-JP');}
 
 /* ============ 状態 ============ */
@@ -1011,7 +1022,16 @@ function enterApp(){
 }
 
 /* ============ お知らせ ============ */
-function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(kids.map(c=>c.classroom))];let h='';
+function withdrawStatusHtml(){let h='';
+  if(kids.length&&activeKids().length===0){
+    h+=`<div class="note" style="margin-bottom:12px;background:#f1f3f8;border-color:#dfe4ee;color:#4b5563"><b>🎓 退会のお手続きは完了しています</b><br>ご利用ありがとうございました。お月謝の請求はありません。カレンダーは閲覧のみで、欠席・振替はご利用いただけません。<br><span class="muted">再入会をご希望の際は、連絡タブからお気軽にご相談ください。アカウントの削除は「マイページ」最下部から行えます（そのままでも問題ありません）。</span></div>`;
+    return h;}
+  kids.forEach(c=>{
+    if(isLeaving(c))h+=`<div class="note" style="margin-bottom:12px"><b>📝 ${esc(c.name)}さんの退会を受付済みです</b><br>${ymLabel(c.last_month)}末まで通っていただけます（お月謝は${ymLabel(c.last_month)}分まで）。${ymLabel(addMonths(c.last_month,1))}以降の請求はありません。翌月に自動で退会済みになります。</div>`;
+    else if(isWithdrawn(c))h+=`<div class="note" style="margin-bottom:12px;background:#f1f3f8;border-color:#dfe4ee;color:#4b5563"><b>🎓 ${esc(c.name)}さんは退会済みです</b><br>お月謝の請求はありません。ご利用ありがとうございました。</div>`;
+  });
+  return h;}
+function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(activeKids().map(c=>c.classroom))];let h=withdrawStatusHtml();
   anns.filter(a=>a.scope==='all').forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（全体）</b><br>${esc(a.body)}</div>`;});
   const _sc=currentScope();const _area=_sc.p+'/'+_sc.r;
   anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（${esc(a.area)}）</b><br>${esc(a.body)}</div>`;});
@@ -1056,6 +1076,7 @@ function openDay(y,m,d,schools){
 }
 function openClass(school,cls,time,target,y,m,d){
   selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
+  if(kids.length&&activeKids().length===0){const inf0=SCHOOL_INFO[school];openSheet(`<h3>${inf0.full} ${cls}</h3><div class="muted" style="margin-bottom:12px">📅 ${m}月${d}日 ・ ⏰ ${time}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#4b5563">退会済みのため、欠席・振替のお手続きはご利用いただけません。</div><button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);return;}
   const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;
   openSheet(`<h3>${inf.full} ${cls}</h3>
     <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
@@ -1071,6 +1092,7 @@ function chooseChild(mode,cls){
   const title=mode==='furikae'?'どのお子様が振替参加しますか？':'どのお子様がお休みですか？';
   let html=`<h3>${title}</h3><p class="muted" style="margin-bottom:14px">${cls}</p>`;
   kids.forEach((c,i)=>{
+    if(isWithdrawn(c))return;
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
       if(!dis){const _ng=furikaeNgReason(c,cls);if(_ng){dis=true;rs=_ng;}}
@@ -1181,7 +1203,7 @@ function ecField(i,n,c){const ph=(c['ec'+n]||'').replace(/"/g,'&quot;');const re
 function ecLine(c,n){const v=c['ec'+n],rel=c['ec'+n+'_rel'],note=c['ec'+n+'_note'];
   return `<div class="muted"${n===1?' style="margin-top:4px"':''}>🚨 緊急連絡先${n}${rel?'（'+rel+'）':''}：${v||'未登録'}${note?'（'+note+'）':''}</div>`;}
 function renderMy(){
-  const b=document.getElementById('my-body');const cap=3*kids.length;
+  const b=document.getElementById('my-body');const cap=3*activeKids().length;
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
@@ -1192,14 +1214,15 @@ function renderMy(){
   html+=pushCard();
   html+=notifCard();
   html+=manageBlock();
-  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;
-    html+=`<div class="card childcard"><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}</h3>
+  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;const wd=isWithdrawn(c),lv=isLeaving(c);
+    html+=`<div class="card childcard" ${wd?'style="opacity:.75"':''}><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}${statusPill(c)}</h3>
       <div class="muted" style="margin-bottom:6px">${c.classroom}教室 ${c.class_name}</div>
-      ${(()=>{const rq=myReqs.find(r=>r.child_id===c.id);return rq?`<div class="note" style="margin-bottom:8px">🔁 教室・クラスの変更を申請中：${rq.to_room}教室 ${rq.to_class}（承認待ち）</div>`:`<button class="btn gray sm" style="margin-bottom:8px" onclick="openChangeReq(${i})">🔁 教室・クラスの変更を申請</button>`;})()}
+      ${wd?`<div class="note" style="margin-bottom:8px;background:#f1f3f8;border-color:#dfe4ee;color:#4b5563">🎓 退会済みです。お月謝の請求はありません。</div>`:lv?`<div class="note" style="margin-bottom:8px">📝 退会予定：${ymLabel(c.last_month)}末まで通えます（お月謝は${ymLabel(c.last_month)}分まで）</div>`:''}
+      ${wd?'':(()=>{const rq=myReqs.find(r=>r.child_id===c.id);return rq?`<div class="note" style="margin-bottom:8px">🔁 教室・クラスの変更を申請中：${rq.to_room}教室 ${rq.to_class}（承認待ち）</div>`:`<button class="btn gray sm" style="margin-bottom:8px" onclick="openChangeReq(${i})">🔁 教室・クラスの変更を申請</button>`;})()}
       <div class="kv"><span class="k">生年月日</span><span class="v">${fmtDate(c.birth)}${c.birth?'（'+ageStr(c.birth)+'）':''}</span></div>
       <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
-      <div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
-      <div class="ptchips">${chips}</div>
+      ${wd?'':`<div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
+      <div class="ptchips">${chips}</div>`}
       <details class="acc"><summary>お子様の情報・お月謝・緊急連絡先を編集</summary>
         <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
         <label class="fld">生年月日</label><input type="date" id="bd-${i}" value="${c.birth||''}">
@@ -1271,6 +1294,7 @@ async function saveSibling(){
 function monthKey(){const n=new Date();return n.getFullYear()+'-'+(n.getMonth()+1);}
 function needsPayCheck(){return profile.payment==='net'||profile.payment==='cash';}
 async function checkPaymentReminder(force){
+  if(kids.length&&activeKids().length===0)return;
   const now=new Date();const last=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();const isEnd=now.getDate()===last&&now.getDate()!==20;
   const ym=monthKey();
   if(!force){
@@ -1313,8 +1337,8 @@ function otherFriend(){closeSheet();tab('s-msg',document.querySelector('#tabbar 
   toast('お友達のお名前・保護者名・電話番号をメッセージでお送りください');
   document.getElementById('msg-input').value='お友達を紹介します\nお友達のお名前：\n保護者名：\n電話番号：';}
 function otherQuit(){closeSheet();tab('s-msg',document.querySelector('#tabbar button[data-s="s-msg"]'));
-  toast('前の月の20日までにお送りください');
-  document.getElementById('msg-input').value='退会を希望します\n退会するお子様のお名前：\n退会理由：';}
+  toast('毎月15日までのご連絡で当月末退会、16日以降は翌月末退会となります');
+  document.getElementById('msg-input').value='退会を希望します\n退会するお子様のお名前：\n退会希望月（15日までのご連絡で当月末退会）：\n退会理由：';}
 
 /* ============================================================
    ============  スタッフ / 管理者  ============================
@@ -1352,7 +1376,63 @@ function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
 // スタッフ・管理者の登録は「生徒」として扱わない（名簿・分析等から除外）
 function isStaffParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&(p.role==='staff'||p.role==='admin'));}
-function students(){return allChildren.filter(c=>!isStaffParent(c.parent_id));}
+function students(){return allChildren.filter(c=>!isStaffParent(c.parent_id)&&!isWithdrawn(c));}
+function withdrawnStudents(){return allChildren.filter(c=>!isStaffParent(c.parent_id)&&isWithdrawn(c));}
+/* ===== 退会にする／在籍に戻す（管理者・担当スタッフ） ===== */
+function withdrawSheet(cid){
+  const c=allChildren.find(x=>x.id===cid); if(!c){toast('生徒が見つかりません');return;}
+  const def=leaveLastMonth(); const opts=[nowYM(),addMonths(nowYM(),1),addMonths(nowYM(),2)];
+  openSheet(`<h3>${c.name} を退会にする</h3>
+    <p class="muted" style="margin:-2px 0 10px">${c.classroom}教室 ${c.class_name}。データは削除されず、あとから「在籍に戻す」で復帰できます。</p>
+    <div class="note" style="margin-bottom:10px">締めは<b>毎月15日</b>：15日までのお申し出→当月末退会／16日以降→翌月末退会。最終在籍月まではこれまでどおり通えます。</div>
+    <label class="fld">最終在籍月（この月の末日まで通えます）</label>
+    <select id="wd-last">${opts.map(ym=>`<option value="${ym}" ${ym===def?'selected':''}>${ymLabel(ym)}末まで</option>`).join('')}</select>
+    <label style="display:flex;gap:8px;align-items:center;margin:10px 0 0;font-size:13px"><input type="checkbox" id="wd-notify" checked style="width:auto">保護者へ完了メッセージを自動送信する</label>
+    <button class="btn red" style="margin-top:14px" onclick="doWithdraw('${cid}',false)">退会予定にする</button>
+    <button class="btn gray" style="margin-top:8px" onclick="doWithdraw('${cid}',true)">今すぐ退会済みにする（すでに通っていない場合）</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);
+}
+async function doWithdraw(cid,immediate){
+  const c=allChildren.find(x=>x.id===cid); if(!c)return;
+  const last=document.getElementById('wd-last').value; const notify=document.getElementById('wd-notify').checked;
+  const patch=immediate?{status:'withdrawn',last_month:last,withdrawn_at:new Date().toISOString()}:{status:'leaving',last_month:last,withdrawn_at:null};
+  showLoad(true);
+  const r=await db.from('children').update(patch).eq('id',cid);
+  if(r.error){showLoad(false);toast('保存エラー：'+r.error.message);return;}
+  Object.assign(c,patch);
+  if(notify){
+    const body=immediate
+      ?`【退会手続き完了のお知らせ】\n${c.name}さんの退会のお手続きが完了しました。お月謝は${ymLabel(last)}分までで、以降の請求はありません。これまでのご利用、誠にありがとうございました。またのご縁をお待ちしております。`
+      :`【退会手続き完了のお知らせ】\n${c.name}さんの退会のお手続きが完了しました。${ymLabel(last)}末まで通っていただけます。お月謝は${ymLabel(last)}分までで、${ymLabel(addMonths(last,1))}以降の請求はありません。これまでのご利用、誠にありがとうございました。`;
+    const m=await db.from('messages').insert({parent_id:c.parent_id,sender:'staff',body});
+    if(m.error)toast('メッセージ送信エラー：'+m.error.message);
+    const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];
+  }
+  showLoad(false);closeSheet();renderStaff();toast(immediate?c.name+'を退会済みにしました':c.name+'を退会予定（'+ymLabel(last)+'末まで）にしました');
+}
+async function restoreChild(cid){
+  const c=allChildren.find(x=>x.id===cid); if(!c)return;
+  if(!confirm(c.name+'さんを在籍に戻しますか？'))return;
+  showLoad(true);const patch={status:'active',last_month:null,withdrawn_at:null};
+  const r=await db.from('children').update(patch).eq('id',cid);showLoad(false);
+  if(r.error){toast('保存エラー：'+r.error.message);return;}
+  Object.assign(c,patch);renderStaff();toast(c.name+'を在籍に戻しました');
+}
+function withdrawBtn(c){return isWithdrawn(c)||isLeaving(c)?`<button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="restoreChild('${c.id}')">在籍に戻す</button>`:`<button class="btn sm" style="width:auto;padding:7px 12px;background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none" onclick="withdrawSheet('${c.id}')">退会にする</button>`;}
+function openChildAdmin(cid){
+  const c=allChildren.find(x=>x.id===cid); if(!c)return; const p=allProfiles.find(x=>x.id===c.parent_id)||{};
+  openSheet(`<h3>${c.name}${statusPill(c)}</h3>
+    <div class="muted" style="margin-bottom:4px">${c.classroom}教室 ${c.class_name}　${calcGrade(c.birth)||''}</div>
+    <div class="muted" style="margin-bottom:10px">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}<br>入会：${c.enroll||'-'}　月謝：${c.fee===0?'単発':yen(c.fee)}　振替pt：${c.points||0}${c.last_month?'<br>最終在籍月：'+ymLabel(c.last_month):''}${c.withdrawn_at?'　退会日：'+(''+c.withdrawn_at).slice(0,10):''}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
+    <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
+}
+function withdrawnListCard(rooms){
+  const list=allChildren.filter(c=>!isStaffParent(c.parent_id)&&(isWithdrawn(c)||isLeaving(c))&&(!rooms||rooms.includes(c.classroom)));
+  if(!list.length)return '';
+  let rows='';list.slice().sort((a,b)=>(''+(b.withdrawn_at||b.last_month||'')).localeCompare(''+(a.withdrawn_at||a.last_month||''))).forEach(c=>{rows+=`<div class="sumrow" style="align-items:center"><span><b style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${c.name}</b>${statusPill(c)}<br><span class="muted" style="font-size:12px">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}・${c.class_name}</span></span>${withdrawBtn(c)}</div>`;});
+  return `<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🎓 退会予定・退会済み（${list.length}名）</summary><p class="muted" style="margin:4px 0 6px">退会予定は最終在籍月の翌月に自動で退会済みになります。名簿・人数には含まれません。</p>${rows}</details></div>`;
+}
 /* ===== スタッフ・管理者向け：練習がある日の欠席・振替まとめポップアップ ===== */
 function todaysPracticeRoomsForStaff(){
   const now=new Date();const key=dateKey(now.getFullYear(),now.getMonth(),now.getDate());
@@ -1634,13 +1714,14 @@ function stRoster(){
   h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
   Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
     SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);const fc=inC.reduce((a,c)=>a+(c.fee||0),0);let rows='';
-      inC.forEach(c=>{rows+=`<tr><td>${c.name}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
+      inC.forEach(c=>{rows+=`<tr><td><span style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${c.name}</span>${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
       const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
       inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名・${yen(fee)}</span></summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
   const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
   let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${c.name}</span><span style="font-size:12px;color:var(--sub);text-align:right">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}<br>${c.class_name}</span></div>`;});
   h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
+  h+=withdrawnListCard(null);
   const total=students().reduce((a,c)=>a+(c.fee||0),0);
   h+=`<div class="card center"><div class="muted">全教室 月謝合計（月）</div><div class="tot">${yen(total)} <span style="font-size:15px;color:#9aa3b8">/ ${yen(TARGET_REVENUE)}</span></div><div class="muted">現在の合計 ／ 満員想定の目標</div></div>`;
   return h;
@@ -1741,10 +1822,10 @@ async function saveClassChange(cid){
 }
 function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-    <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span></div>
+    <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span>${statusPill(c)}</div>
     <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
     ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
   </div>`;}
 function openParentMsg(pid){
   const ms=allMsgs.filter(m=>m.parent_id===pid);
@@ -1767,6 +1848,7 @@ function ownerRoster(){
     if(other.length){let cards='';other.forEach(c=>{cards+=contactCard(c);});inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--sub)">その他（${other.length}名）</summary>${cards}</details>`;}
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span class="muted" style="font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
   if(!total)h+=`<div class="card center"><span class="muted">担当エリアにまだ生徒がいません。</span></div>`;
+  h+=withdrawnListCard(rooms);
   const pts=allProfiles.filter(p=>p.role==='parttime'&&p.staff_program===sc.p&&p.staff_region===sc.r);
   h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🙋 アルバイト名簿　<span class="muted" style="font-weight:700">${pts.length}名</span></summary>`;
   if(!pts.length)h+=`<p class="muted" style="padding:6px 0">いません</p>`;
@@ -1777,7 +1859,7 @@ function ownerRoster(){
 function memberCard(c){
   const p=allProfiles.find(x=>x.id===c.parent_id)||{}; const r=p.role||'parent';
   return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-    <div style="font-weight:800">${c.name} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
+    <div style="font-weight:800">${c.name} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span>${statusPill(c)}</div>
     <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
     ${p.email?`<div class="muted">${p.email}</div>`:''}
     ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
