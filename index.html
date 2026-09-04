@@ -151,7 +151,7 @@
   .roomtitle{font-weight:800;color:#28324c;margin:6px 0;font-size:15px}
   .paychk{font-size:26px;background:none;border:none;cursor:pointer;line-height:1;padding:0}
   .rolepill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:10px}
-  .role-admin{background:#ffe9d6;color:#b5530a}.role-staff{background:#e1f0ff;color:#1f5fcf}.role-parent{background:#eef1f7;color:#54607a}.role-parttime{background:#e6f7ee;color:#1faf73}
+  .role-admin{background:#ffe9d6;color:#b5530a}.role-staff{background:#e1f0ff;color:#1f5fcf}.role-parent{background:#eef1f7;color:#54607a}.role-parttime{background:#e6f7ee;color:#1faf73}.role-roster{background:#e5e0ff;color:#5b3fd6}
 </style>
 </head>
 <body>
@@ -975,7 +975,7 @@ async function afterAuth(preUser){
     await db.from('profiles').upsert({id:me.id,role:'parent',email:me.email}); profile={id:me.id,role:'parent',parent_name:'',payment:'auto'};
   }
   if(profile.staff_request&&!profile.staff_approved&&profile.role==='parent'){showLoad(false);openPendingScreen();return;}
-  if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'){
+  if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'||profile.role==='roster'){
     await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
   }
   await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur()]);
@@ -1347,7 +1347,7 @@ let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attD
 function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
 let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
 const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},furikaeset:{ic:'🔀',l:'振替設定'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
-const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],parttime:['shift','students']};
+const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],parttime:['shift','students'],roster:['roster']};
 async function loadStaffData(){
   // 9件のクエリを並列取得（互いに独立）
   const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
@@ -1375,7 +1375,7 @@ async function loadStaffData(){
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
 // スタッフ・管理者の登録は「生徒」として扱わない（名簿・分析等から除外）
-function isStaffParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&(p.role==='staff'||p.role==='admin'));}
+function isStaffParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&(p.role==='staff'||p.role==='admin'||p.role==='roster'));}
 function students(){return allChildren.filter(c=>!isStaffParent(c.parent_id)&&!isWithdrawn(c));}
 function withdrawnStudents(){return allChildren.filter(c=>!isStaffParent(c.parent_id)&&isWithdrawn(c));}
 /* ===== 退会にする／在籍に戻す（管理者・担当スタッフ） ===== */
@@ -1510,7 +1510,7 @@ function renderStaffNav(){
     if(k==='messages'){const n=unrepliedCount();if(n>0)badge=`<span style="position:absolute;top:3px;left:54%;min-width:15px;height:15px;line-height:15px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:800;text-align:center;padding:0 3px;box-shadow:0 1px 3px rgba(0,0,0,.25)">${n>99?'99+':n}</span>`;}
     return `<button class="${staffSection===k?'on':''}" style="position:relative" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}${badge}</button>`;
   }).join('');
-  document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
+  document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':staffRole==='roster'?'👥 名簿':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
 }
 function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);if(window._gymFlushRefresh)window._gymFlushRefresh();}
 function renderStaff(){const b=document.getElementById('staff-body');
@@ -1708,7 +1708,22 @@ async function setRoomTransferBlock(fromRoom,toRoom,blocked){
   renderStaff();
 }
 /* --- 名簿・生徒数・売上 --- */
+function rosterOnlyView(){
+  let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">全教室・全クラスの名簿です（金額は表示されません）。教室・クラスをタップで開きます。</p>`;
+  h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
+  Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);let inner='';
+    SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);let rows='';
+      inC.forEach(c=>{rows+=`<tr><td>${c.name}${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td></tr>`;});
+      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th></tr>${rows||'<tr><td colspan=2 class="muted">在籍なし</td></tr>'}</table></details>`;});
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
+  const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
+  let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${c.name}</span><span style="font-size:12px;color:var(--sub);text-align:right">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}<br>${c.class_name}</span></div>`;});
+  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
+  return h;
+}
 function stRoster(){
+  if(staffRole==='roster')return rosterOnlyView();
   if(staffRole!=='admin')return ownerRoster();
   let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">教室・クラスをタップで開きます。</p>`;
   h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
@@ -1784,12 +1799,13 @@ async function saveCost(room,field,val){
   toast('保存しました'); renderStaff();
 }
 /* --- メンバー（権限管理・スタッフ追加） admin --- */
-function roleLabel(r){return r==='admin'?'管理者':r==='staff'?'スタッフ':r==='parttime'?'アルバイト':'保護者';}
+function roleLabel(r){return r==='admin'?'管理者':r==='staff'?'スタッフ':r==='roster'?'名簿専用':r==='parttime'?'アルバイト':'保護者';}
 function roleSelect(p){const r=p.role||'parent';
   return `<label class="fld">役割</label><select onchange="changeRole('${p.id}',this.value)" ${p.id===me.id?'disabled':''}>
     <option value="parent" ${r==='parent'?'selected':''}>保護者</option>
     <option value="parttime" ${r==='parttime'?'selected':''}>アルバイト</option>
     <option value="staff" ${r==='staff'?'selected':''}>スタッフ</option>
+    <option value="roster" ${r==='roster'?'selected':''}>名簿専用（全教室・金額非表示）</option>
     <option value="admin" ${r==='admin'?'selected':''}>管理者</option></select>${p.id===me.id?'<p class="muted" style="margin:6px 0 0">※自分の役割は変更できません</p>':''}`;}
 /* ===== Phase C 増分5：オーナーの連絡機能（個別メッセージ・緊急連絡先・アルバイト名簿） ===== */
 function myAreaParentIds(){const sc=staffScope();const rooms=new Set(classroomsIn(sc.p,sc.r));return new Set(allChildren.filter(c=>rooms.has(c.classroom)).map(c=>c.parent_id));}
@@ -1933,7 +1949,7 @@ function stMembers(){
       ${inner||'<p class="muted" style="padding:6px 0">在籍なし</p>'}</details></div>`;
   });
   // スタッフ・管理者（クラスに属さない方）
-  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin'||p.role==='parttime');
+  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin'||p.role==='parttime'||p.role==='roster');
   let s='';
   staffs.forEach(p=>{const r=p.role||'parent';
     s+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
@@ -2051,7 +2067,7 @@ async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const
 async function refreshApp(){
   if(!READY||!me)return;
   await loadAnns(); await loadCancels(); await loadHidden(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
-  if(profile&&(profile.role==='staff'||profile.role==='admin')){ await loadStaffData(); renderStaff(); }
+  if(profile&&(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'||profile.role==='roster')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
 }
 (function setupPull(){
