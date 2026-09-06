@@ -233,10 +233,15 @@
   .roomdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
   .cap{font-size:12px;font-weight:800;color:var(--sub)}
   .cap.full{color:var(--red)}
+  .pvbar[hidden]{display:none}
+  .pvbar{background:#222b45;color:#fff;font-size:12px;display:flex;align-items:center;gap:8px;padding:8px 12px;flex-shrink:0}
+  .pvbar .t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700}
+  .pvbar button{border:1px solid rgba(255,255,255,.5);background:#fff;color:#222b45;border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;flex-shrink:0}
 </style>
 </head>
 <body>
 <div class="phone" id="phone">
+  <div class="pvbar" id="pv-banner" hidden><span class="t" id="pv-text"></span><button onclick="exitPreview()">✕ 終了</button></div>
 
   <div class="setup" id="setup-warn" style="display:none">
     ⚙️ <b>初期設定が必要です。</b> このファイル冒頭の <code>SUPABASE_URL</code> と <code>SUPABASE_ANON_KEY</code> に、Supabaseの値を貼り付けて保存してください。
@@ -395,7 +400,7 @@ async function pushBoot(){try{
   if(window.__pushOn)await pushSubscribe(true); // 端末変更・ユーザー切替対策でDBへ同期
   await badgeSync();
 }catch(e){}}
-async function pushSubscribe(silent){try{
+async function pushSubscribe(silent){if(previewGuard())return;try{
   if(!pushSupported()){if(!silent)toast('この端末では通知を使えません');return false;}
   if(!me||!me.id)return false;
   const reg=await navigator.serviceWorker.ready;
@@ -412,7 +417,7 @@ async function pushSubscribe(silent){try{
   if(!silent){toast('通知をオンにしました🔔');try{renderMy();}catch(e){}}
   return true;
 }catch(e){if(!silent)toast('通知の設定に失敗しました');return false;}}
-async function pushUnsubscribe(){try{
+async function pushUnsubscribe(){if(previewGuard())return;try{
   const reg=await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.getSubscription();
   if(sub){try{await db.from('push_subscriptions').delete().eq('endpoint',sub.endpoint);}catch(e){}await sub.unsubscribe();}
@@ -634,7 +639,7 @@ function renderAreaPicker(){
   h+=`<button class="btn green" style="margin-top:14px" ${areaDraft.p&&areaDraft.r?'':'disabled'} onclick="saveStaffArea()">保存</button>`;
   openSheet(h);
 }
-async function saveStaffArea(){showLoad(true);const r=await db.from('profiles').update({staff_program:areaDraft.p,staff_region:areaDraft.r}).eq('id',me.id);showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}profile.staff_program=areaDraft.p;profile.staff_region=areaDraft.r;closeSheet();toast('担当エリアを設定しました');renderStaff();}
+async function saveStaffArea(){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({staff_program:areaDraft.p,staff_region:areaDraft.r}).eq('id',me.id);showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}profile.staff_program=areaDraft.p;profile.staff_region=areaDraft.r;closeSheet();toast('担当エリアを設定しました');renderStaff();}
 
 /* --- 開催日・予定の編集（月3回教室・ひな形/定期ルール/個別追加） --- */
 let evEdit={room:null,place:'',classes:[],rw:'',rweeks:[],dadd:'',tplSel:'',tplName:'',mode:'',src:''};
@@ -697,12 +702,12 @@ function evRulesDatesHtml(room){
   return h;
 }
 function applyTemplate(id){const room=evEdit.room;const list=PT[room]||[];if(!id){const f=list[0];id=f&&f.id;}const t=list.find(function(x){return x.id===id;});if(!t){toast('呼び出すひな形を選んでください');return;}evEdit.place=t.place;evEdit.classes=(t.classes||[]).map(function(x){return Object.assign({},x);});evEdit.tplSel=id;toast('ひな形『'+t.name+'』を呼び出しました');renderEventEditor();}
-async function delTemplate(id){if(!id){toast('削除するひな形を選んでください');return;}showLoad(true);const r=await db.from('practice_templates').delete().eq('id',id);await loadTemplates();showLoad(false);if(r&&r.error){toast('削除エラー：'+r.error.message);return;}evEdit.tplSel='';toast('ひな形を削除しました');renderEventEditor();}
-async function saveTemplate(){const room=evEdit.room;const list=PT[room]||[];const name=(evEdit.tplName||'').trim()||('ひな形'+(list.length+1));const existing=list.find(function(x){return x.name===name;});if(!existing&&list.length>=5){toast('ひな形は1教室5個までです');return;}showLoad(true);let r;if(existing){r=await db.from('practice_templates').update({place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()}).eq('id',existing.id);}else{r=await db.from('practice_templates').insert({room:room,name:name,place:evEdit.place,classes:evEdit.classes,updated_by:me.id});}await loadTemplates();showLoad(false);if(r&&r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形『'+name+'』を保存しました');evEdit.tplName='';renderEventEditor();}
-async function addOneDate(){const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
-async function delEventDate(k){const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
-async function addRule(){const room=evEdit.room;if(evEdit.rw===''){toast('曜日を選んでください');return;}showLoad(true);const r=await db.from('event_rules').insert({room,weekday:Number(evEdit.rw),weeks:evEdit.rweeks.slice().sort((a,b)=>a-b),place:evEdit.place,classes:evEdit.classes,active:true,created_by:me.id});if(r.error){showLoad(false);toast('ルール保存エラー：'+r.error.message);return;}await loadRules();await ensureRuleEvents();await loadEvents();showLoad(false);toast('ルールを保存し、予定を作成しました');renderEventEditor();renderStaff();}
-async function delRule(id){showLoad(true);const r=await db.from('event_rules').delete().eq('id',id);await loadRules();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('ルールを削除しました');renderEventEditor();}
+async function delTemplate(id){if(previewGuard())return;if(!id){toast('削除するひな形を選んでください');return;}showLoad(true);const r=await db.from('practice_templates').delete().eq('id',id);await loadTemplates();showLoad(false);if(r&&r.error){toast('削除エラー：'+r.error.message);return;}evEdit.tplSel='';toast('ひな形を削除しました');renderEventEditor();}
+async function saveTemplate(){if(previewGuard())return;const room=evEdit.room;const list=PT[room]||[];const name=(evEdit.tplName||'').trim()||('ひな形'+(list.length+1));const existing=list.find(function(x){return x.name===name;});if(!existing&&list.length>=5){toast('ひな形は1教室5個までです');return;}showLoad(true);let r;if(existing){r=await db.from('practice_templates').update({place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()}).eq('id',existing.id);}else{r=await db.from('practice_templates').insert({room:room,name:name,place:evEdit.place,classes:evEdit.classes,updated_by:me.id});}await loadTemplates();showLoad(false);if(r&&r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形『'+name+'』を保存しました');evEdit.tplName='';renderEventEditor();}
+async function addOneDate(){if(previewGuard())return;const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
+async function delEventDate(k){if(previewGuard())return;const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
+async function addRule(){if(previewGuard())return;const room=evEdit.room;if(evEdit.rw===''){toast('曜日を選んでください');return;}showLoad(true);const r=await db.from('event_rules').insert({room,weekday:Number(evEdit.rw),weeks:evEdit.rweeks.slice().sort((a,b)=>a-b),place:evEdit.place,classes:evEdit.classes,active:true,created_by:me.id});if(r.error){showLoad(false);toast('ルール保存エラー：'+r.error.message);return;}await loadRules();await ensureRuleEvents();await loadEvents();showLoad(false);toast('ルールを保存し、予定を作成しました');renderEventEditor();renderStaff();}
+async function delRule(id){if(previewGuard())return;showLoad(true);const r=await db.from('event_rules').delete().eq('id',id);await loadRules();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('ルールを削除しました');renderEventEditor();}
 function nthWeekOfMonth(d){return Math.floor((d.getDate()-1)/7)+1;}
 async function ensureRuleEvents(){
   if(!rules||!rules.length)return;
@@ -732,9 +737,9 @@ function shiftsFor(room,key){return (shiftsAll[room]&&shiftsAll[room][key])||[];
 function myShiftRole(room,key){const s=shiftsFor(room,key).find(x=>x.uid===me.id);return s?s.role:null;}
 function teacherInfo(room,key){const list=shiftsFor(room,key);return {mains:list.filter(s=>s.role==='main').map(s=>s.name),follows:list.filter(s=>s.role==='follow').map(s=>s.name)};}
 function teacherLine(room,key){const ti=teacherInfo(room,key);const m=ti.mains.length?ti.mains.join('・'):((SCHOOL_INFO[room]||{}).teachers||'');let s='';if(m)s+=`👨‍🏫 メインスタッフ：${m}先生`;if(ti.follows.length)s+=(s?'<br>':'')+`🤝 フォロースタッフ：${ti.follows.join('・')}先生`;return s;}
-async function joinShift(room,key,role){showLoad(true);const r=await db.from('shifts').upsert({user_id:me.id,room,date:key,role,staff_name:(profile&&profile.parent_name)||'スタッフ'},{onConflict:'user_id,room,date'});await loadShifts();showLoad(false);if(r.error){toast('登録エラー：'+r.error.message);return;}toast(role==='main'?'メインで入りました':'フォローで入りました');reopenStaffDay();renderStaff();}
-async function leaveShift(room,key){showLoad(true);const r=await db.from('shifts').delete().eq('user_id',me.id).eq('room',room).eq('date',key);await loadShifts();showLoad(false);if(r.error){toast('解除エラー：'+r.error.message);return;}toast('シフトを外れました');reopenStaffDay();renderStaff();}
-async function saveCapacity(room,key,m,f){showLoad(true);const r=await db.from('shift_capacity').upsert({room,date:key,main_quota:m,follow_quota:f,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room,date'});await loadCapacity();showLoad(false);if(r.error){toast('定員保存エラー：'+r.error.message);return;}toast('定員を保存しました');reopenStaffDay();}
+async function joinShift(room,key,role){if(previewGuard())return;showLoad(true);const r=await db.from('shifts').upsert({user_id:me.id,room,date:key,role,staff_name:(profile&&profile.parent_name)||'スタッフ'},{onConflict:'user_id,room,date'});await loadShifts();showLoad(false);if(r.error){toast('登録エラー：'+r.error.message);return;}toast(role==='main'?'メインで入りました':'フォローで入りました');reopenStaffDay();renderStaff();}
+async function leaveShift(room,key){if(previewGuard())return;showLoad(true);const r=await db.from('shifts').delete().eq('user_id',me.id).eq('room',room).eq('date',key);await loadShifts();showLoad(false);if(r.error){toast('解除エラー：'+r.error.message);return;}toast('シフトを外れました');reopenStaffDay();renderStaff();}
+async function saveCapacity(room,key,m,f){if(previewGuard())return;showLoad(true);const r=await db.from('shift_capacity').upsert({room,date:key,main_quota:m,follow_quota:f,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'room,date'});await loadCapacity();showLoad(false);if(r.error){toast('定員保存エラー：'+r.error.message);return;}toast('定員を保存しました');reopenStaffDay();}
 function saveCapFromInputs(room,key){const m=Number(document.getElementById('cap-m-'+room).value)||0;const f=Number(document.getElementById('cap-f-'+room).value)||0;saveCapacity(room,key,m,f);}
 function reopenStaffDay(){if(staffDayCtx)openStaffDay(staffDayCtx.y,staffDayCtx.m,staffDayCtx.d,staffDayCtx.schools);}
 function shiftSection(room,key){
@@ -858,7 +863,7 @@ function pickClassFix(cid,cls,btn){
   const need=classFixNeeded(); const all=need.every(c=>_cfSel[c.id]);
   const sv=document.getElementById('cfsave'); if(sv){sv.disabled=!all;sv.style.opacity=all?'1':'.45';}
 }
-async function saveClassFix(){
+async function saveClassFix(){if(previewGuard())return;
   const need=classFixNeeded(); if(!need.every(c=>_cfSel[c.id]))return;
   showLoad(true);
   for(const c of need){const r=await db.from('children').update({class_name:_cfSel[c.id]}).eq('id',c.id); if(r.error){showLoad(false);toast('保存エラー：'+r.error.message);return;} c.class_name=_cfSel[c.id];}
@@ -910,13 +915,13 @@ async function doReset(){
   toast('パスワードを再設定しました。新しいパスワードでログインしてください');
   go('s-login');
 }
-async function logout(){ await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
+async function logout(){ if(_pv.on){exitPreview();return;} await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
 function openDeleteAccount(){openSheet(`<h3 style="color:var(--red)">アカウントの削除（退会）</h3>
   <p class="muted">お子様・保護者の情報、欠席・振替・連絡などが<b>すべて削除され、元に戻せません</b>。本当に削除しますか？</p>
   <p class="muted" style="margin-top:6px">※ログイン用のメール／パスワード本体は、念のため運営側でも削除します。</p>
   <button class="btn red" style="margin-top:14px" onclick="deleteMyAccount()">削除する（取り消せません）</button>
   <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);}
-async function deleteMyAccount(){showLoad(true);const r=await db.rpc('delete_my_account');showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}closeSheet();toast('アカウントを削除しました');try{await db.auth.signOut();}catch(_){ }profile=null;kids=[];me=null;document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='none';go('s-login');}
+async function deleteMyAccount(){if(previewGuard())return;showLoad(true);const r=await db.rpc('delete_my_account');showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}closeSheet();toast('アカウントを削除しました');try{await db.auth.signOut();}catch(_){ }profile=null;kids=[];me=null;document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='none';go('s-login');}
 
 /* ============ 登録フロー ============ */
 const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
@@ -1058,8 +1063,8 @@ async function loadOverrides(){
   (v.data||[]).forEach(r=>{ if(SCHOOL_INFO[r.room]&&r.place) SCHOOL_INFO[r.room].place=r.place; });
   (t.data||[]).forEach(r=>{ const rm=SCHEDULE[r.room]; if(!rm)return; const wd=Object.keys(rm)[0]; (rm[wd]||[]).forEach(it=>{ if(it.c===r.class_name&&r.t) it.t=r.t; }); });
 }
-async function saveVenue(room,place){showLoad(true);const r=await db.from('venue_overrides').upsert({room,place,updated_at:new Date().toISOString()},{onConflict:'room'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}SCHOOL_INFO[room].place=place;toast('会場を更新しました');}
-async function saveTime(room,cls,time){showLoad(true);const r=await db.from('time_overrides').upsert({room,class_name:cls,t:time,updated_at:new Date().toISOString()},{onConflict:'room,class_name'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}const wd=Object.keys(SCHEDULE[room])[0];(SCHEDULE[room][wd]||[]).forEach(it=>{if(it.c===cls)it.t=time;});toast('時間を更新しました');}
+async function saveVenue(room,place){if(previewGuard())return;showLoad(true);const r=await db.from('venue_overrides').upsert({room,place,updated_at:new Date().toISOString()},{onConflict:'room'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}SCHOOL_INFO[room].place=place;toast('会場を更新しました');}
+async function saveTime(room,cls,time){if(previewGuard())return;showLoad(true);const r=await db.from('time_overrides').upsert({room,class_name:cls,t:time,updated_at:new Date().toISOString()},{onConflict:'room,class_name'});showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}const wd=Object.keys(SCHEDULE[room])[0];(SCHEDULE[room][wd]||[]).forEach(it=>{if(it.c===cls)it.t=time;});toast('時間を更新しました');}
 async function loadMsgs(){const r=await db.from('messages').select('*').eq('parent_id',me.id).order('created_at');msgs=r.data||[];}
 async function loadMyAbs(){const r=await db.from('absences').select('*').eq('parent_id',me.id);myAbs=r.data||[];}
 async function loadMyReqs(){const r=await db.from('change_requests').select('*').eq('parent_id',me.id).eq('status','pending');myReqs=r.data||[];}
@@ -1160,7 +1165,7 @@ function scrollToCal(){
   toast('参加したい日をタップして、クラスを選んでください');
 }
 /* ---- 連絡タブの未読バッジ（運営からの返信） ---- */
-function msgSeenKey(){return 'sowers_gym_msgseen_'+((me&&me.id)||'');}
+function msgSeenKey(){return 'sowers_gym_msgseen_'+((profile&&profile.id)||(me&&me.id)||'');}
 function updateMsgBadge(){
   const b=document.getElementById('msg-badge'); if(!b)return;
   let seen='';try{seen=localStorage.getItem(msgSeenKey())||'';}catch(e){}
@@ -1264,7 +1269,7 @@ function chooseChild(mode,cls){
   if(mode==='absent'&&!enrolledKidsFor(selClass.room,cls).length)html+=`<p class="muted" style="margin-top:4px">※欠席の連絡は、お子様が在籍している教室・クラスの日から行えます。</p>`;
   openSheet(html);
 }
-async function doAction(mode,i,cls){
+async function doAction(mode,i,cls){if(previewGuard())return;
   const c=kids[i];
   if(mode==='absent'&&!(c.classroom===selClass.room&&c.class_name===cls)){toast('欠席の連絡は、お子様が在籍しているクラスのみ登録できます');return;}
   showLoad(true);let absDone=false,absGained=false;
@@ -1328,7 +1333,7 @@ function renderTransferPicker(){
     <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(classroomsIn(sc.p,sc.r))}</div>
     <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
 }
-async function cancelAbsent(absId,i){
+async function cancelAbsent(absId,i){if(previewGuard())return;
   const c=kids[i];showLoad(true);
   try{
     const dr=await db.from('absences').delete().eq('id',absId);
@@ -1357,7 +1362,7 @@ function manageBlock(){
   h+=`</details></div>`;
   return h;
 }
-async function cancelAbs(absId){
+async function cancelAbs(absId){if(previewGuard())return;
   const ab=myAbs.find(a=>a.id===absId); if(!ab)return;
   const c=kids.find(k=>k.id===ab.child_id);
   showLoad(true);
@@ -1367,7 +1372,7 @@ async function cancelAbs(absId){
   myAbs=myAbs.filter(a=>a.id!==absId);
   showLoad(false); toast('欠席を取り消しました'); renderMy();
 }
-async function cancelFur(furId){
+async function cancelFur(furId){if(previewGuard())return;
   const f=myFur.find(x=>x.id===furId); if(!f)return;
   showLoad(true);
   const dr=await db.from('furikae').delete().eq('id',furId);
@@ -1381,7 +1386,7 @@ async function cancelFur(furId){
 }
 
 /* ============ マイページ ============ */
-async function changePayment(val){
+async function changePayment(val){if(previewGuard())return;
   if(!val||val===profile.payment)return;
   const nm=(PAYMENTS.find(p=>p.k===val)||{}).nm||val;
   showLoad&&showLoad(true);
@@ -1437,7 +1442,7 @@ function renderMy(){
   b.innerHTML=html;
   renderHomeHero();renderUpcoming();
 }
-async function saveChild(i){const c=kids[i];showLoad(true);
+async function saveChild(i){if(previewGuard())return;const c=kids[i];showLoad(true);
   const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
@@ -1454,7 +1459,7 @@ function openChangeReq(i){
     <button class="btn green" onclick="submitChangeReq(${i})">この内容で申請する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
 }
-async function submitChangeReq(i){
+async function submitChangeReq(i){if(previewGuard())return;
   const c=kids[i];const toRoom=document.getElementById('cr-room').value;const toCls=document.getElementById('cr-cls').value;
   if(toRoom===c.classroom&&toCls===c.class_name){toast('現在と同じ内容です');return;}
   showLoad(true);
@@ -1477,7 +1482,7 @@ function openAddSibling(){
     <div style="height:14px"></div><button class="btn green" onclick="saveSibling()">追加する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
 }
-async function saveSibling(){
+async function saveSibling(){if(previewGuard())return;
   const name=document.getElementById('sb-name').value.trim();if(!name){toast('お名前を入力してください');return;}
   showLoad(true);
   const _sbRoom=document.getElementById('sb-room').value;
@@ -1509,7 +1514,7 @@ async function checkPaymentReminder(force){
     <button class="btn green" onclick="payAnswer(true,'${ym}')">✅ はい、支払いました</button>
     <button class="btn gray" style="margin-top:10px" onclick="payAnswer(false,'${ym}')">まだです（あとで）</button></div>`);
 }
-async function payAnswer(done,ym){
+async function payAnswer(done,ym){if(previewGuard())return;
   closeSheet();showLoad(true);
   await db.from('payment_status').upsert({parent_id:me.id,ym,paid:done,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});
   showLoad(false);
@@ -1523,7 +1528,7 @@ function renderMsgs(){const w=document.getElementById('msg-list');
   const sc=document.getElementById('s-msg');setTimeout(()=>{sc.scrollTop=sc.scrollHeight;},30);
   if(sc.classList.contains('active'))markMsgsSeen(); else updateMsgBadge();
 }
-async function sendMsg(){const i=document.getElementById('msg-input');const v=i.value.trim();if(!v)return;
+async function sendMsg(){if(previewGuard())return;const i=document.getElementById('msg-input');const v=i.value.trim();if(!v)return;
   i.value='';
   const r=await db.from('messages').insert({parent_id:me.id,sender:'parent',body:v}).select();
   if(r.error){toast('送信エラー：'+r.error.message);return;}
@@ -1590,7 +1595,7 @@ function withdrawSheet(cid){
     <button class="btn gray" style="margin-top:8px" onclick="doWithdraw('${cid}',true)">今すぐ退会済みにする（すでに通っていない場合）</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);
 }
-async function doWithdraw(cid,immediate){
+async function doWithdraw(cid,immediate){if(previewGuard())return;
   const c=allChildren.find(x=>x.id===cid); if(!c)return;
   const last=document.getElementById('wd-last').value; const notify=document.getElementById('wd-notify').checked;
   const patch=immediate?{status:'withdrawn',last_month:last,withdrawn_at:new Date().toISOString()}:{status:'leaving',last_month:last,withdrawn_at:null};
@@ -1608,7 +1613,7 @@ async function doWithdraw(cid,immediate){
   }
   showLoad(false);closeSheet();renderStaff();toast(immediate?c.name+'を退会済みにしました':c.name+'を退会予定（'+ymLabel(last)+'末まで）にしました');
 }
-async function restoreChild(cid){
+async function restoreChild(cid){if(previewGuard())return;
   const c=allChildren.find(x=>x.id===cid); if(!c)return;
   if(!confirm(c.name+'さんを在籍に戻しますか？'))return;
   showLoad(true);const patch={status:'active',last_month:null,withdrawn_at:null};
@@ -1728,6 +1733,7 @@ function renderStaffNav(){
 function openStaffMore(){
   const {extra}=staffExtraTabs();
   let h=`<h3>その他のメニュー</h3>`;
+  if(staffRole==='admin'&&!_pv.on)h+=`<div class="opt" style="border-color:var(--brand);background:var(--soft)" onclick="closeSheet();openPreviewPicker()"><div class="ico">👀</div><div style="flex:1"><div class="nm">他の人の画面を見る</div><div class="ds">保護者・スタッフの画面をそのまま確認（変更はできません）</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>`;
   extra.forEach(k=>{const n=tabBadgeN(k);h+=`<div class="opt ${staffSection===k?'sel':''}" onclick="closeSheet();staffTab('${k}')"><div class="ico">${STAFF_TAB_META[k].ic}</div><div style="flex:1"><div class="nm">${STAFF_TAB_META[k].l}${n>0?`<span class="rolepill" style="background:var(--red);color:#fff;margin-left:8px">${n}</span>`:''}</div><div class="ds">${STAFF_TAB_DESC[k]||''}</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>`;});
   h+=`<button class="btn gray" style="margin-top:6px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
@@ -1834,7 +1840,7 @@ function openStaffDay(y,m,d,schools){
     h+=`</div>`;});
   h+=`<button class="btn gray" onclick="closeSheet()">閉じる</button>`;openSheet(h);
 }
-async function setCancel(room,key,on){
+async function setCancel(room,key,on){if(previewGuard())return;
   showLoad(true);
   let r;
   if(on){ r=await db.from('cancellations').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'}); }
@@ -1845,7 +1851,7 @@ async function setCancel(room,key,on){
   const schools=schoolsOn(new Date(key).getDay());
   closeSheet();renderStaffCal();
 }
-async function delDay(room,key){
+async function delDay(room,key){if(previewGuard())return;
   showLoad(true);
   const r=await db.from('hidden_days').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'});
   if(!(r&&r.error)) await db.from('cancellations').delete().eq('room',room).eq('date',key);
@@ -1853,7 +1859,7 @@ async function delDay(room,key){
   await loadHidden(); await loadCancels();
   showLoad(false);toast('カレンダーから削除しました');closeSheet();renderStaffCal();
 }
-async function restoreDay(room,key){
+async function restoreDay(room,key){if(previewGuard())return;
   showLoad(true);
   const r=await db.from('hidden_days').delete().eq('room',room).eq('date',key);
   await loadHidden(); showLoad(false);
@@ -1954,7 +1960,7 @@ function stTransferSettings(){
   });
   return h;
 }
-async function setRoomTransferBlock(fromRoom,toRoom,blocked){
+async function setRoomTransferBlock(fromRoom,toRoom,blocked){if(previewGuard())return;
   showLoad(true);
   const r=blocked
     ? await db.from('furikae_blocks').upsert({from_room:fromRoom,to_room:toRoom,created_by:me.id},{onConflict:'from_room,to_room'})
@@ -2025,7 +2031,7 @@ function stPay(){
       <span class="paypill ${on?'on':'off'}">${on?'入金済み':'未入金'}</span></div>`;});
   return h;
 }
-async function togglePay(pid){const ym=payYm||monthKey();const cur=allPay.find(x=>x.parent_id===pid&&x.ym===ym);const np=!(cur&&cur.paid);
+async function togglePay(pid){if(previewGuard())return;const ym=payYm||monthKey();const cur=allPay.find(x=>x.parent_id===pid&&x.ym===ym);const np=!(cur&&cur.paid);
   showLoad(true);await db.from('payment_status').upsert({parent_id:pid,ym,paid:np,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});
   const d=await db.from('payment_status').select('*');allPay=d.data||[];showLoad(false);renderStaff();}
 /* --- 分析（売上・経費・収支） admin --- */
@@ -2056,7 +2062,7 @@ function stFinance(){
   h+=cards;
   return h;
 }
-async function saveCost(room,field,val){
+async function saveCost(room,field,val){if(previewGuard())return;
   if(!roomCosts[room])roomCosts[room]={gym:0,labor:0};
   roomCosts[room][field]=Number(val)||0;
   showLoad(true);
@@ -2093,7 +2099,7 @@ function openClassChange(cid){
     <button class="btn green" onclick="saveClassChange('${cid}')">この内容に変更する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
 }
-async function saveClassChange(cid){
+async function saveClassChange(cid){if(previewGuard())return;
   const c=allChildren.find(x=>x.id===cid); if(!c)return;
   const room=document.getElementById('cc-room').value, cls=document.getElementById('cc-cls').value;
   if(room===c.classroom&&cls===c.class_name){toast('現在と同じ内容です');return;}
@@ -2117,7 +2123,7 @@ function openParentMsg(pid){
     <button class="btn gray" style="margin-top:10px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
 }
-async function sendParentMsg(pid){const i=document.getElementById('pmsg-'+pid);const v=i.value.trim();if(!v)return;showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);if(r.error){toast('送信エラー：'+r.error.message);return;}toast('送信しました');openParentMsg(pid);renderStaff();}
+async function sendParentMsg(pid){if(previewGuard())return;const i=document.getElementById('pmsg-'+pid);const v=i.value.trim();if(!v)return;showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);if(r.error){toast('送信エラー：'+r.error.message);return;}toast('送信しました');openParentMsg(pid);renderStaff();}
 function ownerRoster(){
   const sc=staffScope();const rooms=classroomsIn(sc.p,sc.r);
   let h=`<div class="sech"><h2 class="title">👥 名簿・連絡先</h2><span class="muted" style="font-size:11.5px">${sc.p}・${sc.r}</span></div>`;
@@ -2178,8 +2184,8 @@ async function submitStaffSignup(){
   closeSheet();toast('申請を受け付けました。承認後にログインできます');go('s-login');
 }
 function openPendingScreen(){go('s-login');openSheet(`<h3>承認待ちです</h3><p class="muted">スタッフ申請を受け付けています。管理者（木原）の承認をお待ちください。承認されると、次回ログイン時にスタッフ機能が使えます。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet();logout()">ログアウト</button>`);}
-async function approveStaff(id){showLoad(true);const r=await db.from('profiles').update({role:'staff',staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
-async function rejectStaff(id){showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
+async function approveStaff(id){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({role:'staff',staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
+async function rejectStaff(id){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
 function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope());if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
 function stMembers(){
   let h=`<div class="sech"><h2 class="title">🪪 メンバー・権限</h2><span class="muted" style="font-size:11.5px">役割の変更・申請の承認</span></div>`;
@@ -2223,17 +2229,17 @@ function stMembers(){
     ${s||'<p class="muted" style="padding:6px 0">いません</p>'}</details></div>`;
   return h;
 }
-async function changeRole(id,role){showLoad(true);const r=await db.from('profiles').update({role}).eq('id',id);
+async function changeRole(id,role){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({role}).eq('id',id);
   const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);
   if(r.error){toast('変更エラー：'+r.error.message);return;}
   toast('役割を変更しました');renderStaff();}
-async function approveReq(id,childId,toRoom,toCls){showLoad(true);
+async function approveReq(id,childId,toRoom,toCls){if(previewGuard())return;showLoad(true);
   const u=await db.from('change_requests').update({status:'approved',decided_at:new Date().toISOString()}).eq('id',id);
   if(!u.error) await db.from('children').update({classroom:toRoom,class_name:toCls,program:metaOf(toRoom).p,region:metaOf(toRoom).r}).eq('id',childId);
   const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
   const ch=await db.from('children').select('*');allChildren=ch.data||[];
   showLoad(false); if(u.error){toast('エラー：'+u.error.message);return;} toast('承認しました（クラスを変更）');renderStaff();}
-async function rejectReq(id){showLoad(true);
+async function rejectReq(id){if(previewGuard())return;showLoad(true);
   await db.from('change_requests').update({status:'rejected',decided_at:new Date().toISOString()}).eq('id',id);
   const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
   showLoad(false); toast('却下しました');renderStaff();}
@@ -2261,14 +2267,14 @@ function stAnnounce(){
   h+=`</details></div>`;
   return h;
 }
-async function postAnn(scope,room){
+async function postAnn(scope,room){if(previewGuard())return;
   const taId=scope==='all'?'ann-all-b':scope==='area'?'ann-area-b':'ann-'+room+'-b';
   const ta=document.getElementById(taId);const body=ta.value.trim();if(!body){toast('内容を入力してください');return;}
   const sc=staffScope();const rec={scope,room:scope==='room'?room:null,body,created_by:me.id};
   if(scope==='area')rec.area=sc.p+'/'+sc.r;
   showLoad(true);const r=await db.from('announcements').insert(rec);await loadAnns();showLoad(false);
   if(r.error){toast('投稿エラー：'+r.error.message);return;}toast('投稿しました');renderStaff();}
-async function delAnn(id){showLoad(true);await db.from('announcements').delete().eq('id',id);await loadAnns();showLoad(false);toast('削除しました');renderStaff();}
+async function delAnn(id){if(previewGuard())return;showLoad(true);await db.from('announcements').delete().eq('id',id);await loadAnns();showLoad(false);toast('削除しました');renderStaff();}
 /* --- 連絡（メッセージ返信） --- */
 function parentRooms(pid){const rs=[...new Set(allChildren.filter(c=>c.parent_id===pid).map(c=>c.classroom))].filter(Boolean);return rs.length?'（'+rs.join('・')+'教室）':'';}
 function stMessages(){
@@ -2289,13 +2295,88 @@ function stMessages(){
     </details></div>`;});
   return h;
 }
-async function replyMsg(pid){const i=document.getElementById('reply-'+pid);const v=i.value.trim();if(!v)return;
+async function replyMsg(pid){if(previewGuard())return;const i=document.getElementById('reply-'+pid);const v=i.value.trim();if(!v)return;
   showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);
   if(r.error){toast('送信エラー：'+r.error.message);return;}toast('返信しました');renderStaff();}
+
+/* ============ 管理者：他の人の画面を見る（読み取り専用プレビュー・2026-09-06） ============ */
+let _pv={on:false,role:null,profile:null,section:null,db:null,kind:null};
+function previewGuard(){if(!_pv.on)return false;showLoad(false);closeSheet();toast('👀 プレビュー中のため、変更・送信はできません');return true;}
+function blockedQuery(){const p=new Proxy({},{get(o,k){if(k==='then')return (res)=>Promise.resolve({data:null,error:{message:'プレビュー中は変更できません'}}).then(res);return ()=>p;}});return p;}
+function makeReadOnlyDb(real){
+  return {from:(t)=>{const b=real.from(t);return new Proxy(b,{get(o,k){if(k==='insert'||k==='update'||k==='upsert'||k==='delete')return ()=>blockedQuery();const v=o[k];return typeof v==='function'?v.bind(o):v;}});},
+    auth:real.auth,rpc:()=>blockedQuery(),channel:real.channel?real.channel.bind(real):undefined};
+}
+function openPreviewPicker(){
+  if(staffRole!=='admin'||_pv.on)return;
+  window.__pvQ='';
+  openSheet(`<h3>👀 他の人の画面を見る</h3><p class="muted" style="margin:-2px 0 8px">選んだ人としてログインしたときの画面を確認できます。<b>プレビュー中は変更・送信できません</b>（終了で管理者に戻ります）。</p>
+    <input class="emgsearch" placeholder="保護者名・お子様名・スタッフ名で検索" oninput="window.__pvQ=this.value;renderPreviewRows()"><div id="pvRows"></div>
+    <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
+  renderPreviewRows();
+}
+function renderPreviewRows(){
+  const box=document.getElementById('pvRows'); if(!box)return; const q=(window.__pvQ||'').trim();
+  const kidsOf=pid=>allChildren.filter(c=>c.parent_id===pid);
+  const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='roster').filter(p=>!q||(p.parent_name||'').includes(q)).sort((a,b)=>(''+a.parent_name).localeCompare(''+b.parent_name));
+  const parents=allProfiles.filter(p=>(p.role||'parent')==='parent').filter(p=>{if(!q)return true;if((p.parent_name||'').includes(q))return true;return kidsOf(p.id).some(c=>(c.name||'').includes(q));}).sort((a,b)=>(''+a.parent_name).localeCompare(''+b.parent_name));
+  let h='';
+  if(staffs.length){h+=`<div class="sech" style="margin:8px 0 4px"><h2 class="title" style="font-size:14px">🛠 スタッフ</h2><span class="cap">${staffs.length}名</span></div><div class="card flat" style="padding:4px 12px;margin-bottom:8px">`+staffs.slice(0,40).map(p=>`<div class="emgrow" onclick="startPreview('staff','${p.id}')"><span><span class="nm">${esc(p.parent_name||p.email||'(無名)')}</span> <span class="rolepill role-${p.role}" style="font-size:10px">${roleLabel(p.role)}</span><br><span class="muted" style="font-size:11.5px">${esc(p.staff_program||'')}${p.staff_program?'・':''}${esc(p.staff_region||'')}</span></span><span style="color:#9aa3b8;font-weight:900">›</span></div>`).join('')+`</div>`;}
+  h+=`<div class="sech" style="margin:8px 0 4px"><h2 class="title" style="font-size:14px">👨‍👩‍👧 保護者</h2><span class="cap">${parents.length}名</span></div>`;
+  if(!parents.length)h+=`<p class="muted">該当する保護者がいません。</p>`;
+  else h+=`<div class="card flat" style="padding:4px 12px;margin:0">`+parents.slice(0,80).map(p=>{const ks=kidsOf(p.id);return `<div class="emgrow" onclick="startPreview('parent','${p.id}')"><span style="min-width:0"><span class="nm">${esc(p.parent_name||p.email||'(無名)')}</span><br><span class="muted" style="font-size:11.5px">${ks.length?ks.map(c=>esc(c.name)+'（'+esc(c.classroom||'')+'）').join('・'):'お子様未登録'}</span></span><span style="color:#9aa3b8;font-weight:900">›</span></div>`;}).join('')+`</div>`+(parents.length>80?`<p class="muted">80名まで表示。名前で絞り込んでください。</p>`:'');
+  box.innerHTML=h;
+}
+async function startPreview(kind,id){
+  if(staffRole!=='admin'||_pv.on)return;
+  const p=allProfiles.find(x=>x.id===id); if(!p){toast('見つかりません');return;}
+  closeSheet();showLoad(true);
+  _pv={on:true,role:staffRole,profile:profile,section:staffSection,db:db,kind};
+  profile=Object.assign({},p);
+  try{
+    if(kind==='parent'){
+      const [k,m,a,r,f]=await Promise.all([
+        db.from('children').select('*').eq('parent_id',id).order('created_at'),
+        db.from('messages').select('*').eq('parent_id',id).order('created_at'),
+        db.from('absences').select('*').eq('parent_id',id),
+        db.from('change_requests').select('*').eq('parent_id',id).eq('status','pending'),
+        db.from('furikae').select('*').eq('parent_id',id)
+      ]);
+      kids=k.data||[];msgs=m.data||[];myAbs=a.data||[];myReqs=r.data||[];myFur=f.data||[];
+      db=makeReadOnlyDb(_pv.db);
+      const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();window.__upAll=false;
+      document.getElementById('staff-tabbar').style.display='none';document.getElementById('tabbar').style.display='flex';
+      tab('s-home',document.querySelector('#tabbar button[data-s="s-home"]'));
+      const fam=(profile.parent_name||'')+' 様';document.getElementById('home-fam').textContent=fam;document.getElementById('my-fam').textContent=fam;
+      renderLegend();renderCal();renderMy();renderMsgs();renderHomeAnn();
+    }else{
+      db=makeReadOnlyDb(_pv.db);
+      staffRole=(p.role==='roster')?'roster':'staff';staffSection=(ROLE_TABS[staffRole]||['roster'])[0];attDate=null;
+      document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='flex';
+      go('s-staff');renderStaffNav();renderStaff();
+    }
+  }catch(e){toast('読み込みエラー：'+e.message);}
+  showLoad(false);
+  const b=document.getElementById('pv-banner'),tx=document.getElementById('pv-text');
+  if(b){tx.textContent=`👀 プレビュー中：${p.parent_name||p.email||'(無名)'}（${kind==='parent'?'保護者':roleLabel(p.role)}）の画面 ・ 変更はできません`;b.hidden=false;}
+  toast('プレビューを開始しました。右上の「終了」で管理者に戻ります');
+}
+function exitPreview(){
+  if(!_pv.on)return;
+  closeSheet();
+  db=_pv.db||db;profile=_pv.profile;staffRole=_pv.role||'admin';staffSection=_pv.section||'schedule';
+  kids=[];msgs=[];myAbs=[];myReqs=[];myFur=[];attDate=null;
+  _pv={on:false,role:null,profile:null,section:null,db:null,kind:null};
+  const b=document.getElementById('pv-banner');if(b)b.hidden=true;
+  document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='flex';
+  go('s-staff');renderStaffNav();renderStaff();
+  toast('管理者の画面に戻りました');
+}
 
 /* ============ スワイプ更新（プルトゥリフレッシュ） ============ */
 async function refreshApp(){
   if(!READY||!me)return;
+  if(_pv.on)return; // プレビュー中は自動更新しない（管理者本人のデータで上書きしないため）
   await loadAnns(); await loadCancels(); await loadHidden(); await loadOverrides(); await loadEvents(); await loadTemplates(); await loadRules(); await loadShifts();
   if(profile&&(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'||profile.role==='roster')){ await loadStaffData(); renderStaff(); }
   else { await loadKids(); await loadMsgs(); renderHomeAnn(); renderCal(); renderMy(); renderMsgs(); }
