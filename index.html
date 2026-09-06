@@ -1097,16 +1097,16 @@ function isHidden(room,key){return !!(hidden[room]&&hidden[room][key]);}
 /* ============================================================
    月謝のアプリ内決済（Stripe）2026-09-03 作成 → 2026-09-06 リデザイン版へ移植
    対象: 上板・小松島・米子・松江・福山・北谷・室川・長崎（pay_settings で管理）
-   除外: 論田・北島・阿南・吉野川・keydance・上八万・八万中央・福岡（糸島）
+   除外: 論田・北島・阿南・吉野川・keydance・上八万・八万中央（福岡・糸島は2026-09-06に対象へ）
    ============================================================ */
-const PAY_TEST_MODE=true; /* 試験モード: trueの間、決済UIは管理者にのみ表示（全員公開時はfalse） */
+const PAY_TEST_MODE=false; /* 試験モード: trueの間、決済UIは管理者にのみ表示（全員公開時はfalse） */
 let paySubs=[],payInv=[],paySet=[],feeTable=[];
 function payUiOn(){const r=(profile&&profile.role)||(typeof staffRole!=='undefined'&&staffRole)||'';return !PAY_TEST_MODE||r==='admin'||(_pv&&_pv.on&&_pv.role==='admin');}
 const PAY_M={card:{lbl:'クレカ自動',col:'#0a84ff',bg:'#eef5ff'},bank:{lbl:'銀行振込',col:'#0f766e',bg:'#e6f4ef'},konbini:{lbl:'コンビニ払い',col:'#b45309',bg:'#fdf3e7'}};
 function todayYmdJST(){return jstNow().toISOString().slice(0,10);}
 function paySetting(k){const r=paySet.find(x=>x.key===k);return (r&&r.value)||{};}
 function konbiniOpen(){return todayYmdJST()>=(paySetting('konbini_from').date||'2026-11-01');}
-function payExcluded(c){const rg=paySetting('excluded_regions').regions||['福岡'];const rm=paySetting('excluded_classrooms').classrooms||['論田','北島','阿南','吉野川','keydance','上八万','八万中央'];const pg=paySetting('excluded_programs').programs||[];const m=metaOf(c.classroom);return rg.includes(c.region||m.r)||rm.includes(c.classroom)||pg.includes(c.program||m.p);}
+function payExcluded(c){const rg=paySetting('excluded_regions').regions||[];const rm=paySetting('excluded_classrooms').classrooms||['論田','北島','阿南','吉野川','keydance','上八万','八万中央'];const pg=paySetting('excluded_programs').programs||[];const m=metaOf(c.classroom);return rg.includes(c.region||m.r)||rm.includes(c.classroom)||pg.includes(c.program||m.p);}
 function paySubOf(cid){return paySubs.find(x=>x.child_id===cid)||null;}
 function paySubActive(cid){const x=paySubOf(cid);return !!(x&&['active','past_due','cancel_at_period_end'].includes(x.status));}
 function payEligible(c){return payUiOn()&&!isWithdrawn(c)&&!payExcluded(c)&&(c.fee||0)>0;}
@@ -1155,13 +1155,13 @@ function maybePayPopup(force){
 function showMigrationSheet(targets){
   openSheet(`<div class="center" style="font-size:40px;line-height:1">💳</div><h3 class="center">お月謝のお支払い方法が変わります</h3>
     <div style="font-size:13.5px;line-height:1.9;margin-top:8px">いつもありがとうございます。<b>2026年10月分より</b>、お月謝のお支払いを、これまでの方法（スグラムなど）から<b>このアプリでのお支払い</b>（クレジットカード自動引き落とし／銀行振込）に切り替えさせていただきます。</div>
-    <div class="note" style="margin-top:10px">✅ これまでの方法でのお支払いは<b>9月分まで</b>です<br>✅ アプリでのお支払い登録を<b>9月中</b>にお願いいたします<br>✅ いま登録しても<b>9月中に請求されることはありません</b>。最初のお支払いは<b>10月1日</b>です<br>🏪 コンビニ払いは<b>11月から</b>お選びいただけます<br>🔁 お支払い方法は、あとからマイページで変更できます</div>
+    <div class="note" style="margin-top:10px">✅ これまでの方法でのお支払いは<b>9月分まで</b>です<br>✅ アプリでのお支払い登録を<b>9月中</b>にお願いいたします<br>✅ いま登録しても<b>9月中に請求されることはありません</b>。最初のお支払いは<b>10月1日</b>です<br>🏪 コンビニ払いご希望の方は、<b>10月分は銀行振込</b>で登録し、<b>11月以降</b>にマイページからコンビニ払いへ変更してください<br>🔁 お支払い方法は、あとからマイページで変更できます</div>
     <div class="muted" style="margin-top:8px">対象：${targets.map(c=>esc(c.name)+'さん（'+yen(c.fee)+'/月）').join('、')}</div>
     <button class="btn" style="margin-top:12px" onclick="closeSheet();showPaySelectSheet()">お支払い方法を登録する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">あとで登録する</button>`);
 }
 let _paySel={};
-function payMethodOpts(){const kOpen=konbiniOpen();return [['card','💳 クレジットカード','毎月自動で引き落とし（おすすめ）',false],['bank','🏦 銀行振込','ご家庭専用の口座に毎月お振込み（手数料が最安）',false],['konbini','🏪 コンビニ払い',kOpen?'毎月レジでお支払い（セブン不可）':'11月から選べます',!kOpen]];}
+function payMethodOpts(){const kOpen=konbiniOpen();return [['card','💳 クレジットカード','毎月自動で引き落とし（おすすめ）',false],['bank','🏦 銀行振込','ご家庭専用の口座に毎月お振込み（手数料が最安）',false],['konbini','🏪 コンビニ払い',kOpen?'毎月レジでお支払い（セブン不可）':'11月から選べます（10月分は銀行振込で登録→11月に変更）',!kOpen]];}
 function showPaySelectSheet(onlyCid){
   const targets=kids.filter(c=>payNeedsSetup(c)&&(!onlyCid||c.id===onlyCid));if(!targets.length){toast('登録が必要なお子様はいません');return;}
   _paySel={};const opts=payMethodOpts();
@@ -1238,7 +1238,7 @@ function payAdminSection(ym){
     return `<div class="sumrow" style="align-items:center"><span style="flex:1;min-width:0"><b style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</b><br><span class="muted" style="font-size:11px">${esc(p.parent_name||'')}・${esc(c.classroom)} ${esc(c.class_name)}・${yen(c.fee)}</span></span>${m?`<span class="pill" style="background:${m.bg};color:${m.col};margin:0 6px 0 0;padding:3px 8px;font-size:11px">${m.lbl}</span>`:''}<b style="font-size:12px;${cls};white-space:nowrap">${st}</b></div>`;}).join('');
   return `<div class="sech"><h2 class="title">💳 アプリ決済の入金状況</h2>${PAY_TEST_MODE?'<span class="cnt fur">試験モード</span>':''}</div>
     <div class="statgrid" style="grid-template-columns:repeat(4,1fr)"><div class="stat att"><div class="n">${nPaid}</div><div class="l">入金済み</div></div><div class="stat"><div class="n" style="color:#b8860b">${nWait}</div><div class="l">支払い待ち</div></div><div class="stat abs"><div class="n">${nOver}</div><div class="l">要フォロー</div></div><div class="stat abs"><div class="n">${nNone}</div><div class="l">未登録</div></div></div>
-    <div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>生徒ごとの状況（${list.length}名）<span class="cap" style="color:var(--green)">入金合計 ${yen(sum)}</span></summary><p class="muted" style="margin:4px 0 6px;font-size:12px">Stripeからの通知で自動更新されます。論田・北島・阿南・吉野川・キーダンス・糸島は従来どおりのため対象外です。</p>${rows||'<p class="muted">対象の生徒がいません</p>'}</details></div>`;
+    <div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>生徒ごとの状況（${list.length}名）<span class="cap" style="color:var(--green)">入金合計 ${yen(sum)}</span></summary><p class="muted" style="margin:4px 0 6px;font-size:12px">Stripeからの通知で自動更新されます。論田・北島・阿南・吉野川・キーダンスは従来どおりのため対象外です。</p>${rows||'<p class="muted">対象の生徒がいません</p>'}</details></div>`;
 }
 function feeTableCard(){
   if(staffRole!=='admin')return '';
