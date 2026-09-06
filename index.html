@@ -544,7 +544,7 @@ const SCHEDULE = {
   "上板":{0:[{c:"Aクラス",t:"10:20–11:20",g:"5歳〜小学生"},{c:"Bクラス",t:"11:30–12:30",g:"5歳〜小学生"},{c:"バク転集中クラス",t:"13:00–14:00",g:"バク転に挑戦したい方"}]},
   "小松島":{4:[{c:"ジュニアクラス",t:"19:00–20:00",g:"小学生以上"},{c:"バク転クラス",t:"20:00–21:00",g:"バク転に挑戦したい方"}]},
 };
-const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"},{k:"net",nm:"銀行振込",ds:"毎月ご自身で銀行振込",ic:"🏦"}];
+const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"},{k:"net",nm:"銀行振込",ds:"毎月ご自身で銀行振込",ic:"🏦"},{k:"app",nm:"アプリ決済（クレジットカード）",ds:"このアプリ内でカード決済（準備中・開始時にご案内します）",ic:"💳"}];
 
 /* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
 Object.assign(SCHOOLS,{
@@ -556,7 +556,8 @@ Object.assign(SCHOOLS,{
   "室川":["キッズ体操","キッズバク転","子どもバク転B","子どもバク転C"],
   "keydance":["キッズクラス","ジュニアクラス"],
   "上八万":["キッズクラス","ジュニアクラス"],
-  "八万中央":["キッズクラス","ジュニアクラス"]
+  "八万中央":["キッズクラス","ジュニアクラス"],
+  "長崎":["Aクラス","Bクラス"]
 });
 Object.assign(SCHOOL_INFO,{
   "米子":{full:"米子タンブ体操教室",place:"米子市産業体育館（鳥取県米子市東福原8-27-1）",day:"日曜・木曜 月3回",teachers:"大野達也・高原圭吾"},
@@ -567,10 +568,12 @@ Object.assign(SCHOOL_INFO,{
   "室川":{full:"室川アクロ体操教室",place:"室川自治公民館（沖縄県沖縄市室川2-11-12）",day:"月曜・火曜 月3回",teachers:"照屋雄大"},
   "keydance":{full:"key dance school",place:"水:上八万コミュニティセンター／木:八万中央コミュニティセンター（徳島市）",day:"水曜・木曜 月3回",teachers:"あかね"},
   "上八万":{full:"キーダンス 上八万",place:"上八万コミュニティセンター（徳島市上八万町樋口61）",day:"水曜・月3回",teachers:"あかね"},
-  "八万中央":{full:"キーダンス 八万中央",place:"八万中央コミュニティセンター（徳島市八万町内浜80-14）",day:"木曜・月3回",teachers:"あかね"}
+  "八万中央":{full:"キーダンス 八万中央",place:"八万中央コミュニティセンター（徳島市八万町内浜80-14）",day:"木曜・月3回",teachers:"あかね"},
+  "長崎":{full:"長崎RISEダンス教室",place:"松山カルチャースタジオB（長崎県長崎市松山町4番40号 IP松山ビル5階）",day:"月3回",teachers:"かよ"}
 });
 Object.assign(SCHOOL_COLOR,{
-  "米子":{bg:"#0ea5e9",fg:"#fff"},"松江":{bg:"#14b8a6",fg:"#fff"},"糸島":{bg:"#f97316",fg:"#fff"},"福山":{bg:"#ef4444",fg:"#fff"},"北谷":{bg:"#22c55e",fg:"#fff"},"室川":{bg:"#a855f7",fg:"#fff"},"keydance":{bg:"#ec4899",fg:"#fff"},"上八万":{bg:"#f472b6",fg:"#fff"},"八万中央":{bg:"#c026d3",fg:"#fff"}
+  "米子":{bg:"#0ea5e9",fg:"#fff"},"松江":{bg:"#14b8a6",fg:"#fff"},"糸島":{bg:"#f97316",fg:"#fff"},"福山":{bg:"#ef4444",fg:"#fff"},"北谷":{bg:"#22c55e",fg:"#fff"},"室川":{bg:"#a855f7",fg:"#fff"},"keydance":{bg:"#ec4899",fg:"#fff"},"上八万":{bg:"#f472b6",fg:"#fff"},"八万中央":{bg:"#c026d3",fg:"#fff"},
+  "長崎":{bg:"#65a30d",fg:"#fff"}
 });
 Object.assign(SCHEDULE,{
   "米子":{0:[{c:"スタートA",t:"9:30–10:30",g:"5歳以上"},{c:"スタートB",t:"10:40–11:40",g:"5歳以上"},{c:"ステップアップZ",t:"12:50–13:50",g:"基礎〜技の習得"},{c:"アクロバット",t:"14:00–15:20",g:"高度な技に挑戦"}],4:[{c:"スタートC",t:"15:50–16:50",g:"5歳以上"},{c:"ステップアップX",t:"17:00–18:00",g:"基礎〜技の習得"},{c:"ステップアップY",t:"18:10–19:10",g:"基礎〜技の習得"}]},
@@ -581,23 +584,28 @@ Object.assign(SCHEDULE,{
   "室川":{1:[{c:"キッズ体操",t:"18:10–19:10",g:"小学生以上"},{c:"キッズバク転",t:"19:20–20:20",g:"小学生以上"}],2:[{c:"子どもバク転B",t:"17:50–18:50",g:"小学生以上"},{c:"子どもバク転C",t:"19:00–20:00",g:"小学生以上"}]},
   "keydance":{3:[{c:"キッズクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"17:30–18:30",g:"5歳〜小学生"}],4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"18:30–19:30",g:"5歳〜小学生"}]},
   "上八万":{3:[{c:"キッズクラス",t:"16:20–17:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"17:30–18:30",g:"5歳〜小学生"}]},
-  "八万中央":{4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"18:30–19:30",g:"5歳〜小学生"}]}
+  "八万中央":{4:[{c:"キッズクラス",t:"17:20–18:20",g:"5歳〜小学生"},{c:"ジュニアクラス",t:"18:30–19:30",g:"5歳〜小学生"}]},
+  "長崎":{3:[{c:"Aクラス",t:"16:30–17:30",g:"小学生以上"},{c:"Bクラス",t:"17:40–18:40",g:"小学生以上"}]}
 });
+// 教室ごとの定員（クラス名共通のCLASS_CAPより優先）
+const ROOM_CLASS_CAP={"長崎":{"Aクラス":10,"Bクラス":10}};
+function classCap(room,cls){const r=ROOM_CLASS_CAP[room];if(r&&typeof r[cls]==='number')return r[cls];return CLASS_CAP[cls]||'-';}
 Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップX":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20,"バク転集中クラス":13});
 const CLASSROOM_META={
   "論田":{p:"体操",r:"徳島"},"北島":{p:"体操",r:"徳島"},"吉野川":{p:"体操",r:"徳島"},"阿南":{p:"体操",r:"徳島"},"上板":{p:"体操",r:"徳島"},"小松島":{p:"体操",r:"徳島"},
   "米子":{p:"体操",r:"鳥取"},"松江":{p:"体操",r:"島根"},"糸島":{p:"体操",r:"福岡"},"福山":{p:"体操",r:"広島"},"北谷":{p:"体操",r:"沖縄"},"室川":{p:"体操",r:"沖縄"},
   "keydance":{p:"ダンス",r:"徳島"},
   "上八万":{p:"ダンス",r:"徳島"},
-  "八万中央":{p:"ダンス",r:"徳島"}
+  "八万中央":{p:"ダンス",r:"徳島"},
+  "長崎":{p:"ダンス",r:"長崎"}
 };
 const PROGRAMS=[{k:"体操",ic:"🤸"},{k:"ダンス",ic:"💃"}];
-const REGION_ORDER=["徳島","鳥取","島根","広島","福岡","沖縄"];
+const REGION_ORDER=["徳島","鳥取","島根","広島","福岡","沖縄","長崎"];
 function regionsFor(program){const s=[];Object.keys(CLASSROOM_META).forEach(k=>{const m=CLASSROOM_META[k];if(m.p===program&&!s.includes(m.r))s.push(m.r);});return s.sort((a,b)=>REGION_ORDER.indexOf(a)-REGION_ORDER.indexOf(b));}
 function classroomsIn(program,region){return Object.keys(CLASSROOM_META).filter(k=>CLASSROOM_META[k].p===program&&CLASSROOM_META[k].r===region);}
 function metaOf(room){return CLASSROOM_META[room]||{p:"体操",r:"徳島"};}
 function currentScope(){if(typeof kids!=='undefined'&&kids&&kids.length){const m=metaOf(kids[0].classroom);return {p:m.p,r:m.r};}return {p:"体操",r:"徳島"};}
-function paymentsFor(scope){if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
+function paymentsFor(scope){if(scope&&scope.p==="ダンス"&&scope.r==="長崎")return PAYMENTS.filter(p=>p.k==="app");if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
 
 /* ===== 会場が曜日で変わる教室（key dance school: 水=上八万/木=八万中央） ===== */
 const ROOM_DAY_VARIANT={
@@ -1984,7 +1992,7 @@ function rosterOnlyView(){
   Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);let inner='';
     SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);let rows='';
       inC.forEach(c=>{rows+=`<tr><td>${esc(c.name)}${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.points||0}</td></tr>`;});
-      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      const cap=classCap(room,cls); const full=(typeof cap==='number'&&inC.length>=cap);
       inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">振替</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,'')}</summary>${inner}</details></div>`;});
   h+=recentJoinCard();
@@ -2002,7 +2010,7 @@ function stRoster(){
   rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
     SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);const fc=inC.reduce((a,c)=>a+(c.fee||0),0);let rows='';
       inC.forEach(c=>{rows+=`<tr><td><span style="cursor:pointer;text-decoration:underline dotted;font-weight:700" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</span>${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.points||0}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
-      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      const cap=classCap(room,cls); const full=(typeof cap==='number'&&inC.length>=cap);
       inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">振替</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=4 class="muted">在籍なし</td></tr>'}</table></details>`;});
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,yen(fee))}</summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
   h+=recentJoinCard();
@@ -2132,7 +2140,7 @@ function ownerRoster(){
     let inner='';
     (SCHOOLS[room]||[]).forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);if(!inC.length)return;
       let cards='';inC.forEach(c=>{cards+=contactCard(c);});
-      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      const cap=classCap(room,cls); const full=(typeof cap==='number'&&inC.length>=cap);
       inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}</span></summary>${cards}</details>`;});
     const other=inR.filter(c=>!(SCHOOLS[room]||[]).includes(c.class_name));
     if(other.length){let cards='';other.forEach(c=>{cards+=contactCard(c);});inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--sub)">その他（${other.length}名）</summary>${cards}</details>`;}
