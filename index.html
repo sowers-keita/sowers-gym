@@ -589,6 +589,10 @@ Object.assign(SCHEDULE,{
 });
 // 教室ごとの定員（クラス名共通のCLASS_CAPより優先）
 const ROOM_CLASS_CAP={"長崎":{"Aクラス":10,"Bクラス":10}};
+// クラスの曜日・時間ラベル（新規登録・クラス選択で表示）。曜日が固定でない教室は時間のみ
+const NO_FIXED_WEEKDAY=new Set(["長崎"]);
+function classTimeLabel(room,cls,withTarget){const sc=SCHEDULE[room]||{};const parts=[];Object.keys(sc).forEach(wd=>{(sc[wd]||[]).forEach(it=>{if(it.c!==cls)return;const wdl=NO_FIXED_WEEKDAY.has(room)?'':(WEEKLY_ROOMS.has(room)?'毎週':'')+DOW[wd]+'曜 ';parts.push(wdl+(it.t||'')+(withTarget&&it.g?'（'+it.g+'）':''));});});return parts.join(' ／ ');}
+function clsOptionsHtml(room,selected){return (SCHOOLS[room]||[]).map(x=>{const t=classTimeLabel(room,x,false);return `<option value="${x.replace(/"/g,'&quot;')}" ${x===selected?'selected':''}>${x}${t?'　'+t:''}</option>`;}).join('');}
 function classCap(room,cls){const r=ROOM_CLASS_CAP[room];if(r&&typeof r[cls]==='number')return r[cls];return CLASS_CAP[cls]||'-';}
 Object.assign(CLASS_CAP,{"スタートA":15,"スタートB":15,"スタートC":15,"スタートD":15,"ステップアップ":20,"ステップアップX":20,"ステップアップY":20,"ステップアップZ":20,"アクロバット":20,"ジュニアクラス":13,"ジュニアAクラス":13,"ジュニアBクラス":13,"キッズ体操":15,"キッズバク転":13,"子どもバク転B":13,"子どもバク転C":13,"キッズクラス":20,"バク転集中クラス":13});
 const CLASSROOM_META={
@@ -949,7 +953,7 @@ function renderReg(){
       b.innerHTML=pill+`<h2 class="title">通っている教室を選んでください</h2>`+classroomsIn(reg.program,reg.region).map(s=>`<div class="opt ${reg.classroom===s?'sel':''}" onclick="reg.classroom='${s}';reg.cls=null;renderReg()"><div class="ico">🏫</div><div><div class="nm">${SCHOOL_INFO[s].full}</div><div class="ds">${SCHOOL_INFO[s].day}</div></div></div>`).join('')+`<button class="btn" ${reg.classroom?'':'disabled'} onclick="reg.step=1;renderReg()">次へ</button>`+`<button class="btn gray" style="margin-top:8px" onclick="reg.region=null;reg.classroom=null;renderReg()">← 都道府県を選び直す</button>`;
     }
   }else if(reg.step===1){
-    b.innerHTML=pill+`<h2 class="title">${SCHOOL_INFO[reg.classroom].full}のクラス</h2>`+SCHOOLS[reg.classroom].map(c=>`<div class="opt ${reg.cls===c?'sel':''}" onclick="reg.cls='${c}';renderReg()"><div class="ico">🤸</div><div class="nm">${c}</div></div>`).join('')+`<button class="btn" ${reg.cls?'':'disabled'} onclick="reg.step=2;renderReg()">次へ</button>`;
+    b.innerHTML=pill+`<h2 class="title">${SCHOOL_INFO[reg.classroom].full}のクラス</h2>`+SCHOOLS[reg.classroom].map(c=>{const t=classTimeLabel(reg.classroom,c,true);return `<div class="opt ${reg.cls===c?'sel':''}" onclick="reg.cls='${c}';renderReg()"><div class="ico">${metaOf(reg.classroom).p==='ダンス'?'💃':'🤸'}</div><div style="flex:1"><div class="nm">${c}</div>${t?`<div class="ds">⏰ ${t}</div>`:''}</div></div>`;}).join('')+`<button class="btn" ${reg.cls?'':'disabled'} onclick="reg.step=2;renderReg()">次へ</button>`;
   }else if(reg.step===2){
     b.innerHTML=pill+`<h2 class="title">ログイン情報</h2><div class="card">
       <label class="fld">メールアドレス</label><input id="r-mail" type="email" value="${draft.email}" placeholder="hogehoge@example.com">
@@ -991,7 +995,7 @@ function enrollSelects(yId,mId,enroll,onchange){const p=(enroll||'').split('-');
 function setEnrollDraft(i){const y=document.getElementById('enr-y-'+i).value;const m=document.getElementById('enr-m-'+i).value;draft.children[i].enroll=(y&&m)?(y+'-'+String(m).padStart(2,'0')):'';}
 function renderKidsForm(){const box=document.getElementById('kidsform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
   const opts=classroomsIn(reg.program||'体操',reg.region||'徳島').map(s=>`<option ${c.classroom===s?'selected':''}>${s}</option>`).join('');
-  const clsOpts=SCHOOLS[c.classroom||"論田"].map(x=>`<option ${c.class_name===x?'selected':''}>${x}</option>`).join('');
+  const clsOpts=clsOptionsHtml(c.classroom||"論田",c.class_name);
   const d=document.createElement('div');d.className='childblock';
   d.innerHTML=`${draft.children.length>1?`<button class="rm" onclick="draft.children.splice(${i},1);renderKidsForm()">削除</button>`:''}
     <h4>お子様 ${i+1}人目</h4>
@@ -1460,9 +1464,9 @@ function openChangeReq(i){
   openSheet(`<h3>教室・クラスの変更申請</h3>
     <p class="muted" style="margin-bottom:10px">${c.name} さんの希望を選んで送信してください。<b>管理者が承認すると反映</b>されます。</p>
     <label class="fld">希望する教室</label>
-    <select id="cr-room" onchange="document.getElementById('cr-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('')">${schoolOpts}</select>
+    <select id="cr-room" onchange="document.getElementById('cr-cls').innerHTML=clsOptionsHtml(this.value,'')">${schoolOpts}</select>
     <label class="fld">希望するクラス</label>
-    <select id="cr-cls">${SCHOOLS[c.classroom].map(x=>`<option ${x===c.class_name?'selected':''}>${x}</option>`).join('')}</select>
+    <select id="cr-cls">${clsOptionsHtml(c.classroom,c.class_name)}</select>
     <div style="height:14px"></div>
     <button class="btn green" onclick="submitChangeReq(${i})">この内容で申請する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
@@ -1484,8 +1488,8 @@ function openAddSibling(){
     <label class="fld">生年月日</label><input id="sb-birth" type="date">
     <label class="fld">小学校名</label><input id="sb-school" placeholder="○○小学校">
     <label class="fld">入会した月</label>${enrollSelects('sb-enroll-y','sb-enroll-m','','')}
-    <div class="row2"><div><label class="fld">教室</label><select id="sb-room" onchange="document.getElementById('sb-cls').innerHTML=SCHOOLS[this.value].map(x=>'<option>'+x+'</option>').join('')">${schoolOpts}</select></div>
-    <div><label class="fld">クラス</label><select id="sb-cls">${SCHOOLS[first].map(x=>`<option>${x}</option>`).join('')}</select></div></div>
+    <div class="row2"><div><label class="fld">教室</label><select id="sb-room" onchange="document.getElementById('sb-cls').innerHTML=clsOptionsHtml(this.value,'')">${schoolOpts}</select></div>
+    <div><label class="fld">クラス</label><select id="sb-cls">${clsOptionsHtml(first,'')}</select></div></div>
     <label class="fld">お月謝（円）</label><input id="sb-fee" type="number" value="7000">
     <div style="height:14px"></div><button class="btn green" onclick="saveSibling()">追加する</button>
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
@@ -2096,11 +2100,11 @@ function openClassChange(cid){
   const rooms=(staffRole==='admin')?Object.keys(SCHOOLS):classroomsIn(sc.p,sc.r);
   const startRoom=rooms.includes(c.classroom)?c.classroom:(rooms[0]||c.classroom);
   const roomOpts=rooms.map(function(sM){return '<option value="'+sM+'"'+(sM===c.classroom?' selected':'')+'>'+((SCHOOL_INFO[sM]&&SCHOOL_INFO[sM].full)||sM)+'</option>';}).join('');
-  const clsOpts=(SCHOOLS[startRoom]||[]).map(function(x){return '<option'+(x===c.class_name?' selected':'')+'>'+x+'</option>';}).join('');
+  const clsOpts=clsOptionsHtml(startRoom,c.class_name);
   openSheet(`<h3>${c.name} のクラス変更</h3>
     <p class="muted" style="margin:-2px 0 8px">担当エリアの教室・クラスに変更できます。すぐに名簿・カレンダーへ反映されます。</p>
     <label class="fld">教室</label>
-    <select id="cc-room" onchange="document.getElementById('cc-cls').innerHTML=(SCHOOLS[this.value]||[]).map(x=>'<option>'+x+'</option>').join('')">${roomOpts}</select>
+    <select id="cc-room" onchange="document.getElementById('cc-cls').innerHTML=clsOptionsHtml(this.value,'')">${roomOpts}</select>
     <label class="fld">クラス</label>
     <select id="cc-cls">${clsOpts}</select>
     <div style="height:14px"></div>
