@@ -22,27 +22,43 @@
 <meta name="twitter:description" content="sowers｜予定確認・お休み/振替・名簿・お知らせ">
 <meta name="twitter:image" content="https://sowers-keita.github.io/sowers-gym/logo.png">
 <style>
-  :root{--bg:#f4f6fb;--card:#fff;--ink:#222b45;--sub:#6b7280;--brand:#2f7df6;--brand-d:#1f5fcf;--accent:#ff8a3d;--green:#1faf73;--red:#e0556b;--line:#e7ebf3;--soft:#eef3ff;--shadow:0 6px 20px rgba(40,60,110,.10)}
+  :root{--bg:#f4f6fb;--card:#fff;--ink:#222b45;--sub:#6b7280;--brand:#2f7df6;--brand-d:#1f5fcf;--accent:#ff8a3d;--green:#1faf73;--red:#e0556b;--yellow:#e0a419;--line:#e7ebf3;--soft:#eef3ff;--shadow:0 6px 20px rgba(40,60,110,.10);--r:16px}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0}
-  body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;background:#dfe5f0;color:var(--ink)}
+  body{font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;background:#dfe5f0;color:var(--ink);-webkit-font-smoothing:antialiased}
   .phone{max-width:430px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative;display:flex;flex-direction:column;box-shadow:0 0 30px rgba(0,0,0,.12)}
-  .screen{flex:1;display:none;flex-direction:column;overflow-y:auto;padding-bottom:90px}
+  .screen{flex:1;display:none;flex-direction:column;overflow-y:auto;padding-bottom:96px}
   .screen.active{display:flex}
   .auth{padding-bottom:24px}
-  header.topbar{position:sticky;top:0;z-index:5;background:var(--brand);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(40,60,110,.15)}
-  header.topbar .logo{font-weight:800;font-size:18px}
-  header.topbar .sub{font-size:12px;opacity:.9;margin-left:auto}
-  .pad{padding:18px}
-  h2.title{font-size:19px;margin:4px 0 14px}
+  /* ---- ヘッダー ---- */
+  header.topbar{position:sticky;top:0;z-index:5;background:linear-gradient(135deg,var(--brand),#4f95ff);color:#fff;padding:14px 16px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 12px rgba(40,60,110,.18)}
+  header.topbar .logo{font-weight:900;font-size:17px;letter-spacing:.01em;white-space:nowrap}
+  header.topbar .sub{font-size:11.5px;opacity:.95;margin-left:auto;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:4px 10px;font-weight:700;white-space:nowrap;max-width:52%;overflow:hidden;text-overflow:ellipsis}
+  header.topbar .linkbtn{color:#fff;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:5px 11px;font-size:12px}
+  .pad{padding:16px}
+  h2.title{font-size:18px;margin:4px 0 12px;font-weight:900;letter-spacing:.01em}
+  .sech{display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px}
+  .sech h2.title{margin:0}
   .muted{color:var(--sub);font-size:13px;line-height:1.7}
-  .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
-  label.fld{display:block;font-size:13px;font-weight:700;margin:12px 0 6px;color:#3a4360}
-  input,select,textarea{width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
-  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand)}
+  .card{background:var(--card);border-radius:var(--r);padding:16px;box-shadow:var(--shadow);margin-bottom:12px}
+  .card.flat{box-shadow:none;border:1px solid var(--line)}
+  label.fld{display:block;font-size:12.5px;font-weight:800;margin:12px 0 6px;color:#3a4360}
+  input,select,textarea{width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;font-size:15px;background:#fff;color:var(--ink);font-family:inherit}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px rgba(47,125,246,.12)}
   textarea{resize:vertical;min-height:80px}
-  .btn{display:block;width:100%;border:none;border-radius:14px;padding:15px;font-size:16px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff;transition:.15s;font-family:inherit}
+  /* ---- ボタン ---- */
+  .btn{display:block;width:100%;border:none;border-radius:14px;padding:14px;font-size:15.5px;font-weight:800;cursor:pointer;background:var(--brand);color:#fff;transition:.15s;font-family:inherit;box-shadow:0 6px 16px rgba(47,125,246,.22)}
   .btn:active{transform:scale(.985)}
+  .btn:disabled{background:#c7cfe0;cursor:not-allowed;box-shadow:none}
+  .btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand);box-shadow:none}
+  .btn.soft{background:var(--soft);color:var(--brand-d);box-shadow:none}
+  .btn.sm{padding:10px 12px;font-size:13.5px;border-radius:11px;box-shadow:none}
+  .btn.red{background:var(--red);box-shadow:0 6px 16px rgba(224,85,107,.22)}.btn.green{background:var(--green);box-shadow:0 6px 16px rgba(31,175,115,.22)}
+  .btn.gray{background:#eef1f7;color:#54607a;border:1.5px solid var(--line);box-shadow:none}
+  .btn.warn{background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none}
+  .linkbtn{background:none;border:none;color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;padding:6px;font-family:inherit}
+  .center{text-align:center}
+  /* ---- 機能紹介ポップアップ ---- */
   .featp{position:fixed;inset:0;z-index:10002;display:flex;align-items:center;justify-content:center;background:rgba(8,12,24,.55);padding:22px;box-sizing:border-box;opacity:0;animation:featf .35s ease forwards;transition:opacity .25s}
   @keyframes featf{to{opacity:1}}
   .featc{width:min(360px,92vw);background:#fff;border-radius:22px;overflow:hidden;box-shadow:0 20px 56px rgba(0,0,0,.4);transform:scale(.85);animation:featzoom .5s cubic-bezier(.18,.9,.25,1.4) forwards}
@@ -59,22 +75,15 @@
   .featbtns button{flex:1;min-height:48px;border-radius:14px;font-weight:800;font-size:15px;cursor:pointer;border:none;font-family:inherit}
   .featclose{border:1px solid var(--line)!important;background:#fff;color:var(--sub)}
   .featok{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(47,125,246,.35)}
-  .btn:disabled{background:#c7cfe0;cursor:not-allowed}
-  .btn.ghost{background:#fff;color:var(--brand);border:1.5px solid var(--brand)}
-  .btn.soft{background:var(--soft);color:var(--brand-d)}
-  .btn.sm{padding:11px;font-size:14px;border-radius:11px}
-  .btn.red{background:var(--red)}.btn.green{background:var(--green)}
-  .btn.gray{background:#eef1f7;color:#54607a;border:1.5px solid var(--line)}
-  .linkbtn{background:none;border:none;color:var(--brand);font-size:13px;font-weight:700;cursor:pointer;padding:6px;font-family:inherit}
-  .center{text-align:center}
-  .logo-big{text-align:center;margin:30px 0 6px}
+  /* ---- ログイン・登録 ---- */
+  .logo-big{text-align:center;margin:26px 0 6px}
   .logo-big .mark{width:74px;height:74px;border-radius:22px;background:linear-gradient(135deg,var(--brand),#5aa0ff);display:inline-flex;align-items:center;justify-content:center;font-size:38px;box-shadow:var(--shadow)}
   .logo-big h1{font-size:21px;margin:14px 0 2px}.logo-big p{color:var(--sub);font-size:13px;margin:0}
   .steps{display:flex;gap:6px;margin-bottom:16px}.steps .dot{flex:1;height:6px;border-radius:4px;background:#dde4f1}.steps .dot.on{background:var(--brand)}
   .pill{display:inline-block;background:var(--soft);color:var(--brand-d);font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px;margin-bottom:10px}
-  .opt{display:flex;align-items:center;gap:12px;padding:15px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;background:#fff;transition:.12s}
+  .opt{display:flex;align-items:center;gap:12px;padding:14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;background:#fff;transition:.12s}
   .opt:active{transform:scale(.99)}.opt.sel{border-color:var(--brand);background:var(--soft)}
-  .opt .nm{font-weight:700;font-size:15px}.opt .ds{font-size:12px;color:var(--sub)}
+  .opt .nm{font-weight:800;font-size:15px}.opt .ds{font-size:12px;color:var(--sub);line-height:1.5}
   .opt .ico{width:42px;height:42px;border-radius:12px;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
   .opt.disabled{opacity:.55;cursor:not-allowed;background:#f6f7fa}
   .badge-stop{font-size:11px;background:#ffe2e2;color:#c0392b;padding:2px 8px;border-radius:10px;font-weight:700;margin-left:6px}
@@ -82,76 +91,148 @@
   .childblock .rm{position:absolute;top:8px;right:8px;background:#fff;border:1px solid var(--line);border-radius:8px;font-size:12px;padding:4px 8px;cursor:pointer;color:var(--red)}
   .childblock h4{margin:0 0 4px;font-size:14px}
   .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  /* ---- ホーム：ヒーロー・ポイント・今後の練習 ---- */
+  .hero{background:linear-gradient(135deg,#2f7df6 0%,#5aa0ff 60%,#8fc1ff 100%);color:#fff;border-radius:18px;padding:14px 16px;margin-bottom:12px;box-shadow:0 10px 24px rgba(47,125,246,.28);display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .hero .hi{font-size:12px;opacity:.9;font-weight:700}
+  .hero .nm{font-size:17px;font-weight:900;margin-top:2px}
+  .pointschip{display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#ff8a3d,#ff5f8f);color:#fff;font-weight:900;font-size:13px;padding:8px 13px;border-radius:999px;box-shadow:0 6px 16px rgba(255,111,97,.35);white-space:nowrap;cursor:pointer}
+  .pointschip small{font-weight:700;font-size:11px;opacity:.9}
+  .pcard{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;border-left:5px solid var(--brand)}
+  .pcard .pmain{flex:1;min-width:0}
+  .pbadge{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;border-radius:6px;padding:2px 8px;margin-bottom:5px}
+  .pwhen{font-weight:900;font-size:14.5px;color:var(--ink)}
+  .pwhen .pt{font-weight:800;color:var(--brand-d);margin-left:6px}
+  .pwhere{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pchildren{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .childchip{background:#f4f6fb;border-radius:999px;padding:3px 9px;font-size:11.5px;font-weight:700;color:var(--ink);display:inline-flex;align-items:center;gap:4px}
+  .childchip.abs{background:#ffe9ee;color:#c23b52}
+  .childchip.fur{background:#e6f7ef;color:#127c50}
+  .absentbtn{flex-shrink:0;border:none;border-radius:12px;background:linear-gradient(135deg,#ff6b81,#e0556b);color:#fff;font-weight:900;font-size:13px;padding:11px 12px;cursor:pointer;box-shadow:0 5px 14px rgba(224,85,107,.32);font-family:inherit;line-height:1.2}
+  .absentbtn.done{background:#eef1f7;color:#54607a;box-shadow:none}
+  .bigtransfer{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:16px;padding:15px;font-size:16px;font-weight:900;color:#fff;background:linear-gradient(135deg,#ff8a3d,#ff5f8f);box-shadow:0 8px 22px rgba(255,111,97,.35);cursor:pointer;font-family:inherit;margin:4px 0 14px}
+  .quickgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+  .quick{background:#fff;border-radius:14px;padding:12px;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:flex-start;gap:4px;cursor:pointer;border:none;font-family:inherit;text-align:left}
+  .quick .qi{font-size:22px}.quick .ql{font-weight:800;font-size:13px;color:var(--ink)}.quick .qs{font-size:11px;color:var(--sub)}
+  .tip{background:#fff8e8;border:1px solid #f5e2a8;border-radius:12px;padding:10px 12px;font-size:12.5px;color:#8a6d1a;line-height:1.6;margin-bottom:12px}
+  .annc{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);border-left:5px solid var(--accent)}
+  .annc .ah{font-weight:900;font-size:13px;margin-bottom:3px;display:flex;align-items:center;gap:6px}
+  .annc .ab{font-size:13px;color:#3a4360;line-height:1.65}
+  /* ---- カレンダー ---- */
   .calhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
-  .calhead button{background:#fff;border:1px solid var(--line);border-radius:10px;width:38px;height:38px;font-size:18px;cursor:pointer;color:var(--brand)}
-  .calhead .mlabel{font-weight:800;font-size:17px}
+  .calhead button{background:#fff;border:none;border-radius:50%;width:34px;height:34px;font-size:17px;font-weight:900;cursor:pointer;color:var(--brand);box-shadow:var(--shadow);font-family:inherit}
+  .calhead .mlabel{font-weight:900;font-size:16px}
   .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
-  .cal .dow{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:700}
-  .cal .day{min-height:64px;border-radius:10px;background:#fff;border:1px solid #eef1f7;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:5px 3px 4px;font-size:13px;position:relative;cursor:default;overflow:visible}
+  .cal .dow{text-align:center;font-size:11px;color:var(--sub);padding:4px 0;font-weight:800}
+  .cal .day{min-height:62px;border-radius:11px;background:#fff;border:1px solid #eef1f7;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:5px 3px 4px;font-size:13px;position:relative;cursor:default;overflow:visible;transition:.12s}
+  .cal .day>span{font-weight:800}
   .cal .day.empty{background:transparent;border:none}
-  .cal .day.has{cursor:pointer;border-color:#cfe0ff}
+  .cal .day.has{cursor:pointer;border-color:#d6e4ff;background:#fbfcff}
+  .cal .day.has:active{transform:scale(.96)}
   .cal .day.sun{color:#e0556b}.cal .day.sat{color:#2f7df6}
-  .cal .day .ev{margin-top:2px;font-size:10px;font-weight:800;color:#fff;background:var(--brand);border-radius:6px;padding:1px 4px;line-height:1.4;width:94%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cal .day .ev{margin-top:2px;font-size:9.5px;font-weight:800;color:#fff;background:var(--brand);border-radius:6px;padding:1px 4px;line-height:1.45;width:94%;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cal .day .ev.cancel{background:#cbd2df;color:#7a8499;text-decoration:line-through}
-  .cal .day.today{box-shadow:inset 0 0 0 2px var(--accent)}
-  .cal .day.past{opacity:.4;pointer-events:none;background:#f1f3f7;filter:grayscale(.6)}
+  .cal .day.today{box-shadow:inset 0 0 0 2px var(--accent);background:#fff7f0}
+  .cal .day.past{opacity:.42;pointer-events:none;background:#f1f3f7;filter:grayscale(.6)}
   .cal .day.past span{color:#aeb6c6}
   .cal .day.holi{background:#fdecef;border-color:#f7d3da}.cal .day.holi span{color:#d92330;font-weight:800}
   .cal .day.natholi span{color:#d92330;font-weight:800}
   .natholi-lb{margin-top:1px;font-size:9px;font-weight:800;color:#d92330;line-height:1}
-  .holibar{display:flex;align-items:center;gap:8px;background:#fdecef;border:1px solid #f7d3da;color:#c0455c;font-weight:800;font-size:13px;border-radius:10px;padding:8px 12px;margin-bottom:8px}
+  .holibar{display:flex;align-items:center;gap:8px;background:#fdecef;border:1px solid #f7d3da;color:#c0455c;font-weight:800;font-size:12.5px;border-radius:10px;padding:8px 12px;margin-bottom:8px}
   .legend{font-size:12px;color:var(--sub);margin-top:10px;display:flex;align-items:center;gap:6px}
-  .legend .ev{font-size:9px;font-weight:800;color:#fff;border-radius:6px;padding:1px 6px}
-  .ptbig{font-size:30px;font-weight:900;color:var(--accent)}
-  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #eceff6;font-size:14px;gap:10px}
-  .kv:last-child{border:none}.kv .k{color:var(--sub);flex-shrink:0}.kv .v{font-weight:700;text-align:right}
-  .childcard h3{margin:0 0 2px;font-size:16px}
+  .legend .ev{font-size:9.5px;font-weight:800;color:#fff;border-radius:6px;padding:2px 7px}
+  /* ---- マイページ ---- */
+  .ptbig{font-size:34px;font-weight:900;color:#fff;line-height:1.1}
+  .ptcard{background:linear-gradient(135deg,#ff8a3d,#ff5f8f);color:#fff;border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 10px 24px rgba(255,111,97,.32);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ptcard .lb{font-size:12px;font-weight:800;opacity:.95}.ptcard .sm{font-size:11px;opacity:.9;line-height:1.5;margin-top:4px}
+  .kv{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px dashed #eceff6;font-size:14px;gap:10px;align-items:center}
+  .kv:last-child{border:none}.kv .k{color:var(--sub);flex-shrink:0;font-size:13px}.kv .v{font-weight:700;text-align:right}
+  .childcard h3{margin:0 0 2px;font-size:16px;display:flex;align-items:center;flex-wrap:wrap;gap:4px}
   .grade{display:inline-block;background:var(--green);color:#fff;font-size:11px;font-weight:700;padding:2px 9px;border-radius:10px;margin-left:6px}
   .ptchips{display:flex;gap:6px;margin-top:8px}.ptchip{width:22px;height:22px;border-radius:50%;background:#e7ebf3}.ptchip.on{background:var(--accent)}
   details.acc{margin-top:12px;border-top:1px dashed #eceff6;padding-top:6px}
-  details.acc summary{cursor:pointer;list-style:none;color:var(--brand);font-weight:700;font-size:14px;padding:8px 2px;display:flex;align-items:center;justify-content:space-between}
+  details.acc summary{cursor:pointer;list-style:none;color:var(--brand);font-weight:800;font-size:14px;padding:9px 2px;display:flex;align-items:center;justify-content:space-between;gap:8px}
   details.acc summary::-webkit-details-marker{display:none}
-  details.acc summary::after{content:"▼";font-size:10px;color:#9aa3b8}
-  details.acc[open] summary::after{content:"▲"}
+  details.acc summary::after{content:"";width:8px;height:8px;border-right:2px solid #9aa3b8;border-bottom:2px solid #9aa3b8;transform:rotate(45deg);flex-shrink:0;margin-right:4px;transition:.15s}
+  details.acc[open] summary::after{transform:rotate(-135deg)}
+  details.card>summary{list-style:none;display:flex;align-items:center;justify-content:space-between}
+  details.card>summary::-webkit-details-marker{display:none}
+  details.card>summary::after{content:"";width:8px;height:8px;border-right:2px solid #9aa3b8;border-bottom:2px solid #9aa3b8;transform:rotate(45deg);margin-right:4px;transition:.15s}
+  details.card[open]>summary::after{transform:rotate(-135deg)}
   .tane-hero{text-align:center;padding:24px 16px;background:linear-gradient(135deg,#fff4e8,#ffe9f0);border-radius:18px;margin-bottom:14px}
   .tane-hero .egg{font-size:60px}
   .codebox{font-size:26px;font-weight:900;letter-spacing:2px;color:var(--brand-d);background:var(--soft);border-radius:14px;padding:16px;text-align:center;border:2px dashed #bcd2ff}
+  /* ---- メッセージ ---- */
   .msgwrap{display:flex;flex-direction:column;gap:10px;padding:6px 2px}
-  .msg{max-width:78%;padding:11px 14px;border-radius:16px;font-size:14px;line-height:1.5;white-space:pre-wrap}
-  .msg.them{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:4px}
-  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .msg{max-width:80%;padding:11px 14px;border-radius:18px;font-size:14px;line-height:1.55;white-space:pre-wrap;box-shadow:0 2px 8px rgba(40,60,110,.06)}
+  .msg.them{background:#fff;border:1px solid var(--line);align-self:flex-start;border-bottom-left-radius:5px}
+  .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
   .msg .t{display:block;font-size:10px;opacity:.6;margin-top:3px}
   .msgbar{position:fixed;bottom:74px;left:0;right:0;max-width:430px;margin:0 auto;display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid var(--line)}
-  .msgbar input{flex:1}.msgbar button{width:auto;padding:0 18px;border-radius:12px;border:none;background:var(--brand);color:#fff;font-weight:800;cursor:pointer}
-  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:#fff;border-top:1px solid var(--line);display:flex;height:70px;z-index:20}
-  nav.tabbar button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#9aa3b8;font-size:10px;line-height:1.1;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:700;padding:0 2px}
-  nav.tabbar button .ic{font-size:19px}nav.tabbar button.on{color:var(--brand)}
+  .msgbar input{flex:1;border-radius:999px}.msgbar button{width:auto;padding:0 18px;border-radius:999px;border:none;background:var(--brand);color:#fff;font-weight:800;cursor:pointer;font-family:inherit}
+  /* ---- 下タブ ---- */
+  nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;height:70px;z-index:20;padding:0 4px;box-shadow:0 -4px 16px rgba(40,60,110,.06)}
+  nav.tabbar button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#9aa3b8;font-size:10px;line-height:1.1;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:800;padding:0 2px;position:relative}
+  nav.tabbar button .ic{font-size:19px;width:44px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:999px;transition:.15s}
+  nav.tabbar button.on{color:var(--brand)}nav.tabbar button.on .ic{background:var(--soft)}
+  .tbadge{position:absolute;top:6px;left:50%;margin-left:6px;min-width:16px;height:16px;line-height:16px;background:var(--red);color:#fff;border-radius:8px;font-size:9.5px;font-weight:800;text-align:center;padding:0 4px;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  /* ---- シート・トースト ---- */
   .mask{position:fixed;inset:0;background:rgba(20,30,60,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
   .mask.show{display:flex}
-  .sheet{background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:20px;max-height:85vh;overflow-y:auto;animation:up .25s ease}
+  .sheet{background:#fff;width:100%;max-width:430px;border-radius:22px 22px 0 0;padding:18px 18px 22px;max-height:88vh;overflow-y:auto;animation:up .25s ease}
   @keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:translateY(0);opacity:1}}
-  .sheet h3{margin:2px 0 4px;font-size:18px}
+  .sheet h3{margin:2px 0 6px;font-size:18px;font-weight:900}
   .grab{width:42px;height:5px;background:#dde3ef;border-radius:3px;margin:0 auto 14px}
-  .timeitem{display:flex;justify-content:space-between;align-items:center;padding:14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer}
-  .timeitem:active{background:var(--soft)}.timeitem .cn{font-weight:800;font-size:15px}.timeitem .tm{font-size:13px;color:var(--sub)}
-  .toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:#222b45;color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:.3s;z-index:80;max-width:90%;text-align:center}
+  .timeitem{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;border:1.5px solid var(--line);border-radius:14px;margin-bottom:10px;cursor:pointer;background:#fff}
+  .timeitem:active{background:var(--soft)}.timeitem .cn{font-weight:800;font-size:15px}.timeitem .tm{font-size:12.5px;color:var(--sub)}
+  .toast{position:fixed;bottom:130px;left:50%;transform:translateX(-50%);background:#222b45;color:#fff;padding:12px 20px;border-radius:30px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:.3s;z-index:80;max-width:90%;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,.3)}
   .toast.show{opacity:1}
   .note{background:#fff8e8;border:1px solid #f5e2a8;border-radius:12px;padding:12px;font-size:13px;color:#8a6d1a;line-height:1.6}
   .err{background:#ffeaea;border:1px solid #f3c2c2;border-radius:12px;padding:12px;font-size:13px;color:#b3261e;line-height:1.6;margin-bottom:12px}
   .loading{position:fixed;inset:0;background:rgba(244,246,251,.7);display:none;align-items:center;justify-content:center;z-index:200;font-weight:800;color:var(--brand)}
   .loading.show{display:flex}
   .setup{background:#fff3cd;border:1px solid #ffe08a;color:#7a5b00;padding:12px;font-size:13px;line-height:1.7;border-radius:0}
+  /* ---- スタッフ・管理者 ---- */
   table.tbl{width:100%;border-collapse:collapse;font-size:13px}
   table.tbl th,table.tbl td{text-align:left;padding:8px 6px;border-bottom:1px solid #eef1f7}
   table.tbl th{color:var(--sub);font-size:11px;font-weight:700}
   table.tbl td.num,table.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
-  .sumrow{display:flex;justify-content:space-between;padding:8px 0;font-size:14px;border-bottom:1px dashed #eceff6}
+  .sumrow{display:flex;justify-content:space-between;padding:9px 0;font-size:14px;border-bottom:1px dashed #eceff6;gap:10px;align-items:center}
   .sumrow:last-child{border:none}
   .tot{font-size:22px;font-weight:900;color:var(--brand)}
-  .roomtitle{font-weight:800;color:#28324c;margin:6px 0;font-size:15px}
+  .roomtitle{font-weight:900;color:#28324c;margin:6px 0;font-size:15px}
   .paychk{font-size:26px;background:none;border:none;cursor:pointer;line-height:1;padding:0}
   .rolepill{font-size:11px;font-weight:800;padding:3px 9px;border-radius:10px}
-  .role-admin{background:#ffe9d6;color:#b5530a}.role-staff{background:#e1f0ff;color:#1f5fcf}.role-parent{background:#eef1f7;color:#54607a}.role-parttime{background:#e6f7ee;color:#1faf73}.role-roster{background:#e5e0ff;color:#5b3fd6}
+  .role-admin{background:#ffe9d6;color:#b5530a}.role-staff{background:#e1f0ff;color:#1f5fcf}.role-parent{background:#eef1f7;color:#54607a}.role-roster{background:#e5e0ff;color:#5b3fd6}
+  .emgbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:none;border-radius:14px;padding:12px;font-size:14px;font-weight:900;color:#fff;background:linear-gradient(135deg,#ff6b81,#e0556b);box-shadow:0 6px 16px rgba(224,85,107,.3);cursor:pointer;font-family:inherit;margin-bottom:12px}
+  .statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+  .stat{background:#fff;border-radius:14px;padding:11px 8px;box-shadow:var(--shadow);text-align:center}
+  .stat .n{font-size:22px;font-weight:900;line-height:1.1}.stat .l{font-size:11px;color:var(--sub);font-weight:700;margin-top:3px}
+  .stat.att .n{color:var(--green)}.stat.abs .n{color:var(--red)}.stat.fur .n{color:var(--accent)}.stat.brand .n{color:var(--brand)}
+  .todaycard{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);border-left:5px solid var(--brand);cursor:pointer}
+  .todaycard .th{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .todaycard .tn{font-weight:900;font-size:14.5px}
+  .todaycard .tp{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .todaycard .tc{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .cnt{font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 9px;background:#f4f6fb;color:var(--ink)}
+  .cnt.abs{background:#ffe9ee;color:#c23b52}.cnt.fur{background:#fff1e6;color:#b5530a}.cnt.cancel{background:#eef1f7;color:#6b7280}
+  .emgrow{display:flex;justify-content:space-between;align-items:center;padding:11px 4px;border-bottom:1px dashed #eceff6;cursor:pointer;gap:10px}
+  .emgrow:last-child{border:none}
+  .emgrow .nm{font-weight:800;font-size:14px}.emgrow .tel{font-weight:800;color:var(--red);font-size:13px;white-space:nowrap}
+  .emgsearch{border-radius:999px;padding:11px 16px;border:1.5px solid var(--line);background:#fff}
+  .filterbar{display:flex;gap:8px;margin-bottom:12px}
+  .filterbar select{padding:9px 12px;font-size:13.5px;border-radius:999px;background:#fff}
+  .memcard{border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;background:#fff}
+  .memcard .mh{font-weight:900;display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+  .ptmini{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:800;color:#b5530a;background:#fff1e6;border-radius:999px;padding:2px 8px}
+  .actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .actions .btn{width:auto;padding:8px 12px}
+  .payrow{display:flex;align-items:center;gap:12px;padding:12px 14px;background:#fff;border-radius:14px;box-shadow:var(--shadow);margin-bottom:8px}
+  .paypill{font-size:11.5px;font-weight:900;border-radius:999px;padding:5px 10px;white-space:nowrap}
+  .paypill.on{background:#e6f7ef;color:#127c50}.paypill.off{background:#ffe9ee;color:#c23b52}
+  .roomhead{display:flex;align-items:center;gap:8px;font-weight:900;font-size:15px}
+  .roomdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .cap{font-size:12px;font-weight:800;color:var(--sub)}
+  .cap.full{color:var(--red)}
 </style>
 </head>
 <body>
@@ -221,16 +302,17 @@
   <section class="screen" id="s-home">
     <header class="topbar"><span class="logo">教室出席管理</span><span class="sub" id="home-fam"></span></header>
     <div class="pad">
+      <div id="home-hero"></div>
       <div id="home-ann"></div>
-      <h2 class="title">スケジュール</h2>
+      <div id="home-up"></div>
+      <div class="sech" id="cal-sec"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">日付をタップ → クラスを選ぶ</span></div>
       <div class="card">
         <div class="calhead"><button onclick="calMove(-1)">‹</button><span class="mlabel" id="cal-label"></span><button onclick="calMove(1)">›</button></div>
         <div id="cal-holi"></div>
         <div class="cal" id="cal"></div>
         <div class="legend" id="cal-legend" style="flex-wrap:wrap;gap:5px"></div>
-        <p class="muted" style="margin-top:6px">活動日（地名）をタップすると時間とクラスが見られます。</p>
       </div>
-      <div class="note"><b>使い方</b><br>・いつも通り参加される場合は、<b>そのまま何もしなくてOK</b>です。<br>・<b>お休み（欠席）</b>または<b>振替で参加</b>のときだけ、活動日をタップしてクラスを選び「欠席」か「振替参加」を選んでください。</div>
+      <div class="tip"><b>使い方</b>　いつも通り参加するときは<b>何もしなくてOK</b>。<b>お休み</b>や<b>振替で参加</b>のときだけ、上の練習カードの「欠席」か、カレンダーの日付をタップしてください。</div>
     </div>
   </section>
 
@@ -240,47 +322,27 @@
     <div class="pad" id="my-body"></div>
   </section>
 
-  <!-- TANE -->
-  <section class="screen" id="s-tane">
-    <header class="topbar"><span class="logo">🌱 たねもん</span></header>
-    <div class="pad">
-      <div class="tane-hero"><div class="egg">🥚</div><h2 class="title" style="margin:8px 0 4px">サワーズモンスターを育てよう</h2>
-        <p class="muted">練習に参加すると「あいことば」がもらえます。たねもんアプリで入力すると、モンスターの種がもらえます。</p></div>
-      <div class="card">
-        <label class="fld">今日のあいことば（練習で先生がお知らせ）</label>
-        <div class="codebox" style="letter-spacing:1px;color:#9aa3b8">Coming Soon</div>
-        <p class="muted center" style="margin-top:8px">あいことば機能は準備中です。もうしばらくお待ちください。</p>
-      </div>
-      <div class="card center">
-        <p class="muted" style="margin-bottom:12px">育成は、たねもんアプリで行います。</p>
-        <button class="btn" onclick="window.open('https://sowers-monster.vercel.app','_blank')">🌱 たねもんアプリを開く</button>
-        <p class="muted" style="margin-top:8px;font-size:11px">sowers-monster.vercel.app</p>
-      </div>
-    </div>
-  </section>
-
   <!-- MESSAGE -->
   <section class="screen" id="s-msg">
     <header class="topbar"><span class="logo">💬 メッセージ</span>
       <button class="linkbtn" style="margin-left:auto;color:#fff" onclick="openOther()">⋯ その他</button></header>
     <div class="pad" style="padding-bottom:140px">
-      <div class="note" style="margin-bottom:14px">お休み・振替のお申し込みは、こちらではなく<b>ホーム画面</b>から行えます。</div>
+      <div class="tip">お休み・振替のお申し込みは、こちらではなく<b>ホーム画面</b>から行えます。</div>
       <div class="msgwrap" id="msg-list"></div>
     </div>
     <div class="msgbar"><input id="msg-input" placeholder="運営にメッセージを送る…"><button onclick="sendMsg()">送信</button></div>
   </section>
 
   <nav class="tabbar" id="tabbar" style="display:none">
-    <button data-s="s-home" class="on" onclick="tab('s-home',this)"><span class="ic">📅</span>ホーム</button>
+    <button data-s="s-home" class="on" onclick="tab('s-home',this)"><span class="ic">🏠</span>ホーム</button>
     <button data-s="s-my" onclick="tab('s-my',this)"><span class="ic">👤</span>マイページ</button>
-    <button data-s="s-tane" onclick="tab('s-tane',this)"><span class="ic">🌱</span>たねもん</button>
-    <button data-s="s-msg" onclick="tab('s-msg',this)"><span class="ic">💬</span>メッセージ</button>
+    <button data-s="s-msg" onclick="tab('s-msg',this)"><span class="ic">💬</span>連絡<span class="tbadge" id="msg-badge" style="display:none"></span></button>
   </nav>
 
   <!-- STAFF / ADMIN -->
   <section class="screen" id="s-staff">
-    <header class="topbar"><span class="logo" id="staff-title">🛠 管理</span>
-      <button class="linkbtn" style="margin-left:auto;color:#fff" onclick="logout()">ログアウト</button></header>
+    <header class="topbar"><span class="logo" id="staff-title">🛠 管理</span><span class="sub" id="staff-area"></span>
+      <button class="linkbtn" style="margin-left:6px" onclick="logout()">ログアウト</button></header>
     <div class="pad" id="staff-body"></div>
   </section>
   <nav class="tabbar" id="staff-tabbar" style="display:none"></nav>
@@ -540,7 +602,7 @@ const ROOM_DAY_VARIANT={
   }
 };
 // 曜日別の色分け表示は「そのダンススクールのスタッフ（オーナー/アルバイト）」のみ。管理者・保護者は通常色（ピンク）。
-function danceStaffView(){return (typeof staffRole!=='undefined')&&(staffRole==='staff'||staffRole==='parttime');}
+function danceStaffView(){return (typeof staffRole!=='undefined')&&(staffRole==='staff');}
 function roomChip(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];if(v&&danceStaffView())return {label:v.label,bg:v.bg,fg:"#fff"};const c=scolor(room);return {label:room,bg:c.bg,fg:c.fg};}
 function variantPlace(room,wd){const v=ROOM_DAY_VARIANT[room]&&ROOM_DAY_VARIANT[room][wd];return v?v.place:'';}
 function legendChipsHtml(rooms){let h='';rooms.forEach(s=>{const v=ROOM_DAY_VARIANT[s];if(v&&danceStaffView()){Object.keys(v).forEach(wd=>{h+=`<span class="ev" style="background:${v[wd].bg};color:#fff">${v[wd].label}</span>`;});}else{h+=`<span class="ev" style="background:${scolor(s).bg};color:${scolor(s).fg}">${s}</span>`;}});return h;}
@@ -768,7 +830,7 @@ let selClass=null;
 
 /* ============ 共通 ============ */
 function go(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);}
-function tab(id,btn){go(id);document.querySelectorAll('#tabbar button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');if(window._gymFlushRefresh)window._gymFlushRefresh();}
+function tab(id,btn){go(id);document.querySelectorAll('#tabbar button').forEach(b=>b.classList.remove('on'));if(btn)btn.classList.add('on');if(id==='s-msg'&&typeof markMsgsSeen==='function')markMsgsSeen();if(window._gymFlushRefresh)window._gymFlushRefresh();}
 function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove('show'),2400);}
 function showLoad(b){document.getElementById('loading').classList.toggle('show',b);}
 function showErr(id,msg){const e=document.getElementById(id);if(!msg){e.style.display='none';return;}e.textContent=msg;e.style.display='block';}
@@ -1008,9 +1070,7 @@ function isHidden(room,key){return !!(hidden[room]&&hidden[room][key]);}
 function enterApp(){
   const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();
   document.getElementById('tabbar').style.display='flex';
-  // たねもんは徳島県の体操の生徒のみ利用可（他県・ダンスは非表示）
-  const _sc=currentScope();const _taneBtn=document.querySelector('#tabbar button[data-s="s-tane"]');
-  if(_taneBtn)_taneBtn.style.display=(_sc.r==='徳島'&&_sc.p==='体操')?'':'none';
+  // たねもんタブは2026-09-06のリデザインで廃止（keita指示）
   tab('s-home',document.querySelector('#tabbar button[data-s="s-home"]'));
   const fam=(profile.parent_name||'')+' 様';
   document.getElementById('home-fam').textContent=fam;document.getElementById('my-fam').textContent=fam;
@@ -1032,12 +1092,87 @@ function withdrawStatusHtml(){let h='';
   });
   return h;}
 function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(activeKids().map(c=>c.classroom))];let h=withdrawStatusHtml();
-  anns.filter(a=>a.scope==='all').forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（全体）</b><br>${esc(a.body)}</div>`;});
+  const items=[];
+  anns.filter(a=>a.scope==='all').forEach(a=>items.push({t:'お知らせ（全体）',b:a.body,c:'var(--accent)'}));
   const _sc=currentScope();const _area=_sc.p+'/'+_sc.r;
-  anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 お知らせ（${esc(a.area)}）</b><br>${esc(a.body)}</div>`;});
-  anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>{h+=`<div class="note" style="margin-bottom:12px"><b>📢 ${SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room}</b><br>${esc(a.body)}</div>`;});
+  anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>items.push({t:'お知らせ（'+esc(a.area)+'）',b:a.body,c:'var(--accent)'}));
+  anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>items.push({t:SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room,b:a.body,c:scolor(a.room).bg}));
+  if(items.length){h+=`<div class="sech"><h2 class="title">📢 お知らせ</h2><span class="muted" style="font-size:11.5px">${items.length}件</span></div>`;items.forEach(it=>{h+=`<div class="annc" style="border-left-color:${it.c}"><div class="ah">${it.t}</div><div class="ab">${esc(it.b)}</div></div>`;});}
   box.innerHTML=h;}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
+
+/* ============ ホーム：あいさつ・振替ポイント・今後の練習（2026-09-06 リデザイン） ============ */
+function goTab(id){tab(id,document.querySelector('#tabbar button[data-s="'+id+'"]'));}
+function renderHomeHero(){
+  const box=document.getElementById('home-hero'); if(!box||!profile)return;
+  const act=activeKids(); const cap=maxPerChild()*act.length;
+  const nm=profile.parent_name?esc(profile.parent_name)+' 様':'保護者の方';
+  const names=act.map(c=>esc(c.name)).join('・');
+  const chip=(kids.length&&act.length===0)?'':`<div class="pointschip" onclick="goTab('s-my')">🔁 振替 ${totalPoints()}<small>/${cap}</small></div>`;
+  box.innerHTML=`<div class="hero"><div style="min-width:0"><div class="hi">こんにちは</div><div class="nm">${nm}</div>${names?`<div class="hi" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧒 ${names}</div>`:''}</div>${chip}</div>`;
+}
+// 家族の在籍クラスの今後の練習（days日以内）。兄弟が同じ教室・クラス・日なら1件にまとめる。振替予定も含める
+function upcomingOccurrences(days){
+  const list=[];const map={};const t=new Date();t.setHours(0,0,0,0);const act=activeKids();
+  const add=(room,cls,key,y,m,dd,wd)=>{const k=room+'|'+cls+'|'+key;if(map[k])return map[k];const ct=contentOn(room,key,wd);const it=(ct.classes||[]).find(x=>x.c===cls)||{};map[k]={room,cls,time:it.t||'',target:it.g||'',place:ct.place||(SCHOOL_INFO[room]||{}).place||'',y,m,d:dd,wd,key,cancelled:isCancelled(room,key),kids:[],furKids:[]};list.push(map[k]);return map[k];};
+  for(let i=0;i<days;i++){
+    const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(),wd=d.getDay();
+    if(holidayName(y,m,dd))continue;const key=dateKey(y,m,dd);
+    act.forEach(c=>{const room=c.classroom;if(!room||!SCHEDULE[room])return;
+      if(!isHeld(room,key))return;if(WEEKLY_ROOMS.has(room)&&!SCHEDULE[room][wd])return;
+      const ct=contentOn(room,key,wd);if(!(ct.classes||[]).some(x=>x.c===c.class_name))return;
+      add(room,c.class_name,key,y,m,dd,wd).kids.push(c);});
+    myFur.forEach(f=>{if((''+f.date).slice(0,10)!==key)return;const c=kids.find(k=>k.id===f.child_id);if(!c||isWithdrawn(c))return;const o=add(f.to_room,f.to_class,key,y,m,dd,wd);if(!o.kids.includes(c))o.kids.push(c);if(!o.furKids.includes(c.id))o.furKids.push(c.id);});
+  }
+  list.sort((a,b)=>a.key.localeCompare(b.key)||(a.time||'').localeCompare(b.time||''));
+  return list;
+}
+function absRecordOf(c,o){return myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===o.key&&a.classroom===o.room&&a.class_name===o.cls);}
+function pcardHtml(o){
+  const col=scolor(o.room);const inf=SCHOOL_INFO[o.room]||{};
+  const chips=o.kids.map(c=>{const ab=absRecordOf(c,o);const fu=o.furKids.includes(c.id);return `<span class="childchip ${ab?'abs':fu?'fur':''}">🧒 ${esc(c.name)}${ab?'<b>欠席</b>':fu?'<b>振替</b>':''}</span>`;}).join('');
+  const allDone=o.kids.every(c=>absRecordOf(c,o)||o.furKids.includes(c.id));
+  const enrolled=o.kids.some(c=>c.classroom===o.room&&c.class_name===o.cls);
+  const btn=o.cancelled?`<span class="cnt cancel">休講</span>`:!enrolled?`<button class="absentbtn done" onclick='openFurCancelSheet(${JSON.stringify(o.room)},${JSON.stringify(o.cls)},${JSON.stringify(o.key)})'>振替<br>取消</button>`:`<button class="absentbtn ${allDone?'done':''}" onclick='absentFromCard(${JSON.stringify(o.room)},${JSON.stringify(o.cls)},${o.y},${o.m+1},${o.d})'>${allDone?'変更':'欠席'}</button>`;
+  return `<div class="pcard" style="border-left-color:${col.bg}"><div class="pmain"><span class="pbadge" style="background:${col.bg};color:${col.fg}">${esc(inf.full||o.room)}</span><div class="pwhen">${o.m+1}/${o.d}（${DOW[o.wd]}）<span class="pt">${esc(o.time)}</span></div><div class="pwhere">📍 ${esc(shortPlace(o.place))}</div><div class="pchildren">${chips}</div></div>${btn}</div>`;
+}
+function renderUpcoming(){
+  const box=document.getElementById('home-up'); if(!box)return;
+  if(!kids.length||activeKids().length===0){box.innerHTML='';return;}
+  const occ=upcomingOccurrences(35);const all=!!window.__upAll;const shown=all?occ:occ.slice(0,3);
+  let h=`<div class="sech"><h2 class="title">🤸 今後の練習</h2>${occ.length>3?`<button class="linkbtn" style="padding:2px 4px" onclick="window.__upAll=!window.__upAll;renderUpcoming()">${all?'閉じる':'すべて見る（'+occ.length+'）'}</button>`:''}</div>`;
+  if(!occ.length)h+=`<div class="card center" style="padding:14px"><span class="muted">直近の練習予定はありません。</span></div>`;
+  shown.forEach(o=>{h+=pcardHtml(o);});
+  h+=`<button class="bigtransfer" onclick="openTransferPicker()">🔀 振替を申し込む</button>`;
+  box.innerHTML=h;
+}
+// 練習カードの「欠席」＝カレンダーの日付→クラスを選んだのと同じ状態にして、お子様選択へ
+function absentFromCard(room,cls,y,m,d){
+  if(kids.length&&activeKids().length===0){toast('退会済みのため、欠席・振替のお手続きはご利用いただけません');return;}
+  selClass={room,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
+  chooseChild('absent',cls);
+}
+function scrollToCal(){
+  const sec=document.getElementById('cal-sec'); if(!sec)return;
+  const sc=document.getElementById('s-home'); const top=sec.offsetTop-70;
+  try{sc.scrollTo({top,behavior:'smooth'});}catch(e){sc.scrollTop=top;}
+  const card=sec.nextElementSibling; if(card){card.style.transition='box-shadow .3s';card.style.boxShadow='0 0 0 3px var(--accent)';setTimeout(()=>{card.style.boxShadow='';},1400);}
+  toast('参加したい日をタップして、クラスを選んでください');
+}
+/* ---- 連絡タブの未読バッジ（運営からの返信） ---- */
+function msgSeenKey(){return 'sowers_gym_msgseen_'+((me&&me.id)||'');}
+function updateMsgBadge(){
+  const b=document.getElementById('msg-badge'); if(!b)return;
+  let seen='';try{seen=localStorage.getItem(msgSeenKey())||'';}catch(e){}
+  const n=msgs.filter(m=>m.sender!=='parent'&&(''+m.created_at)>seen).length;
+  const active=document.getElementById('s-msg')&&document.getElementById('s-msg').classList.contains('active');
+  if(n>0&&!active){b.textContent=n>99?'99+':n;b.style.display='';}else{b.style.display='none';}
+}
+function markMsgsSeen(){
+  const last=msgs.reduce((a,m)=>((''+m.created_at)>a?(''+m.created_at):a),'');
+  try{if(last)localStorage.setItem(msgSeenKey(),last);}catch(e){}
+  const b=document.getElementById('msg-badge'); if(b)b.style.display='none';
+}
 
 /* ============ カレンダー ============ */
 function renderLegend(){const sc=currentScope();document.getElementById('cal-legend').innerHTML=legendChipsHtml(classroomsIn(sc.p,sc.r));}
@@ -1068,12 +1203,15 @@ function openDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
   let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
   schools.forEach(s=>{const inf=SCHOOL_INFO[s];const ct=contentOn(s,key,wd);
-    html+=`<div style="margin:14px 0 4px;font-weight:800;color:${scolor(s).bg}">📍 ${inf.full}</div><div class="muted" style="margin-bottom:8px">${ct.place||inf.place}<br>${teacherLine(s,key)||('👨‍🏫 メインスタッフ：'+inf.teachers+'先生')}</div>`;
+    html+=`<div class="roomhead" style="margin:14px 0 4px;color:${scolor(s).bg}"><span class="roomdot" style="background:${scolor(s).bg}"></span>${inf.full}</div><div class="muted" style="margin-bottom:8px">📍 ${ct.place||inf.place}<br>${teacherLine(s,key)||('👨‍🏫 メインスタッフ：'+inf.teachers+'先生')}</div>`;
     if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
     ct.classes.forEach(item=>{html+=`<div class="timeitem" onclick='openClass(${JSON.stringify(s)},${JSON.stringify(item.c)},${JSON.stringify(item.t)},${JSON.stringify(item.g||"")},${y},${m+1},${d})'><div><div class="cn">${item.c}</div><div class="tm">⏰ ${item.t}${item.g?'　🧒 '+item.g:''}</div></div><div style="color:#2f7df6;font-weight:800">›</div></div>`;});
   });
+  html+=`<button class="btn gray" style="margin-top:10px" onclick="openTransferPicker()">別の日を選ぶ</button>`;
   openSheet(html);
 }
+// お子様が在籍している教室×クラスか（欠席はここだけ登録できる）
+function enrolledKidsFor(room,cls){return activeKids().filter(c=>c.classroom===room&&c.class_name===cls);}
 function openClass(school,cls,time,target,y,m,d){
   selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
   if(kids.length&&activeKids().length===0){const inf0=SCHOOL_INFO[school];openSheet(`<h3>${inf0.full} ${cls}</h3><div class="muted" style="margin-bottom:12px">📅 ${m}月${d}日 ・ ⏰ ${time}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#4b5563">退会済みのため、欠席・振替のお手続きはご利用いただけません。</div><button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);return;}
@@ -1081,18 +1219,34 @@ function openClass(school,cls,time,target,y,m,d){
   openSheet(`<h3>${inf.full} ${cls}</h3>
     <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
     <div class="muted" style="margin-bottom:16px">📍 ${_place}</div>
+    ${activeKids().filter(c=>furRecordFor(c,school,cls,selClass.dateStr)).map(c=>`<div class="opt" style="border-color:var(--green);background:#eafaf2;margin-bottom:8px" onclick="cancelFurFromSheet('${furRecordFor(c,school,cls,selClass.dateStr).id}')"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds" style="color:var(--green)">振替で受付済み ・ タップで取り消す</div></div></div>`).join('')}
     <button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
     ${canF?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>'}
     <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
     <div style="height:14px"></div>
-    <button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
-    <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild()}）</p>`);
+    ${enrolledKidsFor(school,cls).length?`<button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
+    <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild()}）</p>`:`<p class="muted center" style="margin:4px 0 0">※欠席の連絡は、お子様が在籍している教室・クラスの日から行えます。</p>`}`);
+}
+// この日・教室・クラスに登録済みの振替（取り消し用）
+function furRecordFor(child,room,cls,dateStr){return myFur.find(f=>f.child_id===child.id&&(''+f.date).slice(0,10)===dateStr&&f.to_room===room&&f.to_class===cls);}
+async function cancelFurFromSheet(furId){closeSheet();await cancelFur(furId);}
+// 振替予約だけの練習カード（在籍クラスでない）から取り消す
+function openFurCancelSheet(room,cls,dateStr){
+  const list=myFur.filter(f=>(''+f.date).slice(0,10)===dateStr&&f.to_room===room&&f.to_class===cls);
+  const inf=SCHOOL_INFO[room]||{};
+  let h=`<h3>🔁 振替の予約</h3><p class="muted" style="margin-bottom:12px">${dLabel(dateStr)}　${esc(inf.full||room)} ${esc(cls)}</p>`;
+  if(!list.length)h+=`<p class="muted">振替の予約はありません。</p>`;
+  list.forEach(f=>{h+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelFurFromSheet('${f.id}')"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${esc(kidName(f.child_id))}</div><div class="ds" style="color:var(--green)">振替で受付済み ・ タップで取り消す（ポイントが1つ戻ります）</div></div></div>`;});
+  h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);
 }
 function chooseChild(mode,cls){
   const title=mode==='furikae'?'どのお子様が振替参加しますか？':'どのお子様がお休みですか？';
   let html=`<h3>${title}</h3><p class="muted" style="margin-bottom:14px">${cls}</p>`;
   kids.forEach((c,i)=>{
     if(isWithdrawn(c))return;
+    const fr=furRecordFor(c,selClass.room,cls,selClass.dateStr);
+    if(fr){html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelFurFromSheet('${fr.id}')"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds" style="color:var(--green)">振替で受付済み ・ タップで取り消す（ポイントが1つ戻ります）</div></div></div>`;return;}
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
       if(!dis){const _ng=furikaeNgReason(c,cls);if(_ng){dis=true;rs=_ng;}}
@@ -1101,22 +1255,27 @@ function chooseChild(mode,cls){
       const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
       if(ab){
         html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
+      }else if(!(c.classroom===selClass.room&&c.class_name===cls)){
+        html+=`<div class="opt disabled"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.classroom)}教室 ${esc(c.class_name)} ・ このクラスには在籍していません</div></div></div>`;
       }else{
-        html+=`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild()}</div></div></div>`;
+        html+=`<div class="opt" onclick="doAction('absent',${i},'${cls}')"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.classroom)}教室 ${esc(c.class_name)} ・ 欠席にする ・ 振替pt ${c.points}/${maxPerChild()}</div></div></div>`;
       }
     }});
+  if(mode==='absent'&&!enrolledKidsFor(selClass.room,cls).length)html+=`<p class="muted" style="margin-top:4px">※欠席の連絡は、お子様が在籍している教室・クラスの日から行えます。</p>`;
   openSheet(html);
 }
 async function doAction(mode,i,cls){
-  const c=kids[i];showLoad(true);
+  const c=kids[i];
+  if(mode==='absent'&&!(c.classroom===selClass.room&&c.class_name===cls)){toast('欠席の連絡は、お子様が在籍しているクラスのみ登録できます');return;}
+  showLoad(true);let absDone=false,absGained=false;
   try{
     if(mode==='absent'){
-      // 欠席連絡は常に可能。振替ポイントは上限(3)まで。超える分は加算しない。
+      // 欠席連絡は在籍クラスのみ。振替ポイントは上限(3)まで。超える分は加算しない。
       const np=Math.min(maxPerChild(), c.points+1); const gained=np>c.points;
       if(gained) await db.from('children').update({points:np}).eq('id',c.id);
       const ins=await db.from('absences').insert({child_id:c.id,parent_id:me.id,date:selClass.dateStr,classroom:selClass.room,class_name:selClass.cls}).select();
       if(ins.data&&ins.data[0])myAbs.push(ins.data[0]);
-      c.points=np;
+      c.points=np;absDone=true;absGained=gained;
       toast(gained?`${c.name}の欠席を受付。振替ポイント +1`:`${c.name}の欠席を受付しました（振替ポイントは上限のため加算なし）`);
     }else{
       if(totalPoints()<=0){toast('家族の振替ポイントが足りません');return;}
@@ -1131,6 +1290,43 @@ async function doAction(mode,i,cls){
     }
   }catch(e){toast('エラー：'+e.message);}
   showLoad(false);closeSheet();renderMy();
+  if(absDone)setTimeout(()=>offerTransferAfterAbsence(c,absGained),320);
+}
+/* ---- 欠席のあと、そのまま振替日を選べるように案内（2026-09-06） ---- */
+function offerTransferAfterAbsence(c,gained){
+  const cap=maxPerChild()*activeKids().length;const pts=totalPoints();
+  if(pts<=0){openSheet(`<h3>欠席を受け付けました</h3><p class="muted">${esc(c.name)}さんの欠席を受け付けました。振替ポイントは上限のため増えていません。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);return;}
+  openSheet(`<div class="center" style="font-size:40px;line-height:1">🔁</div><h3 class="center">振替日を選びましょう</h3>
+    <p class="muted center" style="margin:4px 0 14px">${esc(c.name)}さんの欠席を受け付けました。${gained?'振替ポイントが1つたまりました。':''}<br>振替ポイント <b>${pts} / ${cap}</b></p>
+    <button class="btn" onclick="openTransferPicker()">🔀 振替で参加する日を選ぶ</button>
+    <button class="btn gray" style="margin-top:10px" onclick="closeSheet()">あとで決める</button>
+    <p class="muted center" style="margin:10px 0 0;font-size:12px">あとで決める場合は、ホームの「振替を申し込む」から選べます。</p>`);
+}
+/* ---- 振替先を選ぶ（自分の都道府県の教室だけの月間カレンダー） ---- */
+let tcal={y:0,m:0};
+function openTransferPicker(){const t=new Date();tcal.y=t.getFullYear();tcal.m=t.getMonth();renderTransferPicker();}
+function tcalMove(d){tcal.m+=d;if(tcal.m<0){tcal.m=11;tcal.y--;}if(tcal.m>11){tcal.m=0;tcal.y++;}renderTransferPicker();}
+function renderTransferPicker(){
+  const sc=currentScope();const y=tcal.y,m=tcal.m;const cap=maxPerChild()*activeKids().length;
+  let grid=DOW.map((d,i)=>`<div class="dow" style="color:${i===0?'#e0556b':i===6?'#2f7df6':''}">${d}</div>`).join('');
+  const first=new Date(y,m,1).getDay(),days=new Date(y,m+1,0).getDate(),today=new Date();
+  for(let i=0;i<first;i++)grid+=`<div class="day empty"></div>`;
+  for(let d=1;d<=days;d++){
+    const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);const holi=holidayName(y,m,d);const past=isPast(y,m,d);const nh=nationalHolidayName(y,m,d);
+    const schools=holi?[]:schoolsOn(wd,sc).filter(s=>isHeld(s,key));
+    const isT=today.getFullYear()===y&&today.getMonth()===m&&today.getDate()===d;
+    const clickable=schools.length&&!past;
+    let inner=`<span>${d}</span>`+(nh?`<div class="natholi-lb">祝</div>`:'');
+    schools.forEach(s=>{const cx=isCancelled(s,key);const chip=roomChip(s,wd);inner+=`<div class="ev${cx?' cancel':''}" ${cx?'':`style="background:${chip.bg};color:${chip.fg}"`}>${chip.label}${cx?' 休':''}</div>`;});
+    grid+=`<div class="day${wd===0?' sun':wd===6?' sat':''}${clickable?' has':''}${isT?' today':''}${past?' past':''}${holi?' holi':''}${nh?' natholi':''}" ${clickable?`onclick='openDay(${y},${m},${d},${JSON.stringify(schools)})'`:''}>${inner}</div>`;
+  }
+  const bars=holidayBars(y,m).map(x=>`<div class="holibar">${x}</div>`).join('');
+  openSheet(`<h3>🔀 振替先を選ぶ<span class="cap" style="margin-left:8px">${esc(sc.r)}</span></h3>
+    <p class="muted" style="margin:-2px 0 10px">振替ポイント <b>${totalPoints()} / ${cap}</b>。参加したい日をタップ → クラスを選んで「振替で参加する」。</p>
+    <div class="calhead"><button onclick="tcalMove(-1)">‹</button><span class="mlabel">${y}年 ${MONTHS[m]}</span><button onclick="tcalMove(1)">›</button></div>
+    ${bars}<div class="cal">${grid}</div>
+    <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(classroomsIn(sc.p,sc.r))}</div>
+    <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
 }
 async function cancelAbsent(absId,i){
   const c=kids[i];showLoad(true);
@@ -1201,27 +1397,24 @@ function ecField(i,n,c){const ph=(c['ec'+n]||'').replace(/"/g,'&quot;');const re
     <select id="ec${n}rel-${i}" style="margin-top:6px">${['',...ECREL].map(r=>`<option value="${r}" ${rel===r?'selected':''}>${r||'続柄を選択'}</option>`).join('')}</select>
     <input style="margin-top:6px" id="ec${n}n-${i}" value="${note}" placeholder="つながりやすい時間など（任意）">`;}
 function ecLine(c,n){const v=c['ec'+n],rel=c['ec'+n+'_rel'],note=c['ec'+n+'_note'];
-  return `<div class="muted"${n===1?' style="margin-top:4px"':''}>🚨 緊急連絡先${n}${rel?'（'+rel+'）':''}：${v||'未登録'}${note?'（'+note+'）':''}</div>`;}
+  return `<div class="muted"${n===1?' style="margin-top:4px"':''}>🚨 緊急連絡先${n}${rel?'（'+esc(rel)+'）':''}：${v?telLink(v):'未登録'}${note?'（'+esc(note)+'）':''}</div>`;}
 function renderMy(){
-  const b=document.getElementById('my-body');const cap=3*activeKids().length;
+  const b=document.getElementById('my-body');const cap=maxPerChild()*activeKids().length;
   let html=`<div class="card">
-    <div class="kv"><span class="k">保護者</span><span class="v">${profile.parent_name||'未設定'}（${profile.relation||''}）</span></div>
-    <div class="kv"><span class="k">電話番号</span><span class="v">${profile.tel||'未設定'}</span></div>
+    <div class="kv"><span class="k">保護者</span><span class="v">${esc(profile.parent_name||'未設定')}（${esc(profile.relation||'')}）</span></div>
+    <div class="kv"><span class="k">電話番号</span><span class="v">${esc(profile.tel||'未設定')}</span></div>
     <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${paymentsFor(currentScope()).map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
     </div>
-    <div class="card center"><div class="muted">家族の振替ポイント合計</div><div class="ptbig">${totalPoints()} <span style="font-size:16px;color:#9aa3b8">/ ${cap}</span></div>
-    <div class="muted">上限：お子様1人につき3pt（兄弟は3×人数）<br><b>ご兄弟で共有して使えます</b></div></div>`;
-  html+=pushCard();
-  html+=notifCard();
-  html+=manageBlock();
-  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<3;k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;const wd=isWithdrawn(c),lv=isLeaving(c);
-    html+=`<div class="card childcard" ${wd?'style="opacity:.75"':''}><h3>${c.name}${g?`<span class="grade">${g}</span>`:''}${statusPill(c)}</h3>
-      <div class="muted" style="margin-bottom:6px">${c.classroom}教室 ${c.class_name}</div>
+    <div class="ptcard"><div><div class="lb">🔁 家族の振替ポイント</div><div class="sm">上限：お子様1人につき${maxPerChild()}pt（兄弟は${maxPerChild()}×人数）<br><b>ご兄弟で共有して使えます</b></div></div><div class="ptbig">${totalPoints()}<span style="font-size:15px;opacity:.85"> / ${cap}</span></div></div>`;
+  html+=`<div class="sech"><h2 class="title">🧒 お子様</h2><span class="muted" style="font-size:11.5px">${kids.length}人</span></div>`;
+  kids.forEach((c,i)=>{const g=calcGrade(c.birth);let chips='';for(let k=0;k<maxPerChild();k++)chips+=`<span class="ptchip ${k<c.points?'on':''}"></span>`;const wd=isWithdrawn(c),lv=isLeaving(c);
+    html+=`<div class="card childcard" style="border-left:5px solid ${scolor(c.classroom).bg}${wd?';opacity:.75':''}"><h3>${esc(c.name)}${g?`<span class="grade">${g}</span>`:''}${statusPill(c)}</h3>
+      <div class="muted" style="margin-bottom:6px"><span class="pbadge" style="background:${scolor(c.classroom).bg};color:${scolor(c.classroom).fg};margin:0 6px 0 0">${esc((SCHOOL_INFO[c.classroom]||{}).full||c.classroom)}</span>${esc(c.class_name)}</div>
       ${wd?`<div class="note" style="margin-bottom:8px;background:#f1f3f8;border-color:#dfe4ee;color:#4b5563">🎓 退会済みです。お月謝の請求はありません。</div>`:lv?`<div class="note" style="margin-bottom:8px">📝 退会予定：${ymLabel(c.last_month)}末まで通えます（お月謝は${ymLabel(c.last_month)}分まで）</div>`:''}
       ${wd?'':(()=>{const rq=myReqs.find(r=>r.child_id===c.id);return rq?`<div class="note" style="margin-bottom:8px">🔁 教室・クラスの変更を申請中：${rq.to_room}教室 ${rq.to_class}（承認待ち）</div>`:`<button class="btn gray sm" style="margin-bottom:8px" onclick="openChangeReq(${i})">🔁 教室・クラスの変更を申請</button>`;})()}
       <div class="kv"><span class="k">生年月日</span><span class="v">${fmtDate(c.birth)}${c.birth?'（'+ageStr(c.birth)+'）':''}</span></div>
       <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
-      ${wd?'':`<div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / 3</span></div>
+      ${wd?'':`<div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / ${maxPerChild()}</span></div>
       <div class="ptchips">${chips}</div>`}
       <details class="acc"><summary>お子様の情報・お月謝・緊急連絡先を編集</summary>
         <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
@@ -1234,11 +1427,15 @@ function renderMy(){
         ${ecField(i,3,c)}
         <button class="btn sm" style="margin-top:10px" onclick="saveChild(${i})">このお子様の情報を保存</button>
       </details></div>`;});
-  html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>
-    <button class="btn gray" style="margin-top:10px" onclick="checkPaymentReminder(true)">（確認）支払い確認ポップアップを見る</button>
+  html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>`;
+  html+=`<div class="sech"><h2 class="title">🔁 振替・欠席</h2></div>`+manageBlock();
+  html+=`<div class="sech"><h2 class="title">🔔 通知</h2></div>`+pushCard()+notifCard();
+  html+=`<div class="sech"><h2 class="title">⚙️ その他</h2></div>
+    <button class="btn gray" onclick="checkPaymentReminder(true)">（確認）支払い確認ポップアップを見る</button>
     <button class="btn gray" style="margin-top:10px" onclick="logout()">ログアウト</button>
-    <button class="btn" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="openDeleteAccount()">アカウントを削除（退会）</button>`;
+    <button class="btn warn" style="margin-top:10px" onclick="openDeleteAccount()">アカウントを削除（退会）</button>`;
   b.innerHTML=html;
+  renderHomeHero();renderUpcoming();
 }
 async function saveChild(i){const c=kids[i];showLoad(true);
   const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
@@ -1324,6 +1521,7 @@ function renderMsgs(){const w=document.getElementById('msg-list');
   if(msgs.length===0){w.innerHTML=`<div class="msg them">こんにちは！sowersです。ご不明な点があればこちらからお気軽にどうぞ😊</div>`;}
   else{w.innerHTML=msgs.map(m=>`<div class="msg ${m.sender==='parent'?'me':'them'}">${esc(m.body)}<span class="t">${(m.created_at||'').slice(5,16).replace('T',' ')}</span></div>`).join('');}
   const sc=document.getElementById('s-msg');setTimeout(()=>{sc.scrollTop=sc.scrollHeight;},30);
+  if(sc.classList.contains('active'))markMsgsSeen(); else updateMsgBadge();
 }
 async function sendMsg(){const i=document.getElementById('msg-input');const v=i.value.trim();if(!v)return;
   i.value='';
@@ -1346,8 +1544,8 @@ function otherQuit(){closeSheet();tab('s-msg',document.querySelector('#tabbar bu
 let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attDate=null;
 function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
 let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
-const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},furikaeset:{ic:'🔀',l:'振替設定'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'},shift:{ic:'🙋',l:'シフト'},students:{ic:'👥',l:'当日の生徒'}};
-const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],parttime:['shift','students'],roster:['roster']};
+const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},furikaeset:{ic:'🔀',l:'振替設定'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'}};
+const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],roster:['roster']};
 async function loadStaffData(){
   // 9件のクエリを並列取得（互いに独立）
   const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
@@ -1418,15 +1616,24 @@ async function restoreChild(cid){
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   Object.assign(c,patch);renderStaff();toast(c.name+'を在籍に戻しました');
 }
-function withdrawBtn(c){return isWithdrawn(c)||isLeaving(c)?`<button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="restoreChild('${c.id}')">在籍に戻す</button>`:`<button class="btn sm" style="width:auto;padding:7px 12px;background:#fff;color:var(--red);border:1.5px solid var(--red);box-shadow:none" onclick="withdrawSheet('${c.id}')">退会にする</button>`;}
+function withdrawBtn(c){return isWithdrawn(c)||isLeaving(c)?`<button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="restoreChild('${c.id}')">在籍に戻す</button>`:`<button class="btn sm warn" style="width:auto;padding:7px 12px" onclick="withdrawSheet('${c.id}')">退会にする</button>`;}
 function openChildAdmin(cid){
   const c=allChildren.find(x=>x.id===cid); if(!c)return; const p=allProfiles.find(x=>x.id===c.parent_id)||{};
-  openSheet(`<h3>${c.name}${statusPill(c)}</h3>
-    <div class="muted" style="margin-bottom:4px">${c.classroom}教室 ${c.class_name}　${calcGrade(c.birth)||''}</div>
-    <div class="muted" style="margin-bottom:10px">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}<br>入会：${c.enroll||'-'}　月謝：${c.fee===0?'単発':yen(c.fee)}　振替pt：${c.points||0}${c.last_month?'<br>最終在籍月：'+ymLabel(c.last_month):''}${c.withdrawn_at?'　退会日：'+(''+c.withdrawn_at).slice(0,10):''}</div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
+  const inf=SCHOOL_INFO[c.classroom]||{};const showFee=staffRole!=='roster';
+  openSheet(`<h3>${esc(c.name)}${statusPill(c)}</h3>
+    <div class="muted" style="margin-bottom:6px"><span class="pbadge" style="background:${scolor(c.classroom).bg};color:${scolor(c.classroom).fg};margin:0 6px 0 0">${esc(inf.full||c.classroom)}</span>${esc(c.class_name)}　${calcGrade(c.birth)||''}　<span class="ptmini">🔁 振替 ${c.points||0}/${maxPerChild()}</span></div>
+    <div class="card flat" style="padding:10px 12px;margin-bottom:10px">
+      <div class="kv"><span class="k">保護者</span><span class="v">${esc(p.parent_name||'-')}（${esc(p.relation||'')}）</span></div>
+      <div class="kv"><span class="k">電話</span><span class="v">${telLink(p.tel)}</span></div>
+      ${[1,2,3].map(n=>c['ec'+n]?`<div class="kv"><span class="k">🚨 緊急${n}${c['ec'+n+'_rel']?'（'+esc(c['ec'+n+'_rel'])+'）':''}</span><span class="v">${telLink(c['ec'+n])}${c['ec'+n+'_note']?`<br><span class="muted" style="font-size:11px">${esc(c['ec'+n+'_note'])}</span>`:''}</span></div>`:'').join('')}
+      <div class="kv"><span class="k">入会</span><span class="v">${esc(c.enroll||'-')}${showFee?'　月謝：'+(c.fee===0?'単発':yen(c.fee)):''}</span></div>
+      ${c.last_month?`<div class="kv"><span class="k">最終在籍月</span><span class="v">${ymLabel(c.last_month)}${c.withdrawn_at?'　退会日：'+(''+c.withdrawn_at).slice(0,10):''}</span></div>`:''}
+    </div>
+    <div class="actions" style="margin-top:0"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 この保護者に連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
     <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
 }
+function shortPlace(p){return (''+(p||'')).replace(/[（(][^）)]*[）)]/g,'').trim();}
+function telLink(t){if(!t)return '<span class="muted">未登録</span>';const d=(''+t).replace(/[^0-9+]/g,'');return d?`<a href="tel:${d}" style="color:var(--red);font-weight:800;text-decoration:none">📞 ${esc(t)}</a>`:esc(t);}
 function withdrawnListCard(rooms){
   const list=allChildren.filter(c=>!isStaffParent(c.parent_id)&&(isWithdrawn(c)||isLeaving(c))&&(!rooms||rooms.includes(c.classroom)));
   if(!list.length)return '';
@@ -1485,12 +1692,12 @@ function showFurikaeSetAnnounce(){try{
 }catch(e){}}
 
 function enterStaffApp(role){
-  staffRole=role; staffSection=(ROLE_TABS[role]||['schedule'])[0];
+  staffRole=role; staffSection=(ROLE_TABS[role]||['roster'])[0];
   const t=new Date(); scal.y=t.getFullYear(); scal.m=t.getMonth();
   document.getElementById('tabbar').style.display='none';
   document.getElementById('staff-tabbar').style.display='flex';
   go('s-staff'); renderStaffNav(); renderStaff();
-  if((role==='staff'||role==='parttime')&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
+  if(role==='staff'&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
   else{setTimeout(showStaffTodaySummary,700);}
   setTimeout(showFurikaeSetAnnounce,1400);
 }
@@ -1503,29 +1710,72 @@ function unrepliedCount(){
   let n=0;ids.forEach(id=>{const ms=byP[id].slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));const last=ms[ms.length-1];if(last&&last.sender==='parent')n++;});
   return n;
 }
+// 下タブは主要4つ＋「その他」（機能は全て ROLE_TABS のまま。表示上まとめるだけ）
+const STAFF_PRIMARY={staff:['schedule','furikae','roster','messages'],admin:['schedule','furikae','roster','pay'],roster:['roster']};
+function pendingCount(){let n=(allChangeReqs||[]).length;if(staffRole==='admin')n+=allProfiles.filter(p=>p.staff_request&&!p.staff_approved&&p.role==='parent').length;return n;}
+function tabBadgeN(k){if(k==='messages')return unrepliedCount();if(k==='members')return pendingCount();return 0;}
+function staffExtraTabs(){const tabs=ROLE_TABS[staffRole]||ROLE_TABS.roster;const prim=(STAFF_PRIMARY[staffRole]||tabs).filter(k=>tabs.includes(k));return {prim,extra:tabs.filter(k=>!prim.includes(k))};}
 function renderStaffNav(){
-  const tabs=ROLE_TABS[staffRole]||ROLE_TABS.admin;
-  document.getElementById('staff-tabbar').innerHTML=tabs.map(k=>{
-    let badge='';
-    if(k==='messages'){const n=unrepliedCount();if(n>0)badge=`<span style="position:absolute;top:3px;left:54%;min-width:15px;height:15px;line-height:15px;background:var(--red);color:#fff;border-radius:8px;font-size:9px;font-weight:800;text-align:center;padding:0 3px;box-shadow:0 1px 3px rgba(0,0,0,.25)">${n>99?'99+':n}</span>`;}
-    return `<button class="${staffSection===k?'on':''}" style="position:relative" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}${badge}</button>`;
-  }).join('');
-  document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='parttime'?'🙋 アルバイト':staffRole==='roster'?'👥 名簿':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
+  const {prim,extra}=staffExtraTabs();
+  const badge=n=>n>0?`<span class="tbadge">${n>99?'99+':n}</span>`:'';
+  let h=prim.map(k=>`<button class="${staffSection===k?'on':''}" onclick="staffTab('${k}')"><span class="ic">${STAFF_TAB_META[k].ic}</span>${STAFF_TAB_META[k].l}${badge(tabBadgeN(k))}</button>`).join('');
+  if(extra.length){const n=extra.reduce((a,k)=>a+tabBadgeN(k),0);h+=`<button class="${extra.includes(staffSection)?'on':''}" onclick="openStaffMore()"><span class="ic">⋯</span>その他${badge(n)}</button>`;}
+  document.getElementById('staff-tabbar').innerHTML=h;
+  document.getElementById('staff-title').textContent=(staffRole==='admin'?'🛠 管理者':staffRole==='roster'?'👥 名簿':'🛠 スタッフ')+' / '+STAFF_TAB_META[staffSection].l;
+  const area=document.getElementById('staff-area');
+  if(area){if(staffRole==='staff'){const sc=staffScope();area.textContent=sc.p+'・'+sc.r;}else if(staffRole==='admin'){area.textContent=(adminFilter.p||adminFilter.r)?[adminFilter.p,adminFilter.r].filter(Boolean).join('・'):'全教室';}else{area.textContent='全教室';}}
 }
+function openStaffMore(){
+  const {extra}=staffExtraTabs();
+  let h=`<h3>その他のメニュー</h3>`;
+  extra.forEach(k=>{const n=tabBadgeN(k);h+=`<div class="opt ${staffSection===k?'sel':''}" onclick="closeSheet();staffTab('${k}')"><div class="ico">${STAFF_TAB_META[k].ic}</div><div style="flex:1"><div class="nm">${STAFF_TAB_META[k].l}${n>0?`<span class="rolepill" style="background:var(--red);color:#fff;margin-left:8px">${n}</span>`:''}</div><div class="ds">${STAFF_TAB_DESC[k]||''}</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>`;});
+  h+=`<button class="btn gray" style="margin-top:6px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);
+}
+const STAFF_TAB_DESC={schedule:'カレンダー・休講・会場/時間・シフト',furikae:'日ごとの欠席・振替の一覧',furikaeset:'振替で受け入れる教室の設定',roster:'名簿・人数・連絡先',pay:'送金・振込のご家庭の入金確認',finance:'教室ごとの売上・経費・収支',members:'役割の変更・申請の承認',announce:'保護者のホームに表示するお知らせ',messages:'保護者との個別メッセージ'};
 function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);if(window._gymFlushRefresh)window._gymFlushRefresh();}
+function emgBtnHtml(){return (staffRole==='staff'||staffRole==='admin')?`<button class="emgbtn" onclick="openEmgSheet()">🚨 緊急連絡先をすぐ開く</button>`:'';}
 function renderStaff(){const b=document.getElementById('staff-body');
-  if(staffSection==='schedule'){b.innerHTML=stShellCal();renderStaffCal();}
-  else if(staffSection==='furikae')b.innerHTML=stFurikae();
+  if(staffSection==='schedule'){b.innerHTML=emgBtnHtml()+staffTodayHtml()+stShellCal();renderStaffCal();}
+  else if(staffSection==='furikae')b.innerHTML=emgBtnHtml()+stFurikae();
   else if(staffSection==='furikaeset')b.innerHTML=stTransferSettings();
-  else if(staffSection==='roster')b.innerHTML=stRoster();
+  else if(staffSection==='roster')b.innerHTML=emgBtnHtml()+stRoster();
   else if(staffSection==='pay')b.innerHTML=stPay();
   else if(staffSection==='finance')b.innerHTML=stFinance();
-  else if(staffSection==='shift')b.innerHTML=stShift();
-  else if(staffSection==='students')b.innerHTML=stStudents();
   else if(staffSection==='members')b.innerHTML=stMembers();
   else if(staffSection==='announce')b.innerHTML=stAnnounce();
   else if(staffSection==='messages')b.innerHTML=stMessages();
   renderStaffNav();
+}
+/* --- 今日の練習ダッシュボード（予定タブ上部） --- */
+function staffTodayHtml(){
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth(),d=now.getDate(),wd=now.getDay();const key=dateKey(y,m,d);
+  const rooms=staffCalRooms(wd,key);const norm=s=>(''+s).slice(0,10);
+  let h=`<div class="sech"><h2 class="title">📋 今日の練習</h2><span class="muted" style="font-size:11.5px">${m+1}/${d}（${DOW[wd]}）</span></div>`;
+  if(holidayName(y,m,d)||!rooms.length){return h+`<div class="card center" style="padding:14px"><span class="muted">今日の練習はありません。</span></div>`;}
+  const absAll=allAbsences.filter(a=>norm(a.date)===key&&rooms.includes(a.classroom));const furAll=allFurikae.filter(f=>norm(f.date)===key&&rooms.includes(f.to_room));
+  h+=`<div class="statgrid"><div class="stat brand"><div class="n">${rooms.length}</div><div class="l">教室</div></div><div class="stat abs"><div class="n">${absAll.length}</div><div class="l">欠席</div></div><div class="stat fur"><div class="n">${furAll.length}</div><div class="l">振替参加</div></div></div>`;
+  rooms.forEach(room=>{const inf=SCHOOL_INFO[room]||{};const cx=isCancelled(room,key);const ct=contentOn(room,key,wd);const a=absAll.filter(x=>x.classroom===room);const f=furAll.filter(x=>x.to_room===room);const n=students().filter(c=>c.classroom===room).length;const col=scolor(room).bg;
+    const times=(ct.classes||[]).map(x=>x.t).filter(Boolean);
+    h+=`<div class="todaycard" style="border-left-color:${col}" onclick='openStaffDay(${y},${m},${d},${JSON.stringify(rooms)})'><div class="th"><div style="min-width:0"><div class="tn" style="color:${col}">${esc(inf.full||room)}</div><div class="tp">📍 ${esc(shortPlace(ct.place||inf.place||''))}</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>
+      <div class="tc">${cx?'<span class="cnt cancel">休講</span>':''}${times.length?`<span class="cnt">⏰ ${esc(times[0])}${times.length>1?' 〜':''}</span>`:''}<span class="cnt">👥 在籍 ${n}</span><span class="cnt abs">🙅 欠席 ${a.length}</span><span class="cnt fur">🔁 振替 ${f.length}</span></div>
+      ${(a.length||f.length)?`<div class="muted" style="margin-top:6px;font-size:12px">${a.length?'欠席：'+a.map(x=>esc(childName(x.child_id))).join('、'):''}${a.length&&f.length?'<br>':''}${f.length?'振替：'+f.map(x=>esc(childName(x.child_id))+(x.from_room!==room?'（'+esc(x.from_room)+'から）':'')).join('、'):''}</div>`:''}</div>`;});
+  return h;
+}
+/* --- 緊急連絡先クイック検索（スタッフ・管理者） --- */
+function openEmgSheet(){window.__emgQ='';window.__emgToday=false;openSheet(`<h3>🚨 緊急連絡先</h3><p class="muted" style="margin:-2px 0 8px">生徒名で検索、タップで保護者・緊急連絡先の詳細を開きます。</p><input class="emgsearch" placeholder="生徒名で検索" oninput="window.__emgQ=this.value;renderEmgRows()"><div id="emgTodayTgl" style="margin:8px 0 4px"></div><div id="emgRows"></div><button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);renderEmgRows();}
+function renderEmgRows(){
+  const box=document.getElementById('emgRows'); if(!box)return;
+  const rooms=furikaeRooms();const q=(window.__emgQ||'').trim();
+  const now=new Date();const key=dateKey(now.getFullYear(),now.getMonth(),now.getDate());const todayRooms=staffCalRooms(now.getDay(),key);
+  const tg=document.getElementById('emgTodayTgl');
+  if(tg)tg.innerHTML=todayRooms.length?`<button class="btn sm ${window.__emgToday?'':'gray'}" style="width:auto;padding:7px 12px" onclick="window.__emgToday=!window.__emgToday;renderEmgRows()">${window.__emgToday?'✅ 今日の教室のみ':'今日の教室のみ表示'}</button>`:'';
+  let list=students().filter(c=>rooms.includes(c.classroom)&&(!q||(c.name||'').includes(q)));
+  if(window.__emgToday&&todayRooms.length)list=list.filter(c=>todayRooms.includes(c.classroom));
+  list.sort((a,b)=>(a.classroom+'|'+a.class_name+'|'+a.name).localeCompare(b.classroom+'|'+b.class_name+'|'+b.name));
+  if(!list.length){box.innerHTML=`<p class="muted" style="padding:8px 0">該当する生徒がいません。</p>`;return;}
+  box.innerHTML=`<div class="card flat" style="padding:4px 12px;margin:0">`+list.slice(0,120).map(c=>{const p=allProfiles.find(x=>x.id===c.parent_id)||{};const tel=p.tel||c.ec1||'';const inf=SCHOOL_INFO[c.classroom]||{};
+    return `<div class="emgrow" onclick="openChildAdmin('${c.id}')"><span style="min-width:0"><span class="nm">${esc(c.name)}</span> <span class="ptmini">🔁${c.points||0}/${maxPerChild()}</span><br><span class="muted" style="font-size:11.5px">${esc(inf.full||c.classroom)}・${esc(c.class_name)}</span></span><span class="tel">${tel?`<a href="tel:${esc(tel).replace(/[^0-9+]/g,'')}" onclick="event.stopPropagation()" style="color:inherit;text-decoration:none">📞 ${esc(tel)}</a>`:'未登録'}</span></div>`;}).join('')+`</div>`+(list.length>120?`<p class="muted">${list.length}名中120名まで表示。名前で絞り込んでください。</p>`:'');
 }
 /* --- 予定（カレンダー） --- */
 function calStaffMove(d){scal.m+=d;if(scal.m<0){scal.m=11;scal.y--;}if(scal.m>11){scal.m=0;scal.y++;}renderStaffCal();}
@@ -1533,14 +1783,15 @@ function stShellCal(){
   const isAdmin=staffRole==='admin';
   let legendRooms=isAdmin?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
   if(isAdmin){if(adminFilter.p)legendRooms=legendRooms.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)legendRooms=legendRooms.filter(s=>metaOf(s).r===adminFilter.r);}
-  const areaBar=(!isAdmin)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted">担当エリア</span><div style="font-weight:800">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
-  const filterBar=isAdmin?`<div class="card" style="padding:10px 14px"><div class="muted" style="margin-bottom:6px">表示する種目・都道府県で絞り込み</div><div style="display:flex;gap:8px"><div style="flex:1"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select></div><div style="flex:1"><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div></div></div>`:'';
+  const areaBar=(!isAdmin)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted" style="font-size:11.5px">担当エリア</span><div style="font-weight:900">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
+  const filterBar=isAdmin?adminFilterBarHtml():'';
   const createBtn=monthlyRoomsInScope().length?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
-  return `<h2 class="title">スケジュール</h2>${areaBar}${filterBar}${createBtn}
+  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">日付をタップで編集</span></div>${areaBar}${filterBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
   <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(legendRooms)}</div>
-  <p class="muted" style="margin-top:6px">活動日をタップすると、会場・時間の変更や休講の設定ができます。${monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':''}</p></div>`;}
+  <p class="muted" style="margin-top:6px;font-size:12px">活動日をタップすると、会場・時間の変更や休講の設定ができます。${monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':''}</p></div>`;}
+function adminFilterBarHtml(){return `<div class="filterbar"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div>`;}
 function renderStaffCal(){
   const lab=document.getElementById('scal-label'); if(!lab)return; lab.textContent=`${scal.y}年 ${MONTHS[scal.m]}`;
   document.getElementById('scal-holi').innerHTML=holidayBars(scal.y,scal.m).map(x=>`<div class="holibar">${x}</div>`).join('');
@@ -1568,16 +1819,16 @@ function openStaffDay(y,m,d,schools){
     h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full}</div>`;
     if(cx){
       h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
-        <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
+        <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else if(monthly){
       h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div>`;
       ct.classes.forEach(it=>{h+=`<div class="timeitem"><span class="cn">${it.c}</span><span class="tm">⏰ ${it.t}</span></div>`;});
       h+=`<button class="btn soft sm" style="margin-top:8px" onclick="closeSheet();openEventEditor('${s}')">この教室の予定を編集（場所・クラス・日程）</button>`;
-      h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
+      h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else {
       h+=`<label class="fld">開催場所</label><input value="${(inf.place||'').replace(/"/g,'&quot;')}" onchange="saveVenue('${s}',this.value)">`;
       (SCHEDULE[s][wd]||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${it.t}" onchange="saveTime('${s}','${it.c}',this.value)">`; });
-      h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm" style="margin-top:10px;background:#fff;color:var(--red);border:1.5px solid var(--red)" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
+      h+=`<button class="btn red sm" style="margin-top:14px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     }
     if(!cx)h+=shiftSection(s,key);
     h+=`</div>`;});
@@ -1644,24 +1895,31 @@ function stFurikae(){
   const t0=new Date();t0.setHours(0,0,0,0);const st=new Date(t0.getFullYear(),t0.getMonth(),t0.getDate()-45);
   for(let i=0;i<135;i++){const d=new Date(st.getFullYear(),st.getMonth(),st.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;rooms.forEach(room=>{const ok=WEEKLY_ROOMS.has(room)?!!(SCHEDULE[room]&&SCHEDULE[room][wd]):isHeld(room,key);if(ok)ds.add(key);});}
   const dates=[...ds].sort();
-  let h=`<h2 class="title">欠席・振替</h2>`;
+  let h=`<div class="sech"><h2 class="title">📋 欠席・振替</h2></div>`;
+  if(staffRole==='admin')h+=adminFilterBarHtml();
   if(dates.length===0)return h+`<div class="card center"><span class="muted">開催日がまだありません。月3回の教室は「予定」タブの「開催日・予定を作成/編集」で開催日を登録してください。</span></div>`;
   if(!attDate||!dates.includes(attDate)){const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());attDate=dates.find(d=>d>=today)||dates[dates.length-1];}
+  const idx=dates.indexOf(attDate);
   const opts=dates.slice().reverse().map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('');
-  h+=`<div class="card"><label class="fld">日にちを選ぶ</label><select onchange="attDate=this.value;renderStaff()">${opts}</select></div>`;
+  h+=`<div class="card" style="padding:10px 12px"><div class="calhead" style="margin:0;gap:8px"><button ${idx<=0?'disabled style="opacity:.35"':''} onclick="attDate='${dates[Math.max(0,idx-1)]}';renderStaff()">‹</button><select style="flex:1;border-radius:999px;padding:10px 14px;font-weight:800" onchange="attDate=this.value;renderStaff()">${opts}</select><button ${idx>=dates.length-1?'disabled style="opacity:.35"':''} onclick="attDate='${dates[Math.min(dates.length-1,idx+1)]}';renderStaff()">›</button></div></div>`;
   const absOf=allAbsences.filter(a=>norm(a.date)===attDate);
   const furOf=allFurikae.filter(f=>norm(f.date)===attDate);
+  const tA=absOf.filter(a=>rooms.includes(a.classroom)).length,tF=furOf.filter(f=>rooms.includes(f.to_room)).length;
+  h+=`<div class="statgrid" style="grid-template-columns:1fr 1fr"><div class="stat abs"><div class="n">${tA}</div><div class="l">欠席</div></div><div class="stat fur"><div class="n">${tF}</div><div class="l">振替参加</div></div></div>`;
   let any=false;
   rooms.forEach(room=>{
-    (SCHOOLS[room]||[]).forEach(cls=>{
+    const clsList=(SCHOOLS[room]||[]).slice();
+    // 自由入力クラス名（開催日エディタで登録したもの等）も「その他」として漏れなく表示
+    const extra=[...new Set([...absOf.filter(a=>a.classroom===room).map(a=>a.class_name),...furOf.filter(f=>f.to_room===room).map(f=>f.to_class)])].filter(c=>!clsList.includes(c));
+    clsList.concat(extra).forEach(cls=>{
       const abs=absOf.filter(a=>a.classroom===room&&a.class_name===cls);
       const fur=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
       if(abs.length===0&&fur.length===0)return; any=true;
-      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}</div>
-        <div class="sumrow"><span>🙅 欠席（お休み）</span><b>${abs.length}人</b></div>
-        ${abs.length?`<div class="muted" style="margin:2px 0 6px">${abs.map(a=>childName(a.child_id)).join('、')}</div>`:''}
-        <div class="sumrow"><span>🔁 振替で参加</span><b>${fur.length}人</b></div>
-        ${fur.length?`<div class="muted" style="margin-top:2px">${fur.map(f=>{const cross=f.from_room!==room;return childName(f.child_id)+(cross?`（${f.from_room}教室 ${f.from_class}から）`:`（${f.from_class}から）`);}).join('、')}</div>`:''}
+      h+=`<div class="card" style="border-left:5px solid ${scolor(room).bg}"><div class="roomhead" style="color:${scolor(room).bg}">${esc(SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room)}<span class="cap" style="color:var(--ink)">${esc(cls)}</span></div>
+        <div class="sumrow" style="margin-top:4px"><span>🙅 欠席（お休み）</span><span class="cnt abs">${abs.length}人</span></div>
+        ${abs.length?`<div class="pchildren" style="margin:0 0 6px">${abs.map(a=>`<span class="childchip abs">${esc(childName(a.child_id))}</span>`).join('')}</div>`:''}
+        <div class="sumrow"><span>🔁 振替で参加</span><span class="cnt fur">${fur.length}人</span></div>
+        ${fur.length?`<div class="pchildren" style="margin:0">${fur.map(f=>{const cross=f.from_room!==room;return `<span class="childchip fur">${esc(childName(f.child_id))}<small style="font-weight:600">（${cross?esc(f.from_room)+'教室 ':''}${esc(f.from_class)}から）</small></span>`;}).join('')}</div>`:''}
       </div>`;
     });
   });
@@ -1671,8 +1929,8 @@ function stFurikae(){
 /* --- 振替設定（どの教室からどの教室に振替できるか） --- */
 function stTransferSettings(){
   const isAdmin=staffRole==='admin';
-  const filterBar=isAdmin?`<div class="card" style="padding:10px 14px"><div class="muted" style="margin-bottom:6px">表示する種目・都道府県で絞り込み</div><div style="display:flex;gap:8px"><div style="flex:1"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select></div><div style="flex:1"><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div></div></div>`:'';
-  let h=`<h2 class="title">振替設定</h2><p class="muted" style="margin-top:-8px">教室ごとに、生徒が振替でお休みの代わりに参加できる教室を選べます。✅＝振替OK／⬜＝振替不可。オフにした組み合わせだけ保護者の振替候補から外れます（在籍している教室の別クラスへの振替は、この設定に関係なくいつでもできます）。</p>${filterBar}`;
+  const filterBar=isAdmin?adminFilterBarHtml():'';
+  let h=`<h2 class="title">🔀 振替設定</h2><p class="muted" style="margin-top:-8px">教室ごとに、生徒が振替でお休みの代わりに参加できる教室を選べます。✅＝振替OK／⬜＝振替不可。オフにした組み合わせだけ保護者の振替候補から外れます（在籍している教室の別クラスへの振替は、この設定に関係なくいつでもできます）。</p>${filterBar}`;
   const rooms=furikaeRooms();
   if(rooms.length===0)return h+`<div class="card center"><span class="muted">種目・都道府県を選ぶと、教室が表示されます。</span></div>`;
   rooms.forEach(room=>{
@@ -1708,37 +1966,43 @@ async function setRoomTransferBlock(fromRoom,toRoom,blocked){
   renderStaff();
 }
 /* --- 名簿・生徒数・売上 --- */
+function roomSummaryHtml(room,count,extra){const col=scolor(room).bg;return `<span class="roomhead"><span class="roomdot" style="background:${col}"></span><span style="color:${col}">${esc(SCHOOL_INFO[room]?SCHOOL_INFO[room].full:room)}</span></span><span class="cap">${count}名${extra?'・'+extra:''}</span>`;}
+function recentJoinCard(){
+  const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
+  let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${esc(c.name)}</span><span style="font-size:12px;color:var(--sub);text-align:right">${esc(SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom)}<br>${esc(c.class_name)}</span></div>`;});
+  return `<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
+}
 function rosterOnlyView(){
-  let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">全教室・全クラスの名簿です（金額は表示されません）。教室・クラスをタップで開きます。</p>`;
-  h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
+  let h=`<div class="sech"><h2 class="title">👥 名簿・生徒数</h2><span class="muted" style="font-size:11.5px">金額は表示されません</span></div>`;
+  h+=`<div class="statgrid" style="grid-template-columns:1fr"><div class="stat brand"><div class="n">${students().length}<span style="font-size:14px">名</span></div><div class="l">全教室の生徒数</div></div></div>`;
   Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);let inner='';
     SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);let rows='';
-      inC.forEach(c=>{rows+=`<tr><td>${c.name}${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td></tr>`;});
+      inC.forEach(c=>{rows+=`<tr><td>${esc(c.name)}${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.points||0}</td></tr>`;});
       const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
-      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th></tr>${rows||'<tr><td colspan=2 class="muted">在籍なし</td></tr>'}</table></details>`;});
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
-  const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
-  let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${c.name}</span><span style="font-size:12px;color:var(--sub);text-align:right">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}<br>${c.class_name}</span></div>`;});
-  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">振替</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,'')}</summary>${inner}</details></div>`;});
+  h+=recentJoinCard();
   return h;
 }
 function stRoster(){
   if(staffRole==='roster')return rosterOnlyView();
   if(staffRole!=='admin')return ownerRoster();
-  let h=`<h2 class="title">名簿・生徒数</h2><p class="muted" style="margin-top:-8px">教室・クラスをタップで開きます。</p>`;
-  h+=`<div class="card center"><div class="muted">全教室の生徒数</div><div class="tot" style="font-size:30px">${students().length}名</div></div>`;
-  Object.keys(SCHOOLS).forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
+  let h=`<div class="sech"><h2 class="title">👥 名簿・生徒数</h2><span class="muted" style="font-size:11.5px">名前をタップで詳細</span></div>`;
+  h+=adminFilterBarHtml();
+  const rooms=furikaeRooms();
+  const total=students().filter(c=>rooms.includes(c.classroom)).reduce((a,c)=>a+(c.fee||0),0);
+  const nAll=students().filter(c=>rooms.includes(c.classroom)).length;
+  h+=`<div class="statgrid" style="grid-template-columns:1fr 1fr"><div class="stat brand"><div class="n">${nAll}<span style="font-size:14px">名</span></div><div class="l">生徒数</div></div><div class="stat att"><div class="n" style="font-size:17px;padding-top:4px">${yen(total)}</div><div class="l">月謝合計（月）</div></div></div>`;
+  rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);const fee=inR.reduce((a,c)=>a+(c.fee||0),0);let inner='';
     SCHOOLS[room].forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);const fc=inC.reduce((a,c)=>a+(c.fee||0),0);let rows='';
-      inC.forEach(c=>{rows+=`<tr><td><span style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${c.name}</span>${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
+      inC.forEach(c=>{rows+=`<tr><td><span style="cursor:pointer;text-decoration:underline dotted;font-weight:700" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</span>${isLeaving(c)?'<br>'+statusPill(c):''}</td><td>${calcGrade(c.birth)||'-'}</td><td class="num">${c.points||0}</td><td class="num">${c.fee===0?'単発':yen(c.fee)}</td></tr>`;});
       const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
-      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}　<span style="color:${full?'var(--red)':'var(--sub)'};font-weight:700">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=3 class="muted">在籍なし</td></tr>'}</table></details>`;});
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${inR.length}名・${yen(fee)}</span></summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
-  const recent=students().filter(c=>c.created_at).slice().sort((a,b)=>(''+b.created_at).localeCompare(''+a.created_at)).slice(0,30);
-  let rec='';recent.forEach(c=>{const d=(''+c.created_at).slice(0,10);const md=Number(d.slice(5,7))+'月'+Number(d.slice(8,10))+'日';rec+=`<div class="sumrow"><span><b>${md}</b>　${c.name}</span><span style="font-size:12px;color:var(--sub);text-align:right">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}<br>${c.class_name}</span></div>`;});
-  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🆕 直近の入会者（${recent.length}件）</summary><p class="muted" style="margin:4px 0 6px">入会日・お名前・教室・クラス</p>${rec||'<p class="muted" style="padding:6px 0">入会者がいません</p>'}</details></div>`;
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}・${yen(fc)}</span></summary><table class="tbl"><tr><th>氏名</th><th>学年</th><th class="num">振替</th><th class="num">月謝</th></tr>${rows||'<tr><td colspan=4 class="muted">在籍なし</td></tr>'}</table></details>`;});
+    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,yen(fee))}</summary>${inner}<div class="sumrow" style="margin-top:10px"><span>教室の月謝合計</span><b>${yen(fee)}</b></div></details></div>`;});
+  h+=recentJoinCard();
   h+=withdrawnListCard(null);
-  const total=students().reduce((a,c)=>a+(c.fee||0),0);
-  h+=`<div class="card center"><div class="muted">全教室 月謝合計（月）</div><div class="tot">${yen(total)} <span style="font-size:15px;color:#9aa3b8">/ ${yen(TARGET_REVENUE)}</span></div><div class="muted">現在の合計 ／ 満員想定の目標</div></div>`;
+  const totalAll=students().reduce((a,c)=>a+(c.fee||0),0);
+  h+=`<div class="card center"><div class="muted">全教室 月謝合計（月）</div><div class="tot">${yen(totalAll)} <span style="font-size:15px;color:#9aa3b8">/ ${yen(TARGET_REVENUE)}</span></div><div class="muted">現在の合計 ／ 満員想定の目標</div></div>`;
   return h;
 }
 /* --- 入金チェック（admin） --- */
@@ -1748,15 +2012,17 @@ function stPay(){
   const payers=allProfiles.filter(p=>p.payment==='net'||p.payment==='cash');
   const paidOf=id=>{const r=allPay.find(x=>x.parent_id===id&&x.ym===ym);return r?r.paid:false;};
   const paid=payers.filter(p=>paidOf(p.id)).length;
-  let h=`<h2 class="title">入金チェック</h2>
-    <div class="card"><label class="fld">表示する月</label><select onchange="payYm=this.value;renderStaff()">${payMonthOptions(ym)}</select></div>
-    <p class="muted" style="margin-top:-4px">送金・振込のご家庭の${mo}月分。保護者が20日/月末の確認で「支払いました」を押すと自動でチェックが入ります。手動切替も可。</p>
-    <div class="card center"><div class="muted">${mo}月 入金済み</div><div class="tot">${paid} / ${payers.length} 件</div></div>`;
+  const unpaid=payers.length-paid;
+  let h=`<div class="sech"><h2 class="title">✅ 入金チェック</h2></div>
+    <div class="card" style="padding:10px 12px"><select style="border-radius:999px;padding:10px 14px;font-weight:800" onchange="payYm=this.value;renderStaff()">${payMonthOptions(ym)}</select></div>
+    <div class="statgrid"><div class="stat brand"><div class="n">${payers.length}</div><div class="l">対象</div></div><div class="stat att"><div class="n">${paid}</div><div class="l">入金済み</div></div><div class="stat abs"><div class="n">${unpaid}</div><div class="l">未入金</div></div></div>
+    <p class="muted" style="margin:-4px 0 10px;font-size:12px">送金・振込のご家庭の${mo}月分。保護者が20日/月末の確認で「支払いました」を押すと自動でチェックが入ります。タップで手動切替も可。</p>`;
   if(payers.length===0)h+=`<div class="card center"><span class="muted">送金・振込のご家庭はまだいません。</span></div>`;
-  payers.forEach(p=>{const on=paidOf(p.id);
-    h+=`<div class="card" style="display:flex;align-items:center;gap:12px;padding:14px"><button class="paychk" onclick="togglePay('${p.id}')">${on?'✅':'⬜'}</button>
-      <div style="flex:1"><div style="font-weight:800">${p.parent_name||p.email||'(無名)'}</div><div class="muted">${p.payment==='net'?'銀行振込':'現金手渡し'}</div></div>
-      <div style="font-weight:800;font-size:13px;color:${on?'var(--green)':'var(--red)'}">${on?'入金済み':'未入金'}</div></div>`;});
+  const sorted=payers.slice().sort((a,b)=>(paidOf(a.id)?1:0)-(paidOf(b.id)?1:0));
+  sorted.forEach(p=>{const on=paidOf(p.id);
+    h+=`<div class="payrow" onclick="togglePay('${p.id}')" style="cursor:pointer"><button class="paychk" onclick="event.stopPropagation();togglePay('${p.id}')">${on?'✅':'⬜'}</button>
+      <div style="flex:1;min-width:0"><div style="font-weight:800">${esc(p.parent_name||p.email||'(無名)')}</div><div class="muted" style="font-size:12px">${p.payment==='net'?'🏦 銀行振込':'💴 現金手渡し'}${parentRooms(p.id)}</div></div>
+      <span class="paypill ${on?'on':'off'}">${on?'入金済み':'未入金'}</span></div>`;});
   return h;
 }
 async function togglePay(pid){const ym=payYm||monthKey();const cur=allPay.find(x=>x.parent_id===pid&&x.ym===ym);const np=!(cur&&cur.paid);
@@ -1764,16 +2030,18 @@ async function togglePay(pid){const ym=payYm||monthKey();const cur=allPay.find(x
   const d=await db.from('payment_status').select('*');allPay=d.data||[];showLoad(false);renderStaff();}
 /* --- 分析（売上・経費・収支） admin --- */
 function stFinance(){
-  let h=`<h2 class="title">分析（売上・経費）</h2><p class="muted" style="margin-top:-8px">体育館使用料・人件費を入力すると、教室ごとの概算収支が出ます。会場名の変更は「予定」タブから。</p>`;
-  let tFee=0,tCost=0;
-  Object.keys(SCHOOLS).forEach(room=>{
+  let h=`<div class="sech"><h2 class="title">📊 分析（売上・経費）</h2></div><p class="muted" style="margin:-6px 0 10px;font-size:12px">体育館使用料・人件費を入力すると、教室ごとの概算収支が出ます。会場名の変更は「予定」タブから。</p>`;
+  h+=adminFilterBarHtml();
+  const rooms=furikaeRooms();
+  let tFee=0,tCost=0;let cards='';
+  rooms.forEach(room=>{
     const inR=students().filter(c=>c.classroom===room);
     const fee=inR.reduce((a,c)=>a+(c.fee||0),0);
     const c=roomCosts[room]||{gym:0,labor:0};
     const gymMonthly=(c.gym||0)*4; const cost=gymMonthly+(c.labor||0); const profit=fee-cost;
     tFee+=fee; tCost+=cost;
-    h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}</div>
-      <div class="muted" style="margin-bottom:6px">📍 ${SCHOOL_INFO[room].place}</div>
+    cards+=`<div class="card" style="padding:8px 14px;border-left:5px solid ${scolor(room).bg}"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,'')}<span style="font-weight:900;color:${profit>=0?'var(--green)':'var(--red)'};font-size:13px">${profit>=0?'+':''}${yen(profit)}</span></summary>
+      <div class="muted" style="margin:4px 0 6px">📍 ${esc(SCHOOL_INFO[room].place)}</div>
       <div class="sumrow"><span>月謝収入（${inR.length}名）</span><b>${yen(fee)}</b></div>
       <label class="fld">体育館使用料（1回あたり・円）</label>
       <input type="number" value="${c.gym||0}" onchange="saveCost('${room}','gym',this.value)">
@@ -1782,11 +2050,10 @@ function stFinance(){
       <input type="number" value="${c.labor||0}" onchange="saveCost('${room}','labor',this.value)">
       <div class="sumrow"><span>人件費（月）</span><b>− ${yen(c.labor||0)}</b></div>
       <div class="sumrow" style="border-top:2px solid #eef1f7"><span><b>概算収支（月）</b></span><b style="color:${profit>=0?'var(--green)':'var(--red)'}">${profit>=0?'+':''}${yen(profit)}</b></div>
-    </div>`;
+    </details></div>`;
   });
-  h+=`<div class="card center"><div class="muted">全教室 月謝収入</div><div class="tot">${yen(tFee)}</div>
-    <div class="muted" style="margin-top:8px">全教室 概算コスト</div><div class="tot" style="color:var(--red)">${yen(tCost)}</div>
-    <div class="muted" style="margin-top:8px">全体 概算収支（月）</div><div class="tot" style="color:${tFee-tCost>=0?'var(--green)':'var(--red)'}">${tFee-tCost>=0?'+':''}${yen(tFee-tCost)}</div></div>`;
+  h+=`<div class="statgrid"><div class="stat brand"><div class="n" style="font-size:15px;padding-top:5px">${yen(tFee)}</div><div class="l">月謝収入</div></div><div class="stat abs"><div class="n" style="font-size:15px;padding-top:5px">${yen(tCost)}</div><div class="l">概算コスト</div></div><div class="stat ${tFee-tCost>=0?'att':'abs'}"><div class="n" style="font-size:15px;padding-top:5px">${tFee-tCost>=0?'+':''}${yen(tFee-tCost)}</div><div class="l">概算収支（月）</div></div></div>`;
+  h+=cards;
   return h;
 }
 async function saveCost(room,field,val){
@@ -1799,11 +2066,11 @@ async function saveCost(room,field,val){
   toast('保存しました'); renderStaff();
 }
 /* --- メンバー（権限管理・スタッフ追加） admin --- */
-function roleLabel(r){return r==='admin'?'管理者':r==='staff'?'スタッフ':r==='roster'?'名簿専用':r==='parttime'?'アルバイト':'保護者';}
+function roleLabel(r){return r==='admin'?'管理者':r==='staff'?'スタッフ':r==='roster'?'名簿専用':r==='parttime'?'アルバイト（廃止）':'保護者';}
 function roleSelect(p){const r=p.role||'parent';
   return `<label class="fld">役割</label><select onchange="changeRole('${p.id}',this.value)" ${p.id===me.id?'disabled':''}>
     <option value="parent" ${r==='parent'?'selected':''}>保護者</option>
-    <option value="parttime" ${r==='parttime'?'selected':''}>アルバイト</option>
+    ${r==='parttime'?`<option value="parttime" selected disabled>アルバイト（廃止・要変更）</option>`:''}
     <option value="staff" ${r==='staff'?'selected':''}>スタッフ</option>
     <option value="roster" ${r==='roster'?'selected':''}>名簿専用（全教室・金額非表示）</option>
     <option value="admin" ${r==='admin'?'selected':''}>管理者</option></select>${p.id===me.id?'<p class="muted" style="margin:6px 0 0">※自分の役割は変更できません</p>':''}`;}
@@ -1837,11 +2104,11 @@ async function saveClassChange(cid){
   showLoad(false);closeSheet();renderStaff();toast(c.name+'のクラスを変更しました');
 }
 function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
-  return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-    <div style="font-weight:800">${c.name}　<span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span>${statusPill(c)}</div>
-    <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
+  return `<div class="memcard">
+    <div class="mh"><span style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</span><span class="muted" style="font-weight:600">${calcGrade(c.birth)||''}</span><span class="ptmini">🔁 振替 ${c.points||0}/${maxPerChild()}</span>${statusPill(c)}</div>
+    <div class="muted">保護者：${esc(p.parent_name||'-')}（${esc(p.relation||'')}）／ ${telLink(p.tel)}</div>
     ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn sm soft" style="width:auto;padding:7px 12px" onclick="openParentMsg('${c.parent_id}')">この保護者に連絡</button><button class="btn sm gray" style="width:auto;padding:7px 12px" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
+    <div class="actions"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
   </div>`;}
 function openParentMsg(pid){
   const ms=allMsgs.filter(m=>m.parent_id===pid);
@@ -1853,31 +2120,28 @@ function openParentMsg(pid){
 async function sendParentMsg(pid){const i=document.getElementById('pmsg-'+pid);const v=i.value.trim();if(!v)return;showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);if(r.error){toast('送信エラー：'+r.error.message);return;}toast('送信しました');openParentMsg(pid);renderStaff();}
 function ownerRoster(){
   const sc=staffScope();const rooms=classroomsIn(sc.p,sc.r);
-  let h=`<h2 class="title">名簿・連絡先</h2><p class="muted" style="margin-top:-8px">担当エリア（${sc.p}・${sc.r}）の生徒と緊急連絡先です。</p>`;
-  let total=0;
+  let h=`<div class="sech"><h2 class="title">👥 名簿・連絡先</h2><span class="muted" style="font-size:11.5px">${sc.p}・${sc.r}</span></div>`;
+  let total=0;let body='';
   rooms.forEach(room=>{const inR=students().filter(c=>c.classroom===room);total+=inR.length;if(!inR.length)return;
     let inner='';
     (SCHOOLS[room]||[]).forEach(cls=>{const inC=inR.filter(c=>c.class_name===cls);if(!inC.length)return;
       let cards='';inC.forEach(c=>{cards+=contactCard(c);});
-      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${cls}（${inC.length}名）</summary>${cards}</details>`;});
+      const cap=CLASS_CAP[cls]||'-'; const full=(typeof cap==='number'&&inC.length>=cap);
+      inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--brand)">${esc(cls)}<span class="cap ${full?'full':''}">${inC.length}/${cap}名${full?'（満員）':''}</span></summary>${cards}</details>`;});
     const other=inR.filter(c=>!(SCHOOLS[room]||[]).includes(c.class_name));
     if(other.length){let cards='';other.forEach(c=>{cards+=contactCard(c);});inner+=`<details class="acc" style="margin-top:6px"><summary style="color:var(--sub)">その他（${other.length}名）</summary>${cards}</details>`;}
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span class="muted" style="font-weight:700">${inR.length}名</span></summary>${inner}</details></div>`;});
+    body+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,inR.length,'')}</summary>${inner}</details></div>`;});
+  h+=`<div class="statgrid" style="grid-template-columns:1fr"><div class="stat brand"><div class="n">${total}<span style="font-size:14px">名</span></div><div class="l">担当エリアの生徒数</div></div></div>`+body;
   if(!total)h+=`<div class="card center"><span class="muted">担当エリアにまだ生徒がいません。</span></div>`;
   h+=withdrawnListCard(rooms);
-  const pts=allProfiles.filter(p=>p.role==='parttime'&&p.staff_program===sc.p&&p.staff_region===sc.r);
-  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🙋 アルバイト名簿　<span class="muted" style="font-weight:700">${pts.length}名</span></summary>`;
-  if(!pts.length)h+=`<p class="muted" style="padding:6px 0">いません</p>`;
-  pts.forEach(p=>{h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px"><div style="font-weight:800">${p.parent_name||'(無名)'}</div><div class="muted">${p.email||''}${p.tel?'／ '+p.tel:''}</div></div>`;});
-  h+=`</details></div>`;
   return h;
 }
 function memberCard(c){
   const p=allProfiles.find(x=>x.id===c.parent_id)||{}; const r=p.role||'parent';
-  return `<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-    <div style="font-weight:800">${c.name} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span>${statusPill(c)}</div>
-    <div class="muted">保護者：${p.parent_name||'-'}（${p.relation||''}）／ ${p.tel||'電話未登録'}</div>
-    ${p.email?`<div class="muted">${p.email}</div>`:''}
+  return `<div class="memcard">
+    <div class="mh"><span style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</span><span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span><span class="ptmini">🔁 振替 ${c.points||0}/${maxPerChild()}</span>${statusPill(c)}</div>
+    <div class="muted">保護者：${esc(p.parent_name||'-')}（${esc(p.relation||'')}）／ ${telLink(p.tel)}</div>
+    ${p.email?`<div class="muted">${esc(p.email)}</div>`:''}
     ${ecLine(c,1)}${ecLine(c,2)}${ecLine(c,3)}
     ${roleSelect(p)}
   </div>`;
@@ -1887,14 +2151,12 @@ let staffSignup={name:'',email:'',pass:'',role:'owner',p:'体操',r:'徳島'};
 let adminFilter={p:'',r:''};
 function openStaffSignup(){if(!READY){toast('初期設定が未完了です');return;}staffSignup={name:'',email:'',pass:'',role:'owner',p:'体操',r:'徳島'};renderStaffSignup();}
 function renderStaffSignup(){
-  const roleBtns=[['owner','オーナー（メイン）'],['parttime','アルバイト（フォロー）']].map(([k,l])=>`<button class="btn sm ${staffSignup.role===k?'':'gray'}" style="flex:1" onclick="staffSignup.role='${k}';renderStaffSignup()">${l}</button>`).join('');
   const progs=PROGRAMS.map(p=>`<button class="btn sm ${staffSignup.p===p.k?'':'gray'}" style="flex:1" onclick="staffSignup.p='${p.k}';staffSignup.r=regionsFor('${p.k}')[0];renderStaffSignup()">${p.k}</button>`).join('');
   const regs=regionsFor(staffSignup.p).map(r=>`<option value="${r}" ${staffSignup.r===r?'selected':''}>${r}</option>`).join('');
   let h=`<h3>スタッフ申請</h3><p class="muted" style="margin-bottom:8px">申請後、管理者（木原）の承認をお待ちください。承認されるとスタッフ機能が使えます。</p>
     <label class="fld">お名前</label><input value="${(staffSignup.name||'').replace(/"/g,'&quot;')}" oninput="staffSignup.name=this.value" placeholder="山田 太郎">
     <label class="fld">メールアドレス</label><input type="email" value="${(staffSignup.email||'').replace(/"/g,'&quot;')}" oninput="staffSignup.email=this.value" placeholder="hogehoge@example.com">
     <label class="fld">パスワード（6文字以上）</label><input type="password" value="${staffSignup.pass}" oninput="staffSignup.pass=this.value" placeholder="••••••••">
-    <label class="fld">希望の役割</label><div style="display:flex;gap:6px">${roleBtns}</div>
     <label class="fld" style="margin-top:8px">担当の種目</label><div style="display:flex;gap:6px">${progs}</div>
     <label class="fld" style="margin-top:8px">担当の都道府県</label><select onchange="staffSignup.r=this.value">${regs}</select>
     <button class="btn green" style="margin-top:14px" onclick="submitStaffSignup()">申請する</button>
@@ -1916,47 +2178,48 @@ async function submitStaffSignup(){
   closeSheet();toast('申請を受け付けました。承認後にログインできます');go('s-login');
 }
 function openPendingScreen(){go('s-login');openSheet(`<h3>承認待ちです</h3><p class="muted">スタッフ申請を受け付けています。管理者（木原）の承認をお待ちください。承認されると、次回ログイン時にスタッフ機能が使えます。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet();logout()">ログアウト</button>`);}
-async function approveStaff(id,req){showLoad(true);const role=req==='owner'?'staff':'parttime';const r=await db.from('profiles').update({role,staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
+async function approveStaff(id){showLoad(true);const r=await db.from('profiles').update({role:'staff',staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
 async function rejectStaff(id){showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
 function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope());if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
 function stMembers(){
-  let h=`<h2 class="title">メンバー・権限</h2><p class="muted" style="margin-top:-8px">教室・クラスごとにまとめています。緊急連絡先の確認や、役割（スタッフ・管理者・アルバイト）の変更ができます。</p>`;
+  let h=`<div class="sech"><h2 class="title">🪪 メンバー・権限</h2><span class="muted" style="font-size:11.5px">役割の変更・申請の承認</span></div>`;
+  if(staffRole==='admin')h+=adminFilterBarHtml();
   if(allChangeReqs.length){
     h+=`<div class="card" style="border:1.5px solid var(--accent)"><div class="roomtitle" style="color:var(--accent)">🔁 クラス変更の申請（${allChangeReqs.length}件）</div>`;
-    allChangeReqs.forEach(r=>{h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-      <div style="font-weight:800">${r.child_name||childName(r.child_id)}</div>
-      <div class="muted">${r.from_room}教室 ${r.from_class} → <b style="color:var(--accent)">${r.to_room}教室 ${r.to_class}</b></div>
+    allChangeReqs.forEach(r=>{h+=`<div class="memcard">
+      <div class="mh">${esc(r.child_name||childName(r.child_id))}</div>
+      <div class="muted">${esc(r.from_room)}教室 ${esc(r.from_class)} → <b style="color:var(--accent)">${esc(r.to_room)}教室 ${esc(r.to_class)}</b></div>
       <div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveReq('${r.id}','${r.child_id}','${r.to_room}','${r.to_class}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectReq('${r.id}')">却下</button></div></div>`;});
     h+=`</div>`;
   }
   const pendStaff=allProfiles.filter(p=>p.staff_request&&!p.staff_approved&&p.role==='parent');
   if(staffRole==='admin'&&pendStaff.length){
     h+=`<div class="card" style="border:1.5px solid var(--brand)"><div class="roomtitle" style="color:var(--brand)">🪪 スタッフ申請（${pendStaff.length}件）</div>`;
-    pendStaff.forEach(p=>{const rl=p.staff_request==='owner'?'オーナー（メイン）':'アルバイト（フォロー）';h+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px"><div style="font-weight:800">${p.parent_name||'(無名)'}</div><div class="muted">希望：${rl}／${p.staff_program||''}・${p.staff_region||''}<br>${p.email||''}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveStaff('${p.id}','${p.staff_request}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectStaff('${p.id}')">却下</button></div></div>`;});
+    pendStaff.forEach(p=>{h+=`<div class="memcard"><div class="mh">${esc(p.parent_name||'(無名)')}</div><div class="muted">${esc(p.staff_program||'')}・${esc(p.staff_region||'')}<br>${esc(p.email||'')}</div><div style="display:flex;gap:8px;margin-top:8px"><button class="btn green sm" style="flex:1" onclick="approveStaff('${p.id}')">承認</button><button class="btn gray sm" style="flex:1" onclick="rejectStaff('${p.id}')">却下</button></div></div>`;});
     h+=`</div>`;
   }
-  Object.keys(SCHOOLS).forEach(room=>{
+  furikaeRooms().forEach(room=>{
     const roomKids=students().filter(c=>c.classroom===room);
     let inner='';
     SCHOOLS[room].forEach(cls=>{
       const ck=roomKids.filter(c=>c.class_name===cls);
       if(!ck.length)return;
-      inner+=`<div class="roomtitle" style="color:var(--brand);font-size:13px;margin:10px 0 4px">${cls}（${ck.length}名）</div>`;
+      inner+=`<div class="roomtitle" style="color:var(--brand);font-size:13px;margin:10px 0 4px">${esc(cls)}（${ck.length}名）</div>`;
       ck.forEach(c=>{inner+=memberCard(c);});
     });
     h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0">
-      <summary style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　<span style="color:var(--sub);font-weight:700">${roomKids.length}名</span></summary>
+      <summary>${roomSummaryHtml(room,roomKids.length,'')}</summary>
       ${inner||'<p class="muted" style="padding:6px 0">在籍なし</p>'}</details></div>`;
   });
   // スタッフ・管理者（クラスに属さない方）
   const staffs=allProfiles.filter(p=>p.role==='staff'||p.role==='admin'||p.role==='parttime'||p.role==='roster');
   let s='';
   staffs.forEach(p=>{const r=p.role||'parent';
-    s+=`<div style="border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:8px">
-      <div style="font-weight:800">${p.parent_name||'(無名)'} <span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
-      <div class="muted">${p.email||''}${p.tel?'／ '+p.tel:''}</div>${roleSelect(p)}</div>`;});
+    s+=`<div class="memcard">
+      <div class="mh">${esc(p.parent_name||'(無名)')}<span class="rolepill role-${r}" style="font-size:10px">${roleLabel(r)}</span></div>
+      <div class="muted">${esc(p.email||'')}${p.tel?'／ '+esc(p.tel):''}${(p.staff_program||p.staff_region)?'<br>担当：'+esc(p.staff_program||'')+'・'+esc(p.staff_region||''):''}</div>${roleSelect(p)}</div>`;});
   h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0">
-    <summary>🛠 スタッフ・管理者　<span style="color:var(--sub);font-weight:700">${staffs.length}名</span></summary>
+    <summary>🛠 スタッフ・管理者<span class="cap">${staffs.length}名</span></summary>
     ${s||'<p class="muted" style="padding:6px 0">いません</p>'}</details></div>`;
   return h;
 }
@@ -1974,65 +2237,28 @@ async function rejectReq(id){showLoad(true);
   await db.from('change_requests').update({status:'rejected',decided_at:new Date().toISOString()}).eq('id',id);
   const cr=await db.from('change_requests').select('*').eq('status','pending');allChangeReqs=cr.data||[];
   showLoad(false); toast('却下しました');renderStaff();}
-/* --- アルバイト：シフト＆当日の生徒 --- */
-function stShift(){
-  let h=`<h2 class="title">シフト</h2><p class="muted" style="margin-top:-8px">入れる日に「フォローで入る」を押してください。あなたはフォロースタッフです。</p>`;
-  const sc=staffScope();const t=new Date();t.setHours(0,0,0,0);let any=false;
-  for(let i=0;i<70;i++){const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const wd=d.getDay();const key=dateKey(d.getFullYear(),d.getMonth(),d.getDate());if(holidayName(d.getFullYear(),d.getMonth(),d.getDate()))continue;
-    const schools=schoolsOn(wd,sc).filter(s=>isHeld(s,key)&&!isCancelled(s,key));
-    schools.forEach(room=>{any=true;const cap=capacityFor(room,key);const ti=teacherInfo(room,key);const mine=myShiftRole(room,key)==='follow';const full=ti.follows.length>=cap.follow&&!mine;
-      h+=`<div class="card" style="padding:12px 14px"><div style="font-weight:800">${d.getMonth()+1}月${d.getDate()}日（${DOW[wd]}）・${SCHOOL_INFO[room].full}</div><div class="muted">フォロー ${ti.follows.length}/${cap.follow}${ti.follows.length?'：'+ti.follows.join('・'):''}</div>
-        <div style="margin-top:8px">${mine?`<button class="btn sm green" style="width:auto;padding:8px 14px" onclick="leaveShift('${room}','${key}')">✅ 入っています（外れる）</button>`:`<button class="btn sm ${full?'gray':''}" style="width:auto;padding:8px 14px" ${full?'disabled':''} onclick="joinShift('${room}','${key}','follow')">${full?'満員':'フォローで入る'}</button>`}</div></div>`;});
-  }
-  if(!any)h+=`<div class="card center"><span class="muted">直近に開催日がありません。担当エリアの開催日が登録されると表示されます。</span></div>`;
-  return h;
-}
-function stStudents(){
-  let h=`<h2 class="title">当日の生徒</h2><p class="muted" style="margin-top:-8px">シフトに入っている日の参加者を確認できます。</p>`;
-  const today=dateKey(new Date().getFullYear(),new Date().getMonth(),new Date().getDate());
-  const mine=[];Object.keys(shiftsAll).forEach(room=>Object.keys(shiftsAll[room]).forEach(key=>{if(key>=today&&shiftsAll[room][key].some(s=>s.uid===me.id))mine.push({room,key});}));
-  if(!mine.length)return h+`<div class="card center"><span class="muted">シフトに入っている日がありません。「シフト」タブから登録してください。</span></div>`;
-  const days=[...new Set(mine.map(m=>m.key))].sort();
-  if(!attDate||!days.includes(attDate))attDate=days[0];
-  h+=`<div class="card"><label class="fld">シフトの日</label><select onchange="attDate=this.value;renderStaff()">${days.map(d=>`<option value="${d}" ${d===attDate?'selected':''}>${attDateLabel(d)}</option>`).join('')}</select></div>`;
-  const wd=new Date(attDate+'T00:00:00').getDay();
-  const absOf=allAbsences.filter(a=>(''+a.date).slice(0,10)===attDate);
-  const furOf=allFurikae.filter(f=>(''+f.date).slice(0,10)===attDate);
-  const myRooms=mine.filter(m=>m.key===attDate).map(m=>m.room);
-  let any=false;
-  myRooms.forEach(room=>{ if(isCancelled(room,attDate))return; const ct=contentOn(room,attDate,wd);
-    ct.classes.forEach(it=>{const cls=it.c;
-      const enrolled=students().filter(c=>c.classroom===room&&c.class_name===cls);
-      const absSet=new Set(absOf.filter(a=>a.classroom===room&&a.class_name===cls).map(a=>a.child_id));
-      const furIn=furOf.filter(f=>f.to_room===room&&f.to_class===cls);
-      const cnt=enrolled.filter(c=>!absSet.has(c.id)).length+furIn.length; any=true;
-      h+=`<div class="card"><div class="roomtitle" style="color:${scolor(room).bg}">${SCHOOL_INFO[room].full}　${cls}${it.t?'　'+it.t:''}　<span style="color:var(--sub);font-weight:700">参加 ${cnt}名</span></div>`;
-      enrolled.forEach(c=>{const ab=absSet.has(c.id);h+=`<div class="sumrow"><span>${c.name}</span><b style="font-size:13px;color:${ab?'var(--red)':'var(--green)'}">${ab?'欠席':'参加'}</b></div>`;});
-      furIn.forEach(f=>{h+=`<div class="sumrow"><span>${childName(f.child_id)} <span style="color:var(--accent);font-size:11px">(振替)</span></span><b style="font-size:13px;color:var(--green)">参加</b></div>`;});
-      h+=`</div>`;
-    });
-  });
-  if(!any)h+=`<div class="card center"><span class="muted">この日のクラス情報がありません。</span></div>`;
-  return h;
-}
 /* --- お知らせ投稿 --- */
 function stAnnounce(){
   const isAdmin=staffRole==='admin';const sc=staffScope();const area=sc.p+'/'+sc.r;
-  let h=`<h2 class="title">お知らせ</h2><p class="muted" style="margin-top:-8px">保護者のホーム画面に表示されます。</p>`;
+  let h=`<div class="sech"><h2 class="title">📢 お知らせ</h2><span class="muted" style="font-size:11.5px">保護者のホームに表示</span></div>`;
   let rooms;
+  const mine=isAdmin?anns:anns.filter(a=>a.scope==='area'?a.area===area:(a.scope==='room'?classroomsIn(sc.p,sc.r).includes(a.room):false));
+  if(mine.length){mine.forEach(a=>{const label=a.scope==='all'?'📢 全体':a.scope==='area'?'📢 '+(a.area||'エリア'):(SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room);const col=a.scope==='room'?scolor(a.room).bg:'var(--accent)';h+=`<div class="annc" style="border-left-color:${col}"><div class="ah" style="justify-content:space-between">${esc(label)}<button class="linkbtn" style="color:var(--red);padding:0 4px" onclick="delAnn('${a.id}')">削除</button></div><div class="ab">${esc(a.body)}</div></div>`;});}
+  else h+=`<div class="card center" style="padding:14px"><span class="muted">投稿済みのお知らせはありません。</span></div>`;
+  h+=`<div class="sech"><h2 class="title">✏️ 新しく投稿</h2></div>`;
   if(isAdmin){
-    h+=`<div class="card"><label class="fld">📢 全体（全教室の保護者）</label><textarea id="ann-all-b" placeholder="例：年末年始の休講のお知らせ…"></textarea>
+    h+=`<div class="card"><label class="fld" style="margin-top:0">📢 全体（全教室の保護者）</label><textarea id="ann-all-b" placeholder="例：年末年始の休講のお知らせ…"></textarea>
       <button class="btn sm" style="margin-top:10px" onclick="postAnn('all','')">全体に投稿</button></div>`;
     rooms=Object.keys(SCHOOLS);
   } else {
-    h+=`<div class="card"><label class="fld">📢 ${sc.p}・${sc.r} 全体（担当エリアの全教室）</label><textarea id="ann-area-b" placeholder="担当エリアの保護者向け…"></textarea>
+    h+=`<div class="card"><label class="fld" style="margin-top:0">📢 ${sc.p}・${sc.r} 全体（担当エリアの全教室）</label><textarea id="ann-area-b" placeholder="担当エリアの保護者向け…"></textarea>
       <button class="btn sm" style="margin-top:10px" onclick="postAnn('area','')">エリア全体に投稿</button></div>`;
     rooms=classroomsIn(sc.p,sc.r);
   }
-  rooms.forEach(room=>{h+=`<div class="card"><label class="fld">📢 ${SCHOOL_INFO[room].full}</label><textarea id="ann-${room}-b" placeholder="この教室の保護者向け…"></textarea>
-    <button class="btn sm gray" style="margin-top:10px" onclick="postAnn('room','${room}')">この教室に投稿</button></div>`;});
-  const mine=isAdmin?anns:anns.filter(a=>a.scope==='area'?a.area===area:(a.scope==='room'?classroomsIn(sc.p,sc.r).includes(a.room):false));
-  if(mine.length){h+=`<h2 class="title" style="margin-top:18px">投稿済み</h2>`;mine.forEach(a=>{const label=a.scope==='all'?'全体':a.scope==='area'?(a.area||'エリア'):(SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room);h+=`<div class="card" style="padding:12px 14px"><div style="font-weight:800;font-size:13px">${label}</div><div class="muted">${esc(a.body)}</div><button class="btn sm gray" style="margin-top:8px;width:auto;padding:7px 12px" onclick="delAnn('${a.id}')">削除</button></div>`;});}
+  h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🏫 教室ごとに投稿<span class="cap">${rooms.length}教室</span></summary>`;
+  rooms.forEach(room=>{h+=`<div style="padding:6px 0 10px;border-bottom:1px dashed #eceff6"><label class="fld" style="margin-top:6px;color:${scolor(room).bg}">📢 ${esc(SCHOOL_INFO[room].full)}</label><textarea id="ann-${room}-b" placeholder="この教室の保護者向け…" style="min-height:60px"></textarea>
+    <button class="btn sm gray" style="margin-top:8px" onclick="postAnn('room','${room}')">この教室に投稿</button></div>`;});
+  h+=`</details></div>`;
   return h;
 }
 async function postAnn(scope,room){
@@ -2050,12 +2276,16 @@ function stMessages(){
   let pids;
   if(staffRole==='admin'){pids=Object.keys(byP);}
   else{const area=myAreaParentIds();pids=[...new Set([...Object.keys(byP).filter(id=>area.has(id)),...area])];}
-  let h=`<h2 class="title">${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>`;
+  const n=unrepliedCount();
+  let h=`<div class="sech"><h2 class="title">💬 ${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>${n?`<span class="cnt abs">未返信 ${n}</span>`:''}</div>`;
   if(pids.length===0)return h+`<div class="card center"><span class="muted">${staffRole==='admin'?'まだメッセージはありません。':'担当の保護者がいません。'}</span></div>`;
-  pids.forEach(pid=>{const ms=byP[pid]||[];
-    h+=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>${profName(pid)}<span style="color:var(--sub);font-weight:600;font-size:11px">${parentRooms(pid)}</span>　<span style="color:var(--sub);font-weight:700;font-size:12px">${ms.length}件</span></summary>
+  const lastOf=pid=>{const ms=(byP[pid]||[]).slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));return ms[ms.length-1];};
+  const needs=pid=>{const l=lastOf(pid);return !!(l&&l.sender==='parent');};
+  pids=pids.slice().sort((a,b)=>{const na=needs(a)?1:0,nb=needs(b)?1:0;if(na!==nb)return nb-na;const la=lastOf(a),lb=lastOf(b);return (''+(lb&&lb.created_at||'')).localeCompare(''+(la&&la.created_at||''));});
+  pids.forEach(pid=>{const ms=byP[pid]||[];const last=lastOf(pid);const nr=needs(pid);
+    h+=`<div class="card" style="padding:8px 14px${nr?';border-left:5px solid var(--red)':''}"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:var(--ink)"><span style="min-width:0"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(profName(pid))}${nr?'<span class="cnt abs" style="font-size:10.5px">未返信</span>':''}</span><span class="muted" style="font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(parentRooms(pid))}${last?'　'+esc((last.body||'').replace(/\n/g,' ').slice(0,28)):''}</span></span><span class="cap">${ms.length}件</span></summary>
       <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
-      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="メッセージを入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="replyMsg('${pid}')">送信</button></div>
+      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="メッセージを入力…" style="border-radius:999px"><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
   return h;
 }
