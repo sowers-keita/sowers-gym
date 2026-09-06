@@ -544,7 +544,7 @@ const SCHEDULE = {
   "上板":{0:[{c:"Aクラス",t:"10:20–11:20",g:"5歳〜小学生"},{c:"Bクラス",t:"11:30–12:30",g:"5歳〜小学生"},{c:"バク転集中クラス",t:"13:00–14:00",g:"バク転に挑戦したい方"}]},
   "小松島":{4:[{c:"ジュニアクラス",t:"19:00–20:00",g:"小学生以上"},{c:"バク転クラス",t:"20:00–21:00",g:"バク転に挑戦したい方"}]},
 };
-const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"},{k:"net",nm:"銀行振込",ds:"毎月ご自身で銀行振込",ic:"🏦"},{k:"app",nm:"アプリ決済（クレジットカード）",ds:"このアプリ内でカード決済（準備中・開始時にご案内します）",ic:"💳"}];
+const PAYMENTS=[{k:"auto",nm:"自動送金（口座振替）",ds:"毎月自動で引き落とし",ic:"🏦"},{k:"sgrum",nm:"Sgrumアプリ",ds:"アプリで自動決済（確認通知なし）",ic:"📱"},{k:"cash",nm:"現金手渡し",ds:"教室で直接お支払い",ic:"💴"},{k:"net",nm:"銀行振込",ds:"毎月ご自身で銀行振込",ic:"🏦"},{k:"stripe",nm:"アプリでお支払い",ds:"クレジットカード自動／銀行振込／コンビニ（登録後にマイページで設定）",ic:"💳"}];
 
 /* ===== 多種目×多県 拡張（Phase A・2026-06-26） ===== */
 Object.assign(SCHOOLS,{
@@ -609,7 +609,14 @@ function regionsFor(program){const s=[];Object.keys(CLASSROOM_META).forEach(k=>{
 function classroomsIn(program,region){return Object.keys(CLASSROOM_META).filter(k=>CLASSROOM_META[k].p===program&&CLASSROOM_META[k].r===region);}
 function metaOf(room){return CLASSROOM_META[room]||{p:"体操",r:"徳島"};}
 function currentScope(){if(typeof kids!=='undefined'&&kids&&kids.length){const m=metaOf(kids[0].classroom);return {p:m.p,r:m.r};}return {p:"体操",r:"徳島"};}
-function paymentsFor(scope){if(scope&&scope.p==="ダンス"&&scope.r==="長崎")return PAYMENTS.filter(p=>p.k==="app");if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");return PAYMENTS;}
+function paymentsFor(scope,room){
+  // アプリ決済（Stripe）の対象教室は「アプリでお支払い」のみ。全員公開前(PAY_TEST_MODE)は長崎だけ先行
+  const live=(typeof PAY_TEST_MODE!=='undefined')&&!PAY_TEST_MODE;
+  const c={classroom:room,region:scope&&scope.r,program:scope&&scope.p};
+  if(room&&!payExcluded(c)&&(live||(scope&&scope.p==="ダンス"&&scope.r==="長崎")))return PAYMENTS.filter(p=>p.k==="stripe");
+  if(scope&&scope.p==="ダンス")return PAYMENTS.filter(p=>p.k==="cash"||p.k==="net");
+  if(scope&&scope.p==="体操"&&scope.r!=="徳島")return PAYMENTS.filter(p=>p.k==="sgrum");
+  return PAYMENTS.filter(p=>p.k!=="stripe");}
 
 /* ===== 会場が曜日で変わる教室（key dance school: 水=上八万/木=八万中央） ===== */
 const ROOM_DAY_VARIANT={
@@ -938,7 +945,7 @@ async function deleteMyAccount(){if(previewGuard())return;showLoad(true);const r
 /* ============ 登録フロー ============ */
 const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
 const REG_N=REG_TITLES.length;
-function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
+function startRegister(){ if(!READY){toast('初期設定が未完了です');return;} if(!feeTable.length)loadPayData(false).then(()=>{if(reg.step===6)renderFeeForm();}); draft={parent:{name:"",rel:"母",tel:""},payment:"auto",children:[],email:"",pass:""}; reg={step:0,program:null,region:null,classroom:null,cls:null}; showErr('reg-err',''); go('s-reg'); renderReg(); }
 function regBack(){ if(reg.step===0){go('s-login');return;} reg.step--; renderReg(); }
 function blankChild(){const cr=reg.classroom||"論田";return {name:"",birth:"",school:"",classroom:cr,class_name:reg.cls||SCHOOLS[cr][0],fee:7000,enroll:"",points:0,ec1:"",ec1_note:"",ec1_rel:"",ec2:"",ec2_note:"",ec2_rel:"",ec3:"",ec3_note:"",ec3_rel:""};}
 function renderReg(){
@@ -981,7 +988,7 @@ function renderReg(){
       <button class="btn" onclick="reg.step=7;renderReg()">次へ</button>`;
     renderFeeForm();
   }else if(reg.step===7){
-    const pays=paymentsFor({p:reg.program,r:reg.region});
+    const pays=paymentsFor({p:reg.program,r:reg.region},reg.classroom);
     if(!pays.some(p=>p.k===draft.payment))draft.payment=pays[0].k;
     const payNote=pays.length===1?`<p class="muted" style="margin:-4px 0 10px">この教室のお支払いは「${pays[0].nm}」のみです。</p>`:'';
     b.innerHTML=pill+`<h2 class="title">お支払い方法</h2>`+payNote+pays.map(p=>`<div class="opt ${draft.payment===p.k?'sel':''}" onclick="draft.payment='${p.k}';renderReg()"><div class="ico">${p.ic}</div><div><div class="nm">${p.nm}</div><div class="ds">${p.ds}</div></div></div>`).join('')+`<button class="btn green" onclick="finishRegister()">登録してはじめる</button>`;
@@ -1015,9 +1022,10 @@ function renderFuriForm(){const box=document.getElementById('furiform');if(!box)
   box.appendChild(d);});}
 function renderFeeForm(){const box=document.getElementById('feeform');if(!box)return;box.innerHTML='';draft.children.forEach((c,i)=>{
   const d=document.createElement('div');d.className='card';
-  d.innerHTML=`<div style="font-weight:800">${c.name||'お子様'+(i+1)}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室 ${c.class_name}</div>
-    <label class="fld">月額（円）</label><input type="number" value="${c.fee}" oninput="draft.children[${i}].fee=Number(this.value)||0" placeholder="例：7000">
-    <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>`;
+  const def=feeFor(c.classroom,c.class_name);if(def!=null)c.fee=def;
+  d.innerHTML=`<div style="font-weight:800">${c.name||'お子様'+(i+1)}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室 ${c.class_name}</div>`+(def!=null
+    ?`<div class="kv"><span class="k">月額</span><span class="v">${yen(def)}</span></div><p class="muted" style="margin:6px 0 0">※料金表の金額です。兄弟割引・単発などの個別のご事情は、登録後に運営が調整します。</p>`
+    :`<label class="fld">月額（円）</label><input type="number" value="${c.fee}" oninput="draft.children[${i}].fee=Number(this.value)||0" placeholder="例：7000"><p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>`);
   box.appendChild(d);});}
 async function finishRegister(){
   showErr('reg-err','');showLoad(true);
@@ -1057,10 +1065,11 @@ async function afterAuth(preUser){
   if(profile.role==='staff'||profile.role==='admin'||profile.role==='parttime'||profile.role==='roster'){
     await loadStaffData(); showLoad(false); enterStaffApp(profile.role); return;
   }
-  await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur()]);
+  await Promise.all([loadKids(), loadMsgs(), loadMyAbs(), loadMyReqs(), loadMyFur(), loadPayData(false)]);
   showLoad(false);
   enterApp();
   showClassFixModal();
+  setTimeout(payBoot,1300);
 }
 async function loadKids(){const r=await db.from('children').select('*').eq('parent_id',me.id).order('created_at');kids=r.data||[];}
 async function loadAnns(){const r=await db.from('announcements').select('*').order('created_at',{ascending:false});anns=r.data||[];}
@@ -1083,6 +1092,180 @@ async function loadMyReqs(){const r=await db.from('change_requests').select('*')
 async function loadMyFur(){const r=await db.from('furikae').select('*').eq('parent_id',me.id);myFur=r.data||[];}
 function isCancelled(room,key){return !!(cancels[room]&&cancels[room][key]);}
 function isHidden(room,key){return !!(hidden[room]&&hidden[room][key]);}
+
+
+/* ============================================================
+   月謝のアプリ内決済（Stripe）2026-09-03 作成 → 2026-09-06 リデザイン版へ移植
+   対象: 上板・小松島・米子・松江・福山・北谷・室川・長崎（pay_settings で管理）
+   除外: 論田・北島・阿南・吉野川・keydance・上八万・八万中央・福岡（糸島）
+   ============================================================ */
+const PAY_TEST_MODE=true; /* 試験モード: trueの間、決済UIは管理者にのみ表示（全員公開時はfalse） */
+let paySubs=[],payInv=[],paySet=[],feeTable=[];
+function payUiOn(){const r=(profile&&profile.role)||(typeof staffRole!=='undefined'&&staffRole)||'';return !PAY_TEST_MODE||r==='admin'||(_pv&&_pv.on&&_pv.role==='admin');}
+const PAY_M={card:{lbl:'クレカ自動',col:'#0a84ff',bg:'#eef5ff'},bank:{lbl:'銀行振込',col:'#0f766e',bg:'#e6f4ef'},konbini:{lbl:'コンビニ払い',col:'#b45309',bg:'#fdf3e7'}};
+function todayYmdJST(){return jstNow().toISOString().slice(0,10);}
+function paySetting(k){const r=paySet.find(x=>x.key===k);return (r&&r.value)||{};}
+function konbiniOpen(){return todayYmdJST()>=(paySetting('konbini_from').date||'2026-11-01');}
+function payExcluded(c){const rg=paySetting('excluded_regions').regions||['福岡'];const rm=paySetting('excluded_classrooms').classrooms||['論田','北島','阿南','吉野川','keydance','上八万','八万中央'];const pg=paySetting('excluded_programs').programs||[];const m=metaOf(c.classroom);return rg.includes(c.region||m.r)||rm.includes(c.classroom)||pg.includes(c.program||m.p);}
+function paySubOf(cid){return paySubs.find(x=>x.child_id===cid)||null;}
+function paySubActive(cid){const x=paySubOf(cid);return !!(x&&['active','past_due','cancel_at_period_end'].includes(x.status));}
+function payEligible(c){return payUiOn()&&!isWithdrawn(c)&&!payExcluded(c)&&(c.fee||0)>0;}
+function payNeedsSetup(c){return payEligible(c)&&!paySubActive(c.id);}
+function feeFor(room,cls){const r=feeTable.find(f=>f.classroom===room&&f.class_name===cls);return r?r.fee:null;}
+function payCutoffDay(){return Number(paySetting('cancel_cutoff_day').day||15);}
+async function loadPayData(all,pid){
+  try{
+    const owner=pid||(me&&me.id);
+    const q=[db.from('pay_settings').select('*'),db.from('fee_table').select('*')];
+    if(owner){q.push(all?db.from('pay_subscriptions').select('*'):db.from('pay_subscriptions').select('*').eq('parent_id',owner));
+      q.push(all?db.from('pay_invoices').select('*'):db.from('pay_invoices').select('*').eq('parent_id',owner));}
+    const r=await Promise.all(q);
+    paySet=r[0].data||[];feeTable=r[1].data||[];paySubs=(r[2]&&r[2].data)||[];payInv=(r[3]&&r[3].data)||[];
+  }catch(e){console.warn('loadPayData',e);}
+}
+async function payFn(name,body){
+  if(previewGuard())return null;
+  try{
+    const {data:{session}}=await db.auth.getSession();
+    if(!session){toast('ログインし直してください');return null;}
+    const r=await fetch(SUPABASE_URL+'/functions/v1/'+name,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify(body||{})});
+    let j={};try{j=await r.json();}catch(_){}
+    if(!r.ok){toast(j.error||'処理に失敗しました');return null;}
+    return j;
+  }catch(e){console.error(e);toast('通信に失敗しました');return null;}
+}
+/* --- 保護者: 起動時（?pay=success/cancel/chgcard の処理 → 移行案内） --- */
+function payBoot(){
+  if(!payUiOn())return;
+  const sp=new URLSearchParams(location.search);const pr=sp.get('pay');
+  if(pr){try{sp.delete('pay');history.replaceState(null,'',location.pathname+(sp.toString()?'?'+sp.toString():''));}catch(_){}
+    if(pr==='success'){openSheet(`<div class="center" style="font-size:40px;line-height:1">🎉</div><h3 class="center">カードの登録が完了しました</h3><div style="line-height:2;font-size:14px">ありがとうございます。お月謝は<b>翌月1日</b>から毎月自動でお支払いされます。それまで請求されることはありません。</div><button class="btn" style="margin-top:12px" onclick="closeSheet();maybePayPopup(true)">とじる</button>`);}
+    else if(pr==='chgcard'){openSheet(`<div class="center" style="font-size:40px;line-height:1">💳</div><h3 class="center">カードでのお支払いに変更しました</h3><div style="line-height:2;font-size:14px">次回（翌月1日）のお月謝から、登録したカードで自動でお支払いされます。</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">とじる</button>`);}
+    else{toast('カード登録を中断しました。マイページからいつでも登録できます');}
+    return;}
+  maybePayPopup(false);
+}
+function maybePayPopup(force){
+  const targets=kids.filter(payNeedsSetup);if(!targets.length)return;
+  const key='sowers_gym_paypop_'+((profile&&profile.id)||me.id);const today=todayYmdJST();
+  if(!force){try{if(localStorage.getItem(key)===today)return;}catch(e){}}
+  try{localStorage.setItem(key,today);}catch(e){}
+  showMigrationSheet(targets);
+}
+function showMigrationSheet(targets){
+  openSheet(`<div class="center" style="font-size:40px;line-height:1">💳</div><h3 class="center">お月謝のお支払い方法が変わります</h3>
+    <div style="font-size:13.5px;line-height:1.9;margin-top:8px">いつもありがとうございます。<b>2026年10月分より</b>、お月謝のお支払いを、これまでの方法（スグラムなど）から<b>このアプリでのお支払い</b>（クレジットカード自動引き落とし／銀行振込）に切り替えさせていただきます。</div>
+    <div class="note" style="margin-top:10px">✅ これまでの方法でのお支払いは<b>9月分まで</b>です<br>✅ アプリでのお支払い登録を<b>9月中</b>にお願いいたします<br>✅ いま登録しても<b>9月中に請求されることはありません</b>。最初のお支払いは<b>10月1日</b>です<br>🏪 コンビニ払いは<b>11月から</b>お選びいただけます<br>🔁 お支払い方法は、あとからマイページで変更できます</div>
+    <div class="muted" style="margin-top:8px">対象：${targets.map(c=>esc(c.name)+'さん（'+yen(c.fee)+'/月）').join('、')}</div>
+    <button class="btn" style="margin-top:12px" onclick="closeSheet();showPaySelectSheet()">お支払い方法を登録する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">あとで登録する</button>`);
+}
+let _paySel={};
+function payMethodOpts(){const kOpen=konbiniOpen();return [['card','💳 クレジットカード','毎月自動で引き落とし（おすすめ）',false],['bank','🏦 銀行振込','ご家庭専用の口座に毎月お振込み（手数料が最安）',false],['konbini','🏪 コンビニ払い',kOpen?'毎月レジでお支払い（セブン不可）':'11月から選べます',!kOpen]];}
+function showPaySelectSheet(onlyCid){
+  const targets=kids.filter(c=>payNeedsSetup(c)&&(!onlyCid||c.id===onlyCid));if(!targets.length){toast('登録が必要なお子様はいません');return;}
+  _paySel={};const opts=payMethodOpts();
+  const block=c=>`<div style="font-weight:800;margin:12px 0 6px">🧒 ${esc(c.name)} さん <span class="muted" style="font-weight:600">${yen(c.fee)}/月</span></div>`+opts.map(o=>`<div class="opt" id="po-${c.id}-${o[0]}" style="padding:11px 13px;margin-bottom:7px${o[3]?';opacity:.45':''}" ${o[3]?'':`onclick="selPayOpt('${c.id}','${o[0]}')"`}><div style="flex:1"><div class="nm">${o[1]}</div><div class="ds">${o[2]}</div></div></div>`).join('');
+  openSheet(`<h3>お支払い方法を選んでください</h3><p class="muted" style="margin:-2px 0 4px">最初のお支払いは翌月1日からで、それまで請求されることはありません。ご兄弟はそれぞれ選べます（カードは1枚で共有できます）。</p>
+    ${targets.map(block).join('')}
+    <button class="btn" style="margin-top:12px" onclick="savePaySel(this)">これで登録する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">あとで</button>`);
+}
+function selPayOpt(cid,m){_paySel[cid]=m;['card','bank','konbini'].forEach(k=>{const el=document.getElementById('po-'+cid+'-'+k);if(el)el.classList.toggle('sel',k===m);});}
+async function savePaySel(btn){
+  if(previewGuard())return;
+  const targets=kids.filter(payNeedsSetup);
+  if(targets.some(c=>!_paySel[c.id])){toast('お子様ごとに選んでください');return;}
+  btn.disabled=true;showLoad(true);
+  const cards=[];let bank=0,kon=0;
+  for(const c of targets){const m=_paySel[c.id];
+    if(m==='card'){cards.push(c.id);continue;}
+    const j=await payFn('pay-checkout',{child_id:c.id,method:m});if(j&&j.ok){if(m==='bank')bank++;else kon++;}
+  }
+  if(cards.length){const j=await payFn('pay-checkout',{child_id:cards[0],method:'card'});if(j&&j.url){toast('カード登録ページへ移動します…');location.href=j.url;return;}}
+  await loadPayData(false);showLoad(false);closeSheet();renderMy();
+  if(bank||kon)openSheet(`<h3>${bank?'🏦 銀行振込':'🏪 コンビニ払い'}に設定しました</h3><div style="font-size:14px;line-height:2">ありがとうございます。<b>翌月1日</b>に${bank?'ご家庭専用の振込口座番号が入った':'お支払い番号が入った'}<b>請求メール</b>が届きます。期日（毎月10日）までに${bank?'お振込み':'コンビニでお支払い'}ください。</div><div class="note" style="margin-top:10px">・お支払いが確認されると自動で反映されます<br>・それまで請求されることはありません${bank?'<br>・銀行アプリの「毎月自動振込」を設定すると、毎月の操作がほぼ不要になります':''}</div><button class="btn" style="margin-top:12px" onclick="closeSheet()">とじる</button>`);
+  else btn.disabled=false;
+}
+/* --- 保護者: お支払い方法の変更（カード⇄銀行振込⇄コンビニ）--- */
+function payChangeSheet(cid){
+  const c=kids.find(k=>k.id===cid);const x=paySubOf(cid);if(!c||!x)return;
+  const opts=payMethodOpts();
+  const rows=opts.map(o=>{const cur=o[0]===x.method;const dis=o[3]||cur;return `<div class="opt ${cur?'sel':''}" style="padding:11px 13px;margin-bottom:7px${o[3]?';opacity:.45':''}" ${dis?'':`onclick="doPayChange('${cid}','${o[0]}')"`}><div style="flex:1"><div class="nm">${o[1]}${cur?' <span class="cap">いまの方法</span>':''}</div><div class="ds">${o[2]}</div></div>${dis?'':'<span style="color:#9aa3b8;font-weight:900">›</span>'}</div>`;}).join('');
+  openSheet(`<h3>🔁 お支払い方法の変更</h3><p class="muted" style="margin:-2px 0 8px">${esc(c.name)}さんのお月謝（${yen(x.amount||c.fee)}/月）。変更は<b>次回（翌月1日）の請求</b>から反映されます。すでに届いている請求書はそのままお支払いください。</p>${rows}<button class="btn gray" style="margin-top:6px" onclick="closeSheet()">やめる</button>`);
+}
+async function doPayChange(cid,method){
+  showLoad(true);const j=await payFn('pay-change-method',{child_id:cid,method});
+  if(j&&j.url){toast('カード登録ページへ移動します…');location.href=j.url;return;}
+  if(j&&j.ok){await loadPayData(false);showLoad(false);closeSheet();renderMy();toast('お支払い方法を「'+(PAY_M[method]||{}).lbl+'」に変更しました（次回の請求から）');}
+  else showLoad(false);
+}
+function payChildCard(c){
+  if(!payUiOn()||isWithdrawn(c))return '';
+  if(payExcluded(c))return '';
+  if(!(c.fee>0))return `<div class="kv"><span class="k">💳 お支払い</span><span class="v">お月謝なし（単発・免除）</span></div>`;
+  const x=paySubOf(c.id);let body='';
+  if(x&&x.status==='cancel_at_period_end')body=`<span class="pill" style="background:#fdf3e7;color:#b45309;margin:0">解約予定${c.last_month?'（'+ymLabel(c.last_month)+'末まで）':''}</span> <button class="btn sm gray" style="width:auto;padding:6px 10px;margin-left:6px" onclick="undoPayCancel('${c.id}')">取り消す</button>`;
+  else if(x&&['active','past_due'].includes(x.status)){const m=PAY_M[x.method]||{lbl:x.method,col:'#555',bg:'#eee'};body=`<span class="pill" style="background:${m.bg};color:${m.col};margin:0">${m.lbl}</span> <span class="muted">${yen(x.amount||c.fee)}/月</span>${x.status==='past_due'?' <span class="pill" style="background:#fdeeef;color:#c0506f;margin:0">未納あり</span>':''} <button class="btn sm gray" style="width:auto;padding:5px 9px;margin-left:4px;font-size:12px" onclick="payChangeSheet('${c.id}')">変更</button>`;}
+  else body=`<span class="pill" style="background:#fdeeef;color:#c0506f;margin:0">未登録</span> <button class="btn sm" style="width:auto;padding:6px 10px;margin-left:6px" onclick="showPaySelectSheet('${c.id}')">登録する</button>`;
+  return `<div class="kv"><span class="k">💳 お支払い</span><span class="v">${body}</span></div>`;
+}
+function payCancelSheet(cid){
+  const c=kids.find(k=>k.id===cid);const x=paySubOf(cid);if(!c||!x)return;
+  const cut=payCutoffDay();const d=jstNow().getUTCDate();const last=d<=cut?nowYM():addMonths(nowYM(),1);
+  openSheet(`<h3>退会のお手続き</h3><div class="note">${esc(c.name)}さんの退会（お月謝のお支払いの解約）を行います。運営にも自動で伝わりますので、別途のご連絡は不要です。</div>
+    <div style="font-size:13.5px;line-height:2;margin-top:8px">・退会のお手続きは<b>毎月${cut}日締め</b>です<br>・いま手続きすると <b>${ymLabel(last)}末</b>での退会になります（お月謝は${ymLabel(last)}分まで）<br>・${ymLabel(last)}末までは通常どおりご参加いただけます<br>・まちがえた場合は、あとから取り消しもできます</div>
+    <button class="btn red" style="margin-top:14px" onclick="doPayCancel('${cid}')">退会する（解約する）</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);
+}
+async function doPayCancel(cid){showLoad(true);const j=await payFn('pay-cancel',{child_id:cid});if(j&&j.ok){await Promise.all([loadPayData(false),loadKids()]);showLoad(false);closeSheet();renderMy();renderHomeAnn();toast('退会を受け付けました（'+ymLabel(j.last_month)+'末まで有効です）');}else showLoad(false);}
+async function undoPayCancel(cid){showLoad(true);const j=await payFn('pay-cancel',{child_id:cid,undo:true});if(j&&j.ok){await Promise.all([loadPayData(false),loadKids()]);showLoad(false);renderMy();renderHomeAnn();toast('退会を取り消しました。継続されます');}else showLoad(false);}
+async function openPayPortal(){const j=await payFn('pay-portal');if(j&&j.url)location.href=j.url;}
+/* --- 管理者: 入金状況（Stripe自動反映）・料金表 --- */
+function payAdminSection(ym){
+  if(!payUiOn())return '';
+  const ymKey=(''+ym).replace(/-(\d)$/,'-0$1'); // "2026-9" → "2026-09"（pay_invoices.month_key の形式）
+  const list=students().filter(c=>!payExcluded(c)&&(c.fee||0)>0&&furikaeRooms().includes(c.classroom));
+  let nPaid=0,nWait=0,nOver=0,nNone=0,sum=0;
+  const rows=list.map(c=>{const x=paySubOf(c.id);const inv=payInv.find(v=>v.child_id===c.id&&v.month_key===ymKey);const m=x&&PAY_M[x.method];let st='',cls='';
+    if(inv&&inv.status==='paid'){nPaid++;sum+=(inv.amount||0);st='✅ 入金済み';cls='color:var(--green)';}
+    else if(inv&&inv.status==='open'){const over=inv.due_date&&todayYmdJST()>String(inv.due_date).slice(0,10);if(over){nOver++;st='🔔 期限超過';cls='color:var(--red)';}else{nWait++;st='⏳ 支払い待ち';cls='color:#b8860b';}}
+    else if(x&&x.status==='cancel_at_period_end'){st='📅 解約予定';cls='color:#b45309';}
+    else if(x&&x.status==='past_due'){nOver++;st='🔔 未納あり';cls='color:var(--red)';}
+    else if(x&&x.status==='active'){st='登録済み（請求前）';cls='color:var(--sub)';}
+    else{nNone++;st='未登録';cls='color:var(--red)';}
+    const p=allProfiles.find(q=>q.id===c.parent_id)||{};
+    return `<div class="sumrow" style="align-items:center"><span style="flex:1;min-width:0"><b style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</b><br><span class="muted" style="font-size:11px">${esc(p.parent_name||'')}・${esc(c.classroom)} ${esc(c.class_name)}・${yen(c.fee)}</span></span>${m?`<span class="pill" style="background:${m.bg};color:${m.col};margin:0 6px 0 0;padding:3px 8px;font-size:11px">${m.lbl}</span>`:''}<b style="font-size:12px;${cls};white-space:nowrap">${st}</b></div>`;}).join('');
+  return `<div class="sech"><h2 class="title">💳 アプリ決済の入金状況</h2>${PAY_TEST_MODE?'<span class="cnt fur">試験モード</span>':''}</div>
+    <div class="statgrid" style="grid-template-columns:repeat(4,1fr)"><div class="stat att"><div class="n">${nPaid}</div><div class="l">入金済み</div></div><div class="stat"><div class="n" style="color:#b8860b">${nWait}</div><div class="l">支払い待ち</div></div><div class="stat abs"><div class="n">${nOver}</div><div class="l">要フォロー</div></div><div class="stat abs"><div class="n">${nNone}</div><div class="l">未登録</div></div></div>
+    <div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>生徒ごとの状況（${list.length}名）<span class="cap" style="color:var(--green)">入金合計 ${yen(sum)}</span></summary><p class="muted" style="margin:4px 0 6px;font-size:12px">Stripeからの通知で自動更新されます。論田・北島・阿南・吉野川・キーダンス・糸島は従来どおりのため対象外です。</p>${rows||'<p class="muted">対象の生徒がいません</p>'}</details></div>`;
+}
+function feeTableCard(){
+  if(staffRole!=='admin')return '';
+  let inner='';
+  furikaeRooms().forEach(room=>{let rows='';SCHOOLS[room].forEach(cls=>{const v=feeFor(room,cls);rows+=`<div class="sumrow" style="align-items:center"><span>${esc(cls)}</span><span><input type="number" value="${v==null?'':v}" placeholder="未設定" style="width:96px;padding:6px 8px;text-align:right;border:1px solid var(--line);border-radius:8px" onchange="saveFee('${room}','${cls}',this.value)"> 円</span></div>`;});
+    inner+=`<details class="acc" style="margin-top:6px"><summary><span class="roomhead"><span class="roomdot" style="background:${scolor(room).bg}"></span><span style="color:${scolor(room).bg}">${esc(SCHOOL_INFO[room].full)}</span></span>${payExcluded({classroom:room})?'<span class="cap">対象外</span>':''}</summary>${rows}</details>`;});
+  return `<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>📋 料金表（教室×クラスの月謝）</summary><p class="muted" style="margin:4px 0 6px">新規登録・クラス変更のときの既定額です。個別の月謝は名簿の生徒シート「月謝を変更」から。</p>${inner}</details></div>`;
+}
+async function saveFee(room,cls,val){if(previewGuard())return;const fee=Number(val);if(!(fee>=0)){toast('金額を入力してください');return;}
+  showLoad(true);const r=await db.from('fee_table').upsert({classroom:room,class_name:cls,fee,updated_by:me.id,updated_at:new Date().toISOString()},{onConflict:'classroom,class_name'});
+  await loadPayData(true);showLoad(false);if(r.error){toast('保存エラー：'+r.error.message);return;}toast(`${room} ${cls} の月謝を ${yen(fee)} にしました`);}
+function editFeeSheet(cid){
+  const c=allChildren.find(x=>x.id===cid);if(!c)return;const def=feeFor(c.classroom,c.class_name);
+  openSheet(`<h3>${esc(c.name)} の月謝を変更</h3><p class="muted" style="margin:-2px 0 8px">料金表の既定額：${def==null?'未設定':yen(def)}。0円＝請求なし（単発・免除）。アプリ決済で契約中の場合は次回請求から新しい金額になります。</p>
+    <label class="fld">月謝（円）</label><input type="number" id="ef-fee" value="${c.fee||0}">
+    <label class="fld">備考（兄弟割引・免除 など）</label><input id="ef-note" value="${(c.fee_note||'').replace(/"/g,'&quot;')}" placeholder="例：兄弟割引">
+    <button class="btn green" style="margin-top:12px" onclick="saveChildFee('${cid}')">保存する</button>
+    <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
+}
+async function saveChildFee(cid){if(previewGuard())return;
+  const c=allChildren.find(x=>x.id===cid);if(!c)return;const fee=Number(document.getElementById('ef-fee').value)||0;const note=document.getElementById('ef-note').value.trim();
+  showLoad(true);const r=await db.from('children').update({fee,fee_note:note||null}).eq('id',cid);
+  if(r.error){showLoad(false);toast('保存エラー：'+r.error.message);return;}
+  Object.assign(c,{fee,fee_note:note||null});
+  if(payUiOn()&&paySubActive(cid)){const j=await payFn('pay-sync-fee',{child_id:cid});if(j&&!j.unchanged)toast(j.stopped?'契約を期間末で停止しました':`契約金額を ${yen(j.from)} → ${yen(j.to)} に更新しました`);}
+  await loadPayData(true);showLoad(false);closeSheet();renderStaff();toast(c.name+'の月謝を'+yen(fee)+'にしました');
+}
 
 function enterApp(){
   const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();
@@ -1420,7 +1603,7 @@ function renderMy(){
   let html=`<div class="card">
     <div class="kv"><span class="k">保護者</span><span class="v">${esc(profile.parent_name||'未設定')}（${esc(profile.relation||'')}）</span></div>
     <div class="kv"><span class="k">電話番号</span><span class="v">${esc(profile.tel||'未設定')}</span></div>
-    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${paymentsFor(currentScope()).map(p=>`<option value="${p.k}" ${profile.payment===p.k?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
+    <div class="kv"><span class="k">お支払い</span><span class="v"><select id="pay-sel" onchange="changePayment(this.value)" style="width:auto;max-width:190px;padding:6px 8px;font-size:13px;border:1px solid var(--line);border-radius:8px">${paymentsFor(currentScope(),kids[0]&&kids[0].classroom).map(p=>`<option value="${p.k}" ${(profile.payment===p.k||(profile.payment==='app'&&p.k==='stripe'))?'selected':''}>${p.nm}</option>`).join('')}</select></span></div>
     </div>
     <div class="ptcard"><div><div class="lb">🔁 家族の振替ポイント</div><div class="sm">上限：お子様1人につき${maxPerChild()}pt（兄弟は${maxPerChild()}×人数）<br><b>ご兄弟で共有して使えます</b></div></div><div class="ptbig">${totalPoints()}<span style="font-size:15px;opacity:.85"> / ${cap}</span></div></div>`;
   html+=`<div class="sech"><h2 class="title">🧒 お子様</h2><span class="muted" style="font-size:11.5px">${kids.length}人</span></div>`;
@@ -1433,18 +1616,21 @@ function renderMy(){
       <div class="kv"><span class="k">小学校</span><span class="v">${c.school||'未設定'}</span></div>
       ${wd?'':`<div class="kv"><span class="k">振替ポイント</span><span class="v">${c.points} / ${maxPerChild()}</span></div>
       <div class="ptchips">${chips}</div>`}
-      <details class="acc"><summary>お子様の情報・お月謝・緊急連絡先を編集</summary>
+      ${payChildCard(c)}
+      ${(!wd&&payEligible(c)&&paySubActive(c.id)&&(paySubOf(c.id)||{}).status!=='cancel_at_period_end')?`<div style="text-align:center;margin-top:6px"><button class="btn sm gray" style="width:auto;padding:6px 14px;font-size:12px" onclick="payCancelSheet('${c.id}')">退会する</button><div class="muted" style="font-size:11px;margin-top:3px">お月謝のお支払いの解約手続きに進みます</div></div>`:''}
+      <details class="acc"><summary>お子様の情報・緊急連絡先を編集</summary>
         <label class="fld">お名前</label><input id="nm-${i}" value="${(c.name||'').replace(/"/g,'&quot;')}" placeholder="山田 太郎">
         <label class="fld">生年月日</label><input type="date" id="bd-${i}" value="${c.birth||''}">
         <label class="fld">小学校名</label><input id="sc-${i}" value="${(c.school||'').replace(/"/g,'&quot;')}" placeholder="○○小学校">
-        <label class="fld">お月謝（円）</label><input type="number" value="${c.fee||0}" id="fee-${i}" placeholder="例：7000">
-        <p class="muted" style="margin:6px 0 0">※単発の方は0円でお願いします。</p>
+        <div class="kv" style="margin-top:8px"><span class="k">お月謝</span><span class="v">${c.fee===0?'なし（単発・免除）':yen(c.fee||0)+'/月'}${c.fee_note?' <span class="muted">('+esc(c.fee_note)+')</span>':''}</span></div>
+        <p class="muted" style="margin:2px 0 0">※お月謝の金額は運営が設定します。変更のご希望は連絡タブからお知らせください。</p>
         ${ecField(i,1,c)}
         ${ecField(i,2,c)}
         ${ecField(i,3,c)}
         <button class="btn sm" style="margin-top:10px" onclick="saveChild(${i})">このお子様の情報を保存</button>
       </details></div>`;});
   html+=`<button class="btn soft" onclick="openAddSibling()">＋ 兄弟・姉妹を追加</button>`;
+  if(payUiOn()&&kids.some(c=>{const x=paySubOf(c.id);return x&&x.method==='card'&&paySubActive(c.id);}))html+=`<button class="btn gray" style="margin-top:10px" onclick="openPayPortal()">💳 カードの変更・お支払い履歴</button>`;
   html+=`<div class="sech"><h2 class="title">🔁 振替・欠席</h2></div>`+manageBlock();
   html+=`<div class="sech"><h2 class="title">🔔 通知</h2></div>`+pushCard()+notifCard();
   html+=`<div class="sech"><h2 class="title">⚙️ その他</h2></div>
@@ -1455,7 +1641,7 @@ function renderMy(){
   renderHomeHero();renderUpcoming();
 }
 async function saveChild(i){if(previewGuard())return;const c=kids[i];showLoad(true);
-  const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,fee:Number(document.getElementById('fee-'+i).value)||0,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
+  const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   Object.assign(c,patch);toast('保存しました');renderMy();}
@@ -1512,6 +1698,7 @@ async function checkPaymentReminder(force){
   const now=new Date();const last=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();const isEnd=now.getDate()===last&&now.getDate()!==20;
   const ym=monthKey();
   if(!force){
+    if(kids.some(c=>paySubActive(c.id)))return; // アプリ決済に登録済みの家庭には出さない
     if(!needsPayCheck())return;
     if(now.getDate()!==20&&now.getDate()!==last)return;
     const r=await db.from('payment_status').select('paid').eq('parent_id',me.id).eq('ym',ym).maybeSingle();
@@ -1585,7 +1772,7 @@ async function loadStaffData(){
   myShifts=sh.data||[];
   allPay=d.data||[];
   allMsgs=e.data||[];
-  await ensureRuleEvents(); await loadEvents(); await loadCapacity(); await loadShifts();
+  await ensureRuleEvents(); await loadEvents(); await loadCapacity(); await loadShifts(); await loadPayData(true);
 }
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
@@ -1646,7 +1833,8 @@ function openChildAdmin(cid){
       <div class="kv"><span class="k">入会</span><span class="v">${esc(c.enroll||'-')}${showFee?'　月謝：'+(c.fee===0?'単発':yen(c.fee)):''}</span></div>
       ${c.last_month?`<div class="kv"><span class="k">最終在籍月</span><span class="v">${ymLabel(c.last_month)}${c.withdrawn_at?'　退会日：'+(''+c.withdrawn_at).slice(0,10):''}</span></div>`:''}
     </div>
-    <div class="actions" style="margin-top:0"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 この保護者に連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${withdrawBtn(c)}</div>
+    ${(()=>{const x=paySubOf(c.id);if(!x||!payUiOn())return '';const m=PAY_M[x.method]||{lbl:x.method,col:'#555',bg:'#eee'};return `<div class="muted" style="margin:-4px 0 10px">💳 アプリ決済：<span class="pill" style="background:${m.bg};color:${m.col};margin:0;padding:3px 8px;font-size:11px">${m.lbl}</span> ${x.status==='cancel_at_period_end'?'解約予定':x.status==='past_due'?'未納あり':x.status==='active'?'有効':x.status}・${yen(x.amount)}/月</div>`;})()}
+    <div class="actions" style="margin-top:0"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 この保護者に連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${staffRole==='roster'?'':`<button class="btn sm gray" onclick="editFeeSheet('${c.id}')">月謝を変更</button>`}${withdrawBtn(c)}</div>
     <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
 }
 function shortPlace(p){return (''+(p||'')).replace(/[（(][^）)]*[）)]/g,'').trim();}
@@ -2032,7 +2220,9 @@ function stPay(){
   const paid=payers.filter(p=>paidOf(p.id)).length;
   const unpaid=payers.length-paid;
   let h=`<div class="sech"><h2 class="title">✅ 入金チェック</h2></div>
-    <div class="card" style="padding:10px 12px"><select style="border-radius:999px;padding:10px 14px;font-weight:800" onchange="payYm=this.value;renderStaff()">${payMonthOptions(ym)}</select></div>
+    <div class="card" style="padding:10px 12px"><select style="border-radius:999px;padding:10px 14px;font-weight:800" onchange="payYm=this.value;renderStaff()">${payMonthOptions(ym)}</select></div>`;
+  h+=payAdminSection(ym)+feeTableCard();
+  h+=`<div class="sech"><h2 class="title">🏦 送金・振込の入金チェック</h2></div>
     <div class="statgrid"><div class="stat brand"><div class="n">${payers.length}</div><div class="l">対象</div></div><div class="stat att"><div class="n">${paid}</div><div class="l">入金済み</div></div><div class="stat abs"><div class="n">${unpaid}</div><div class="l">未入金</div></div></div>
     <p class="muted" style="margin:-4px 0 10px;font-size:12px">送金・振込のご家庭の${mo}月分。保護者が20日/月末の確認で「支払いました」を押すと自動でチェックが入ります。タップで手動切替も可。</p>`;
   if(payers.length===0)h+=`<div class="card center"><span class="muted">送金・振込のご家庭はまだいません。</span></div>`;
@@ -2116,10 +2306,15 @@ async function saveClassChange(cid){if(previewGuard())return;
   const room=document.getElementById('cc-room').value, cls=document.getElementById('cc-cls').value;
   if(room===c.classroom&&cls===c.class_name){toast('現在と同じ内容です');return;}
   showLoad(true);
-  const r=await db.from('children').update({classroom:room,class_name:cls,program:metaOf(room).p,region:metaOf(room).r}).eq('id',cid);
+  const patch={classroom:room,class_name:cls,program:metaOf(room).p,region:metaOf(room).r};
+  const def=feeFor(room,cls);let feeChanged=false;
+  if(def!=null&&def!==(c.fee||0)&&(c.fee||0)>0){showLoad(false);if(confirm(`料金表では ${room} ${cls} の月謝は ${yen(def)} です。\n月謝も ${yen(c.fee||0)} → ${yen(def)} に変更しますか？\n（兄弟割引などの個別設定がある場合は「キャンセル」で据え置き）`)){patch.fee=def;feeChanged=true;}showLoad(true);}
+  const r=await db.from('children').update(patch).eq('id',cid);
   if(r.error){showLoad(false);toast('変更できませんでした：'+r.error.message);return;}
+  if(feeChanged&&payUiOn()&&paySubActive(cid)){await payFn('pay-sync-fee',{child_id:cid});}
   const ch=await db.from('children').select('*');allChildren=ch.data||[];
-  showLoad(false);closeSheet();renderStaff();toast(c.name+'のクラスを変更しました');
+  if(feeChanged)await loadPayData(true);
+  showLoad(false);closeSheet();renderStaff();toast(c.name+'のクラスを変更しました'+(feeChanged?'（月謝 '+yen(def)+'）':''));
 }
 function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
   return `<div class="memcard">
@@ -2355,6 +2550,7 @@ async function startPreview(kind,id){
         db.from('furikae').select('*').eq('parent_id',id)
       ]);
       kids=k.data||[];msgs=m.data||[];myAbs=a.data||[];myReqs=r.data||[];myFur=f.data||[];
+      await loadPayData(false,id);
       db=makeReadOnlyDb(_pv.db);
       const t=new Date();cal.y=t.getFullYear();cal.m=t.getMonth();window.__upAll=false;
       document.getElementById('staff-tabbar').style.display='none';document.getElementById('tabbar').style.display='flex';
@@ -2382,6 +2578,7 @@ function exitPreview(){
   const b=document.getElementById('pv-banner');if(b)b.hidden=true;
   document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='flex';
   go('s-staff');renderStaffNav();renderStaff();
+  loadPayData(true).then(()=>{if(!_pv.on)renderStaff();});
   toast('管理者の画面に戻りました');
 }
 
