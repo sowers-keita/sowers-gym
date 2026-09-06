@@ -1030,7 +1030,12 @@ function renderFeeForm(){const box=document.getElementById('feeform');if(!box)re
 async function finishRegister(){
   showErr('reg-err','');showLoad(true);
   const {data,error}=await db.auth.signUp({email:draft.email,password:draft.pass});
-  if(error){showLoad(false);showErr('reg-err','登録できませんでした：'+error.message);return;}
+  if(error){showLoad(false);
+    if(/already registered|already exists|already been registered/i.test(error.message||'')){
+      showErr('reg-err','このメールアドレスはすでに登録されています。ログイン画面からお入りください（パスワードをお忘れの場合は「パスワードを忘れた方」から再設定できます）。');
+      const eb=document.getElementById('reg-err');if(eb&&!eb.querySelector('button')){const b=document.createElement('button');b.className='btn sm';b.style.marginTop='8px';b.textContent='ログイン画面へ';b.onclick=()=>{document.getElementById('li-mail')&&(document.getElementById('li-mail').value=draft.email||'');go('s-login');};eb.appendChild(b);}
+      return;}
+    showErr('reg-err','登録できませんでした：'+error.message);return;}
   // セッションが無い場合（確認メールON時）に備えてサインイン
   let uid=data.user&&data.user.id;
   if(!data.session){ const r=await db.auth.signInWithPassword({email:draft.email,password:draft.pass}); if(r.error){showLoad(false);showErr('reg-err','登録は完了しましたが自動ログインできませんでした。ログイン画面からお試しください。');return;} uid=r.data.user.id; }
