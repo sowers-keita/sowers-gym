@@ -1745,7 +1745,7 @@ let staffRole='admin', staffSection='schedule', scal={y:0,m:0}, payYm=null, attD
 function payMonthOptions(sel){const now=new Date();let o='';for(let i=0;i<13;i++){const d=new Date(now.getFullYear(),now.getMonth()-i,1);const v=d.getFullYear()+'-'+(d.getMonth()+1);const lbl=d.getFullYear()+'年'+(d.getMonth()+1)+'月';o+=`<option value="${v}" ${v===sel?'selected':''}>${lbl}</option>`;}return o;}
 let allProfiles=[], allChildren=[], allFurikae=[], allAbsences=[], allPay=[], allMsgs=[], roomCosts={}, allChangeReqs=[], myShifts=[];
 const STAFF_TAB_META={schedule:{ic:'📅',l:'予定'},furikae:{ic:'📋',l:'欠席振替'},furikaeset:{ic:'🔀',l:'振替設定'},roster:{ic:'👥',l:'名簿'},pay:{ic:'✅',l:'入金'},finance:{ic:'📊',l:'分析'},members:{ic:'🪪',l:'メンバー'},announce:{ic:'📢',l:'お知らせ'},messages:{ic:'💬',l:'連絡'}};
-const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],roster:['roster']};
+const ROLE_TABS={staff:['schedule','furikae','furikaeset','roster','announce','messages'],admin:['schedule','furikae','furikaeset','roster','pay','finance','members','announce','messages'],roster:['schedule','roster']};
 async function loadStaffData(){
   // 9件のクエリを並列取得（互いに独立）
   const [a,b,c,ab,rc,cr,sh,d,e]=await Promise.all([
@@ -1912,7 +1912,7 @@ function unrepliedCount(){
   return n;
 }
 // 下タブは主要4つ＋「その他」（機能は全て ROLE_TABS のまま。表示上まとめるだけ）
-const STAFF_PRIMARY={staff:['schedule','furikae','roster','messages'],admin:['schedule','furikae','roster','pay'],roster:['roster']};
+const STAFF_PRIMARY={staff:['schedule','furikae','roster','messages'],admin:['schedule','furikae','roster','pay'],roster:['schedule','roster']};
 function pendingCount(){let n=(allChangeReqs||[]).length;if(staffRole==='admin')n+=allProfiles.filter(p=>p.staff_request&&!p.staff_approved&&p.role==='parent').length;return n;}
 function tabBadgeN(k){if(k==='messages')return unrepliedCount();if(k==='members')return pendingCount();return 0;}
 function staffExtraTabs(){const tabs=ROLE_TABS[staffRole]||ROLE_TABS.roster;const prim=(STAFF_PRIMARY[staffRole]||tabs).filter(k=>tabs.includes(k));return {prim,extra:tabs.filter(k=>!prim.includes(k))};}
@@ -1982,17 +1982,17 @@ function renderEmgRows(){
 /* --- 予定（カレンダー） --- */
 function calStaffMove(d){scal.m+=d;if(scal.m<0){scal.m=11;scal.y--;}if(scal.m>11){scal.m=0;scal.y++;}renderStaffCal();}
 function stShellCal(){
-  const isAdmin=staffRole==='admin';
-  let legendRooms=isAdmin?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
-  if(isAdmin){if(adminFilter.p)legendRooms=legendRooms.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)legendRooms=legendRooms.filter(s=>metaOf(s).r===adminFilter.r);}
-  const areaBar=(!isAdmin)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted" style="font-size:11.5px">担当エリア</span><div style="font-weight:900">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
-  const filterBar=isAdmin?adminFilterBarHtml():'';
-  const createBtn=monthlyRoomsInScope().length?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
-  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">日付をタップで編集</span></div>${areaBar}${filterBar}${createBtn}
+  const isAdmin=staffRole==='admin', isRoster=staffRole==='roster', allRooms=isAdmin||isRoster;
+  let legendRooms=allRooms?Object.keys(SCHOOLS):classroomsIn(staffScope().p,staffScope().r);
+  if(allRooms){if(adminFilter.p)legendRooms=legendRooms.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)legendRooms=legendRooms.filter(s=>metaOf(s).r===adminFilter.r);}
+  const areaBar=(!allRooms)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted" style="font-size:11.5px">担当エリア</span><div style="font-weight:900">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
+  const filterBar=allRooms?adminFilterBarHtml():'';
+  const createBtn=(!isRoster&&monthlyRoomsInScope().length)?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
+  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">${isRoster?'全教室・閲覧のみ':'日付をタップで編集'}</span></div>${areaBar}${filterBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
   <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(legendRooms)}</div>
-  <p class="muted" style="margin-top:6px;font-size:12px">活動日をタップすると、会場・時間の変更や休講の設定ができます。${monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':''}</p></div>`;}
+  <p class="muted" style="margin-top:6px;font-size:12px">${isRoster?'活動日をタップすると、その日の教室・会場・時間を確認できます。':'活動日をタップすると、会場・時間の変更や休講の設定ができます。'+(monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':'')}</p></div>`;}
 function adminFilterBarHtml(){return `<div class="filterbar"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div>`;}
 function renderStaffCal(){
   const lab=document.getElementById('scal-label'); if(!lab)return; lab.textContent=`${scal.y}年 ${MONTHS[scal.m]}`;
@@ -2016,6 +2016,14 @@ function renderStaffCal(){
 function openStaffDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay(),key=dateKey(y,m,d);staffDayCtx={y,m,d,schools};
   let h=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
+  if(staffRole==='roster'){ // 名簿専用: 閲覧のみ
+    schools.forEach(s=>{const inf=SCHOOL_INFO[s]||{},cx=isCancelled(s,key),ct=contentOn(s,key,wd);
+      h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full||s}</div><div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place||''}</div>`;
+      if(cx)h+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>`;
+      else (ct.classes||[]).forEach(it=>{h+=`<div class="timeitem"><span class="cn">${it.c}</span><span class="tm">⏰ ${it.t}</span></div>`;});
+      h+=`</div>`;});
+    h+=`<button class="btn gray" onclick="closeSheet()">閉じる</button>`;openSheet(h);return;
+  }
   h+=`<p class="muted" style="margin:-4px 0 8px">会場・時間の変更は毎週の予定に反映され、全員のカレンダーに表示されます。</p>`;
   schools.forEach(s=>{const inf=SCHOOL_INFO[s],cx=isCancelled(s,key),monthly=isMonthlyRoom(s),ct=contentOn(s,key,wd);
     h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="roomtitle" style="color:${scolor(s).bg}">${inf.full}</div>`;
@@ -2389,7 +2397,7 @@ async function submitStaffSignup(){
 function openPendingScreen(){go('s-login');openSheet(`<h3>承認待ちです</h3><p class="muted">スタッフ申請を受け付けています。管理者（木原）の承認をお待ちください。承認されると、次回ログイン時にスタッフ機能が使えます。</p><button class="btn gray" style="margin-top:12px" onclick="closeSheet();logout()">ログアウト</button>`);}
 async function approveStaff(id){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({role:'staff',staff_approved:true}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('承認エラー：'+r.error.message);return;}toast('承認しました');renderStaff();}
 async function rejectStaff(id){if(previewGuard())return;showLoad(true);const r=await db.from('profiles').update({staff_request:null}).eq('id',id);const a=await db.from('profiles').select('*');allProfiles=a.data||[];showLoad(false);if(r.error){toast('却下エラー：'+r.error.message);return;}toast('却下しました');renderStaff();}
-function staffCalRooms(wd,key){let list=schoolsOn(wd, staffRole==='admin'?null:staffScope());if(staffRole==='admin'){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
+function staffCalRooms(wd,key){const allRooms=(staffRole==='admin'||staffRole==='roster');let list=schoolsOn(wd, allRooms?null:staffScope());if(allRooms){if(adminFilter.p)list=list.filter(s=>metaOf(s).p===adminFilter.p);if(adminFilter.r)list=list.filter(s=>metaOf(s).r===adminFilter.r);}return list.filter(s=>isHeld(s,key));}
 function stMembers(){
   let h=`<div class="sech"><h2 class="title">🪪 メンバー・権限</h2><span class="muted" style="font-size:11.5px">役割の変更・申請の承認</span></div>`;
   if(staffRole==='admin')h+=adminFilterBarHtml();
