@@ -1106,7 +1106,7 @@ async function saveDayOverride(room,key,ch){if(previewGuard())return;showLoad(tr
   if(!r.error)await loadEvents();showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   toast('この日だけの予定を更新しました');
-  if(document.getElementById('mconf-pop')){rerenderMconf();return;} // 月の予定確認ポップアップから直した場合はそこへ戻る
+  if(document.getElementById('mconf-pop')){mconfRefresh(room,key);return;} // 月の予定確認ポップアップから直した場合は、その行の表示だけ更新（画面は作り直さない）
   if(staffDayCtx)openStaffDay(staffDayCtx.y,staffDayCtx.m,staffDayCtx.d,staffDayCtx.schools);}
 async function clearDayOverride(room,key){if(previewGuard())return;showLoad(true);
   const r=await db.from('events').delete().eq('room',room).eq('date',key);
@@ -1944,22 +1944,37 @@ function monthConfirmTarget(){const n=new Date();return n.getDate()>=20?{y:n.get
 function monthConfirmRooms(){if(!(staffRole==='staff'||staffRole==='admin'))return [];const sc=staffRole==='admin'?null:staffScope();return Object.keys(SCHEDULE).filter(r=>isMonthPopRoom(r)&&(!sc||(metaOf(r).p===sc.p&&metaOf(r).r===sc.r)));}
 function monthConfirmPending(){const t=monthConfirmTarget();const tt=new Date(t.y,t.m,1);const y=tt.getFullYear(),m=tt.getMonth();return {y,m,rooms:monthConfirmRooms().filter(r=>monthConfirmState(r,y,m)!=='ok')};}
 let mconfOpen=''; // ポップアップ内で編集中の日（room|date）
+let mconfCtx=null;  // 表示中ポップアップの {y,m,rooms}（開いている間は教室の並びを固定し、画面を作り直さない）
 function mconfEdit(room,key){mconfOpen=(mconfOpen===room+'|'+key)?'':room+'|'+key;rerenderMconf();}
-function rerenderMconf(){const w=document.getElementById('mconf-pop');if(!w)return;const sc=(w.querySelector('.featb')||{}).scrollTop||0;w.remove();if(showMonthConfirmPopup(true)){const n=document.getElementById('mconf-pop');if(n){const b=n.querySelector('.featb');if(b)b.scrollTop=sc;}}}
+// ポップアップは作り直さず中身だけ差し替える（スクロール位置維持・アニメーションなし）
+function rerenderMconf(){const w=document.getElementById('mconf-pop');if(!w||!mconfCtx)return;const b=w.querySelector('.featb');if(!b)return;const sc=b.scrollTop;b.innerHTML=mconfBodyHtml(mconfCtx);mconfBindButtons(w);b.scrollTop=sc;}
+// 1日分の場所・時間を直したあと：その行の表示と教室の状態バッジだけ更新（入力欄はそのまま）
+function mconfRefresh(room,key){const w=document.getElementById('mconf-pop');if(!w||!mconfCtx)return;const {y,m}=mconfCtx;const s=monthSnapshot(room,y,m).find(x=>x.d===key);const row=document.getElementById('mrow-'+room+'-'+key);if(row&&s)row.innerHTML=mconfRowInner(s,mconfOpen===room+'|'+key);const pill=document.getElementById('mpill-'+room);if(pill)pill.outerHTML=mconfPillHtml(room,y,m);}
 async function mconfCancel(room,key,on){try{await setCancel(room,key,on);}catch(e){}mconfOpen='';rerenderMconf();}
+function mconfPillHtml(room,y,m){const st=monthConfirmState(room,y,m);const id=`id="mpill-${room}"`;return st==='ok'?`<span ${id} class="rolepill" style="background:#dcfce7;color:#166534">✅ 確定済み</span>`:st==='changed'?`<span ${id} class="rolepill" style="background:#fde68a;color:#92400e">確定後に変更あり</span>`:`<span ${id} class="rolepill" style="background:#e5e7eb;color:#374151">未確定</span>`;}
+function mconfRowInner(s,open){const dt=new Date(s.d+'T00:00:00');return `<div style="min-width:64px;font-weight:800">${dt.getMonth()+1}/${dt.getDate()}（${DOW[dt.getDay()]}）</div><div style="flex:1;min-width:0">${s.x?'<b style="color:#6b7280">休講</b>':s.c.map(c=>`<div>${esc(c[1])}　${esc(c[0])}</div>`).join('')}<div class="muted" style="font-size:11.5px">📍 ${esc(shortPlace(s.p))}</div></div><div style="color:#2f7df6;font-weight:900">${open?'▴':'✏️'}</div>`;}
 function monthSnapshotHtml(room,y,m){const snap=monthSnapshot(room,y,m);if(!snap.length)return `<div class="note" style="margin:4px 0 8px">この月の開催日が登録されていません。予定タブで開催日を作成してください。</div>`;
   const q=v=>(''+(v||'')).replace(/"/g,'&quot;');
   return snap.map(s=>{const dt=new Date(s.d+'T00:00:00');const open=mconfOpen===room+'|'+s.d;
-    let h=`<div style="display:flex;gap:8px;padding:6px 4px;border-bottom:1px dashed var(--line);font-size:13px;cursor:pointer;${open?'background:#fff7ed;border-radius:8px':''}" onclick="mconfEdit('${room}','${s.d}')"><div style="min-width:64px;font-weight:800">${dt.getMonth()+1}/${dt.getDate()}（${DOW[dt.getDay()]}）</div><div style="flex:1;min-width:0">${s.x?'<b style="color:#6b7280">休講</b>':s.c.map(c=>`<div>${esc(c[1])}　${esc(c[0])}</div>`).join('')}<div class="muted" style="font-size:11.5px">📍 ${esc(shortPlace(s.p))}</div></div><div style="color:#2f7df6;font-weight:900">${open?'▴':'✏️'}</div></div>`;
+    let h=`<div id="mrow-${room}-${s.d}" style="display:flex;gap:8px;padding:6px 4px;border-bottom:1px dashed var(--line);font-size:13px;cursor:pointer;${open?'background:#fff7ed;border-radius:8px':''}" onclick="mconfEdit('${room}','${s.d}')">${mconfRowInner(s,open)}</div>`;
     if(open){ // タップした日の場所・時間をその場で直す（この日だけ・他の日は変わらない）
       const ct=contentOn(room,s.d,dt.getDay());
-      h+=`<div style="background:#fff7ed;border-radius:0 0 10px 10px;padding:6px 10px 10px" onclick="event.stopPropagation()"><div class="muted" style="font-size:11.5px;margin-bottom:2px">この日だけの変更です（他の日には影響しません）</div>`;
+      h+=`<div style="background:#fff7ed;border-radius:0 0 10px 10px;padding:6px 10px 10px" onclick="event.stopPropagation()"><div class="muted" style="font-size:11.5px;margin-bottom:2px">この日だけの変更です（他の日には影響しません）。入力すると自動で保存されます</div>`;
       if(!s.x){h+=`<label class="fld">開催場所</label><input value="${q(ct.place)}" onchange="saveDayOverride('${room}','${s.d}',{place:this.value})">`;
         (ct.classes||[]).forEach(it=>{h+=`<label class="fld">${esc(it.c)} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${room}','${s.d}',{cls:'${it.c}',t:this.value})">`;});
         h+=`<div style="display:flex;gap:6px;margin-top:8px"><button class="btn red sm" style="flex:1" onclick="mconfCancel('${room}','${s.d}',true)">🚫 この日を休講にする</button><button class="btn gray sm" style="flex:1" onclick="mconfEdit('${room}','${s.d}')">閉じる</button></div>`;}
       else{h+=`<div style="display:flex;gap:6px;margin-top:4px"><button class="btn green sm" style="flex:1" onclick="mconfCancel('${room}','${s.d}',false)">休講を取り消す</button><button class="btn gray sm" style="flex:1" onclick="mconfEdit('${room}','${s.d}')">閉じる</button></div>`;}
       h+=`</div>`;}
     return h;}).join('');}
+function mconfBodyHtml(p){
+  let body=`<p class="muted" style="font-size:12.5px;margin:0 0 10px">保護者には、<b>確定した教室の予定だけ</b>が月初のポップアップで案内されます。日時・場所を見て、間違いがなければ「確定」を押してください。<b>間違いがある日は、その日をタップ</b>するとその場で直せます。</p>`;
+  p.rooms.forEach(r=>{const st=monthConfirmState(r,p.y,p.m);body+=`<div class="card" id="mcard-${r}" style="box-shadow:none;border:1px solid var(--line);padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-weight:800;color:${scolor(r).bg}">${esc((SCHOOL_INFO[r]||{}).full||r)}</div>${mconfPillHtml(r,p.y,p.m)}</div>${monthSnapshotHtml(r,p.y,p.m)}${st==='ok'?'':`<button class="btn green sm" style="margin-top:8px" onclick="confirmMonth('${r}',${p.y},${p.m})">✅ ${esc((SCHOOL_INFO[r]||{}).full||r)} を確定する</button>`}</div>`;});
+  const left=p.rooms.filter(r=>monthConfirmState(r,p.y,p.m)!=='ok');
+  body+=`<div class="featbtns"><button class="featclose">直す（予定タブへ）</button>${left.length>1?`<button class="featok" onclick="confirmMonth(null,${p.y},${p.m})">すべて確定</button>`:'<button class="featok">閉じる</button>'}</div>`;
+  return body;}
+function mconfBindButtons(w){const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);mconfCtx=null;mconfOpen='';};
+  const c=w.querySelector('.featclose');if(c)c.onclick=()=>{close();staffTab('schedule');};
+  const ok=w.querySelector('.featok');if(ok&&!ok.getAttribute('onclick'))ok.onclick=close;}
 function showMonthConfirmPopup(force){try{
   if(!(staffRole==='staff'||staffRole==='admin')||_pv.on)return false;if(window.__suppressMonthPop&&!force)return false;
   const p=monthConfirmPending();if(!p.rooms.length){if(force)toast('確認が必要な予定はありません');return false;}
@@ -1967,25 +1982,22 @@ function showMonthConfirmPopup(force){try{
   if(!force){let seen=false;try{seen=localStorage.getItem(seenKey)==='1';}catch(e){}if(seen)return false;
     if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__mconfRetry=(window.__mconfRetry||0)+1;if(window.__mconfRetry<=6)setTimeout(showMonthConfirmPopup,3000);return false;}
     try{localStorage.setItem(seenKey,'1');}catch(e){}}
-  let body=`<p class="muted" style="font-size:12.5px;margin:0 0 10px">保護者には、<b>確定した教室の予定だけ</b>が月初のポップアップで案内されます。日時・場所を見て、間違いがなければ「確定」を押してください。<b>間違いがある日は、その日をタップ</b>するとその場で直せます。</p>`;
-  p.rooms.forEach(r=>{const st=monthConfirmState(r,p.y,p.m);body+=`<div class="card" style="box-shadow:none;border:1px solid var(--line);padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-weight:800;color:${scolor(r).bg}">${esc((SCHOOL_INFO[r]||{}).full||r)}</div>${st==='changed'?'<span class="rolepill" style="background:#fde68a;color:#92400e">確定後に変更あり</span>':'<span class="rolepill" style="background:#e5e7eb;color:#374151">未確定</span>'}</div>${monthSnapshotHtml(r,p.y,p.m)}<button class="btn green sm" style="margin-top:8px" onclick="confirmMonth('${r}',${p.y},${p.m})">✅ ${esc((SCHOOL_INFO[r]||{}).full||r)} を確定する</button></div>`;});
+  const old=document.getElementById('mconf-pop');if(old)old.remove();
+  mconfCtx={y:p.y,m:p.m,rooms:p.rooms.slice()};mconfOpen='';
   const w=document.createElement('div');w.className='featp';w.id='mconf-pop';
-  w.innerHTML=`<div class="featc" style="width:min(440px,94vw)"><div class="feath"><div class="featmc">📋</div><div class="feattt">${p.m+1}月の予定の確認</div><div style="font-size:12px;opacity:.9;margin-top:2px">担当教室の日時・場所に間違いがないか確認してください</div></div><div class="featb" style="max-height:62vh;overflow:auto;padding:12px 14px">${body}<div class="featbtns"><button class="featclose">直す（予定タブへ）</button>${p.rooms.length>1?`<button class="featok" onclick="confirmMonth(null,${p.y},${p.m})">すべて確定</button>`:'<button class="featok">あとで</button>'}</div></div></div>`;
-  document.body.appendChild(w);
-  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
-  w.querySelector('.featclose').onclick=()=>{close();staffTab('schedule');};
-  const ok=w.querySelector('.featok');if(ok&&!ok.getAttribute('onclick'))ok.onclick=close;
+  w.innerHTML=`<div class="featc" style="width:min(440px,94vw)"><div class="feath"><div class="featmc">📋</div><div class="feattt">${p.m+1}月の予定の確認</div><div style="font-size:12px;opacity:.9;margin-top:2px">担当教室の日時・場所に間違いがないか確認してください</div></div><div class="featb" style="max-height:62vh;overflow:auto;padding:12px 14px">${mconfBodyHtml(mconfCtx)}</div></div>`;
+  document.body.appendChild(w);mconfBindButtons(w);
   return true;
 }catch(e){return false;}}
 async function confirmMonth(room,y,m){if(previewGuard())return;
-  const rooms=room?[room]:monthConfirmPending().rooms;if(!rooms.length)return;
+  const rooms=room?[room]:(mconfCtx?mconfCtx.rooms.filter(r=>monthConfirmState(r,y,m)!=='ok'):monthConfirmPending().rooms);if(!rooms.length)return;
   showLoad(true);const ym=ymKey(y,m);const rows=rooms.map(r=>({room:r,ym,snapshot:monthSnapshot(r,y,m),confirmed_by:me.id,confirmed_at:new Date().toISOString()}));
   const r=await db.from('month_confirms').upsert(rows,{onConflict:'room,ym'});
   if(!r.error)await loadMonthConfirms();showLoad(false);
   if(r.error){toast('確定できませんでした：'+r.error.message);return;}
   toast((m+1)+'月の予定を確定しました（'+rooms.length+'教室）');
-  const w=document.getElementById('mconf-pop');if(w)w.remove();
-  if(monthConfirmPending().rooms.length&&room)showMonthConfirmPopup(true);
+  const w=document.getElementById('mconf-pop');
+  if(w){ if(mconfCtx&&mconfCtx.rooms.some(r=>monthConfirmState(r,y,m)!=='ok')){mconfOpen='';rerenderMconf();} else {w.style.opacity='0';setTimeout(()=>w.remove(),250);mconfCtx=null;} }
   if(staffSection==='schedule')renderStaff();
 }
 function monthConfirmCardHtml(){if(!(staffRole==='staff'||staffRole==='admin'))return '';const rooms=monthConfirmRooms();if(!rooms.length)return '';
@@ -2770,7 +2782,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260910-4';
+const APP_BUILD='20260910-5';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
