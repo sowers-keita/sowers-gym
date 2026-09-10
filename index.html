@@ -1112,7 +1112,7 @@ function monthCanonical(snap){return JSON.stringify((Array.isArray(snap)?snap:[]
 function monthConfirmState(room,y,m){const row=monthConfirms[room+'|'+ymKey(y,m)];return !row?'none':monthCanonical(row.snapshot)===monthCanonical(monthSnapshot(room,y,m))?'ok':'changed';}
 function isMonthConfirmed(room,y,m){return !!monthConfirms[room+'|'+ymKey(y,m)];}
 function monthHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function monthTitle(y,m,staff){return `<header class="month-heading"><div class="month-eyebrow">${y}年${staff?' · 翌月の予定確認':''}</div><h2>${m+1}<span>月の練習日程</span></h2><button type="button" class="month-x" aria-label="閉じる" onclick="closeMonthDialog(this.closest('.month-overlay').id)">×</button></header>`;}
+function monthTitle(y,m,staff){return `<header class="month-heading"><div class="month-eyebrow">${y}年${staff?' · 予定の確認':''}</div><h2>${m+1}<span>月の練習日程</span></h2><button type="button" class="month-x" aria-label="閉じる" onclick="closeMonthDialog(this.closest('.month-overlay').id)">×</button></header>`;}
 function closeMonthDialog(id){const w=document.getElementById(id);if(!w)return;if(id==='mconf-pop'&&mconfCtx&&mconfCtx.busy)return;w.remove();if(id==='mconf-pop'){mconfCtx=null;mconfOpen='';}if(w._returnFocus&&w._returnFocus.isConnected)w._returnFocus.focus();}
 function mountMonthDialog(id,html){const old=document.getElementById(id);if(old)old.remove();const w=document.createElement('div');w.id=id;w.className='featp month-overlay';w.innerHTML=html;w._returnFocus=document.activeElement;w.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeMonthDialog(id);}if(e.key==='Tab'){const items=[...w.querySelectorAll('button,input,select,textarea,a[href]')].filter(x=>!x.disabled&&x.getClientRects().length);if(!items.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});document.body.appendChild(w);const b=w.querySelector('button');if(b)b.focus();return w;}
 
@@ -2781,7 +2781,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260910-7';
+const APP_BUILD='20260910-8';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
