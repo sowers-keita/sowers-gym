@@ -19,8 +19,9 @@ returns boolean language sql stable security invoker set search_path=public as $
  select auth.uid() is not null
  and exists(select 1 from public.profiles p where p.id=auth.uid() and p.role in ('admin','staff'))
  and exists(select 1 from public.month_popup_reviewers r where r.room=p_room and r.user_id=auth.uid())
- and extract(day from now() at time zone 'Asia/Tokyo')>=20
- and p_ym=to_char(date_trunc('month',now() at time zone 'Asia/Tokyo')+interval '1 month','YYYY-MM');
+ and (p_ym=to_char(now() at time zone 'Asia/Tokyo','YYYY-MM')
+ or (extract(day from now() at time zone 'Asia/Tokyo')>=20
+ and p_ym=to_char(date_trunc('month',now() at time zone 'Asia/Tokyo')+interval '1 month','YYYY-MM')));
 $$;
 revoke all on function public.can_confirm_month_popup(text,text) from public;
 grant execute on function public.can_confirm_month_popup(text,text) to authenticated;
