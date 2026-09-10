@@ -1051,7 +1051,7 @@ async function afterAuth(preUser){
   // プロフィール取得と共通データ読み込みを並列化（互いに独立）
   const [p]=await Promise.all([
     db.from('profiles').select('*').eq('id',me.id).maybeSingle(),
-    loadAnns(), loadCancels(), loadHidden(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts(), loadFurikaeBlocks()
+    loadAnns(), loadCancels(), loadHidden(), loadOverrides(), loadEvents(), loadTemplates(), loadRules(), loadShifts(), loadFurikaeBlocks(), loadMonthConfirms()
   ]);
   profile=p.data;
   if(!profile){ // 念のため最低限作成
@@ -1072,6 +1072,22 @@ async function loadAnns(){const r=await db.from('announcements').select('*').ord
 async function loadCancels(){cancels={};const r=await db.from('cancellations').select('*');(r.data||[]).forEach(c=>{const k=typeof c.date==='string'?c.date.slice(0,10):c.date;(cancels[c.room]=cancels[c.room]||{})[k]=true;});}
 async function loadHidden(){hidden={};const r=await db.from('hidden_days').select('*');(r.data||[]).forEach(h=>{const k=(''+h.date).slice(0,10);(hidden[h.room]=hidden[h.room]||{})[k]=true;});}
 async function loadFurikaeBlocks(){const r=await db.from('furikae_blocks').select('*');FURIKAE_BLOCKS=r.data||[];}
+/* ===== 徳島限定: 月の予定の「担当者確認→確定」と、保護者への月初ポップアップ（2026-09-10 keita指示） =====
+   - 前月20日以降に担当者（担当エリアのスタッフ／管理者）がアプリを開くと、翌月の予定（日時・場所）の確認ポップアップ → 「確定」で month_confirms に保存
+   - 保護者は月初（その月に初めて開いたとき）に、確定済みの教室の予定をポップアップで表示（欠席・振替ボタン付き）
+   - 確定後に予定が変わった場合は、担当者に再確認を求める（保護者には常に最新の予定を表示） */
+const MONTHPOP_REGION='徳島';
+let monthConfirms={}; // {'room|YYYY-MM':{room,ym,snapshot,confirmed_by,confirmed_at}}
+async function loadMonthConfirms(){monthConfirms={};try{const r=await db.from('month_confirms').select('*');(r.data||[]).forEach(x=>{monthConfirms[x.room+'|'+x.ym]=x;});}catch(e){}}
+function isMonthPopRoom(room){return metaOf(room).r===MONTHPOP_REGION;}
+function ymKey(y,m){return y+'-'+String(m+1).padStart(2,'0');}
+function monthSnapshot(room,y,m){const days=new Date(y,m+1,0).getDate();const out=[];
+  for(let d=1;d<=days;d++){if(holidayName(y,m,d))continue;const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
+    if(WEEKLY_ROOMS.has(room)&&!(SCHEDULE[room]&&SCHEDULE[room][wd]))continue;if(!isHeld(room,key))continue;
+    const ct=contentOn(room,key,wd);out.push({d:key,p:ct.place||'',c:(ct.classes||[]).map(it=>[it.c,it.t]),x:isCancelled(room,key)?1:0});}
+  return out;}
+function monthConfirmState(room,y,m){const row=monthConfirms[room+'|'+ymKey(y,m)];if(!row)return 'none';const cur=JSON.stringify(monthSnapshot(room,y,m));return JSON.stringify(row.snapshot||[])===cur?'ok':'changed';}
+function isMonthConfirmed(room,y,m){return !!monthConfirms[room+'|'+ymKey(y,m)];}
 async function loadOverrides(){
   const [v,t]=await Promise.all([
     db.from('venue_overrides').select('*'),
@@ -1288,6 +1304,7 @@ function enterApp(){
   pushBoot();
   setTimeout(showEcUpgradeAnnounce,900);
   setTimeout(pushIntroAnnounce,1700);
+  setTimeout(showMonthSchedulePopup,2600); // 徳島限定・月初の練習予定（担当者が確定した教室のみ・月1回）
 }
 
 /* ============ お知らせ ============ */
@@ -1321,8 +1338,10 @@ function renderHomeHero(){
   box.innerHTML=`<div class="hero"><div style="min-width:0"><div class="hi">こんにちは</div><div class="nm">${nm}</div>${names?`<div class="hi" style="margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">🧒 ${names}</div>`:''}</div>${chip}</div>`;
 }
 // 家族の在籍クラスの今後の練習（days日以内）。兄弟が同じ教室・クラス・日なら1件にまとめる。振替予定も含める
-function upcomingOccurrences(days){
-  const list=[];const map={};const t=new Date();t.setHours(0,0,0,0);const act=activeKids();
+function upcomingOccurrences(days){const t=new Date();t.setHours(0,0,0,0);return occurrencesRange(t,days);}
+// start日から n日分（兄弟まとめ・振替予定込み）。月初ポップアップ（徳島）でも使う
+function occurrencesRange(start,days,roomFilter){
+  const list=[];const map={};const t=new Date(start);t.setHours(0,0,0,0);const act=activeKids().filter(c=>!roomFilter||roomFilter(c.classroom));
   const add=(room,cls,key,y,m,dd,wd)=>{const k=room+'|'+cls+'|'+key;if(map[k])return map[k];const ct=contentOn(room,key,wd);const it=(ct.classes||[]).find(x=>x.c===cls)||{};map[k]={room,cls,time:it.t||'',target:it.g||'',place:ct.place||(SCHOOL_INFO[room]||{}).place||'',y,m,d:dd,wd,key,cancelled:isCancelled(room,key),kids:[],furKids:[]};list.push(map[k]);return map[k];};
   for(let i=0;i<days;i++){
     const d=new Date(t.getFullYear(),t.getMonth(),t.getDate()+i);const y=d.getFullYear(),m=d.getMonth(),dd=d.getDate(),wd=d.getDay();
@@ -1331,7 +1350,7 @@ function upcomingOccurrences(days){
       if(!isHeld(room,key))return;if(WEEKLY_ROOMS.has(room)&&!SCHEDULE[room][wd])return;
       const ct=contentOn(room,key,wd);if(!(ct.classes||[]).some(x=>x.c===c.class_name))return;
       add(room,c.class_name,key,y,m,dd,wd).kids.push(c);});
-    myFur.forEach(f=>{if((''+f.date).slice(0,10)!==key)return;const c=kids.find(k=>k.id===f.child_id);if(!c||isWithdrawn(c))return;const o=add(f.to_room,f.to_class,key,y,m,dd,wd);if(!o.kids.includes(c))o.kids.push(c);if(!o.furKids.includes(c.id))o.furKids.push(c.id);});
+    myFur.forEach(f=>{if((''+f.date).slice(0,10)!==key)return;if(roomFilter&&!roomFilter(f.to_room))return;const c=kids.find(k=>k.id===f.child_id);if(!c||isWithdrawn(c))return;const o=add(f.to_room,f.to_class,key,y,m,dd,wd);if(!o.kids.includes(c))o.kids.push(c);if(!o.furKids.includes(c.id))o.furKids.push(c.id);});
   }
   list.sort((a,b)=>a.key.localeCompare(b.key)||(a.time||'').localeCompare(b.time||''));
   return list;
@@ -1353,8 +1372,38 @@ function renderUpcoming(){
   if(!occ.length)h+=`<div class="card center" style="padding:14px"><span class="muted">直近の練習予定はありません。</span></div>`;
   shown.forEach(o=>{h+=pcardHtml(o);});
   h+=`<button class="bigtransfer" onclick="openTransferPicker()">🔀 振替を申し込む</button>`;
+  if(monthPopRoomsOfFamily().length)h+=`<button class="btn soft sm" style="margin-top:8px" onclick="showMonthSchedulePopup(true)">📅 今月の練習予定をまとめて見る</button>`;
   box.innerHTML=h;
 }
+/* ---- 徳島限定: 月初の「今月の練習予定」ポップアップ（担当者が確定した教室だけ） ---- */
+function monthPopRoomsOfFamily(){return [...new Set(activeKids().map(c=>c.classroom).filter(r=>r&&SCHEDULE[r]&&isMonthPopRoom(r)))];}
+function showMonthSchedulePopup(force){try{
+  if(!me||!me.id||!profile||profile.role!=='parent')return false;if(window.__suppressMonthPop&&!force)return false;
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth();const ym=ymKey(y,m);
+  const rooms=monthPopRoomsOfFamily();if(!rooms.length){if(force)toast('対象の教室がありません');return false;}
+  const ready=rooms.filter(r=>isMonthConfirmed(r,y,m));
+  if(!ready.length){if(force)toast('今月の予定は担当の先生が確認中です。確定するとここに表示されます');return false;}
+  const seenKey='sowers_gym_monthpop_'+me.id+'_'+ym;
+  if(!force){let seen=false;try{seen=localStorage.getItem(seenKey)==='1';}catch(e){}if(seen)return false;
+    if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){ // 他のポップアップが出ている間は少し待って再試行
+      window.__monthPopRetry=(window.__monthPopRetry||0)+1;if(window.__monthPopRetry<=6)setTimeout(showMonthSchedulePopup,3000);return false;}
+    try{localStorage.setItem(seenKey,'1');}catch(e){}}
+  const start=new Date(y,m,1);const from=start<now?new Date(y,m,now.getDate()):start;const daysLeft=new Date(y,m+1,0).getDate()-from.getDate()+1;
+  const occ=occurrencesRange(from,daysLeft,r=>ready.includes(r));
+  const pending=rooms.filter(r=>!ready.includes(r));
+  let body='';
+  if(!occ.length)body+=`<div class="card center" style="padding:14px;box-shadow:none;border:1px solid var(--line)"><span class="muted">今月の残りの練習予定はありません。</span></div>`;
+  occ.forEach(o=>{body+=pcardHtml(o);});
+  if(pending.length)body+=`<p class="muted" style="font-size:12px;margin:6px 0 0">※${pending.map(r=>esc((SCHOOL_INFO[r]||{}).full||r)).join('・')}の予定は担当の先生が確認中です。</p>`;
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc" style="width:min(420px,94vw)"><div class="feath"><div class="featmc">📅</div><div class="feattt">${m+1}月の練習予定</div><div style="font-size:12px;opacity:.9;margin-top:2px">担当の先生が確認済みの予定です。欠席・振替はここから行えます</div></div><div class="featb" style="max-height:60vh;overflow:auto;padding:12px 14px">${body}<button class="bigtransfer" style="margin-top:6px" onclick="openTransferPicker()">🔀 振替を申し込む</button><div class="featbtns"><button class="featok">閉じる</button></div></div></div>`;
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featok').onclick=close;
+  // 欠席・振替のボタンを押したらポップアップを閉じて、通常のシートに進む
+  w.addEventListener('click',e=>{const b=e.target.closest('button');if(b&&!b.classList.contains('featok')&&(b.classList.contains('absentbtn')||b.classList.contains('bigtransfer')))setTimeout(close,0);},true);
+  return true;
+}catch(e){return false;}}
 // 練習カードの「欠席」＝カレンダーの日付→クラスを選んだのと同じ状態にして、お子様選択へ
 function absentFromCard(room,cls,y,m,d){
   if(kids.length&&activeKids().length===0){toast('退会済みのため、欠席・振替のお手続きはご利用いただけません');return;}
@@ -1887,6 +1936,46 @@ function showStaffTodaySummary(){try{
   const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
   w.querySelector('.featok').onclick=close;
 }catch(e){}}
+/* ===== 徳島限定: 月の予定の確認・確定（担当者／管理者） =====
+   前月20日以降＝翌月分、月に入ってから未確定＝当月分 を確認対象にする。確定後に予定が変わった教室は再確認を求める */
+function monthConfirmTarget(){const n=new Date();return n.getDate()>=20?{y:n.getFullYear(),m:n.getMonth()+1}:{y:n.getFullYear(),m:n.getMonth()};}
+function monthConfirmRooms(){if(!(staffRole==='staff'||staffRole==='admin'))return [];const sc=staffRole==='admin'?null:staffScope();return Object.keys(SCHEDULE).filter(r=>isMonthPopRoom(r)&&(!sc||(metaOf(r).p===sc.p&&metaOf(r).r===sc.r)));}
+function monthConfirmPending(){const t=monthConfirmTarget();const tt=new Date(t.y,t.m,1);const y=tt.getFullYear(),m=tt.getMonth();return {y,m,rooms:monthConfirmRooms().filter(r=>monthConfirmState(r,y,m)!=='ok')};}
+function monthSnapshotHtml(room,y,m){const snap=monthSnapshot(room,y,m);if(!snap.length)return `<div class="note" style="margin:4px 0 8px">この月の開催日が登録されていません。予定タブで開催日を作成してください。</div>`;
+  return snap.map(s=>{const dt=new Date(s.d+'T00:00:00');return `<div style="display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed var(--line);font-size:13px"><div style="min-width:64px;font-weight:800">${dt.getMonth()+1}/${dt.getDate()}（${DOW[dt.getDay()]}）</div><div style="flex:1;min-width:0">${s.x?'<b style="color:#6b7280">休講</b>':s.c.map(c=>`<div>${esc(c[1])}　${esc(c[0])}</div>`).join('')}<div class="muted" style="font-size:11.5px">📍 ${esc(shortPlace(s.p))}</div></div></div>`;}).join('');}
+function showMonthConfirmPopup(force){try{
+  if(!(staffRole==='staff'||staffRole==='admin')||_pv.on)return false;if(window.__suppressMonthPop&&!force)return false;
+  const p=monthConfirmPending();if(!p.rooms.length){if(force)toast('確認が必要な予定はありません');return false;}
+  const now=new Date();const seenKey='sowers_gym_mconf_'+((me&&me.id)||'')+'_'+dateKey(now.getFullYear(),now.getMonth(),now.getDate());
+  if(!force){let seen=false;try{seen=localStorage.getItem(seenKey)==='1';}catch(e){}if(seen)return false;
+    if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__mconfRetry=(window.__mconfRetry||0)+1;if(window.__mconfRetry<=6)setTimeout(showMonthConfirmPopup,3000);return false;}
+    try{localStorage.setItem(seenKey,'1');}catch(e){}}
+  let body=`<p class="muted" style="font-size:12.5px;margin:0 0 10px">保護者には、<b>確定した教室の予定だけ</b>が月初のポップアップで案内されます。日時・場所を見て、間違いがなければ「確定」を押してください。</p>`;
+  p.rooms.forEach(r=>{const st=monthConfirmState(r,p.y,p.m);body+=`<div class="card" style="box-shadow:none;border:1px solid var(--line);padding:10px 12px"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div style="font-weight:800;color:${scolor(r).bg}">${esc((SCHOOL_INFO[r]||{}).full||r)}</div>${st==='changed'?'<span class="rolepill" style="background:#fde68a;color:#92400e">確定後に変更あり</span>':'<span class="rolepill" style="background:#e5e7eb;color:#374151">未確定</span>'}</div>${monthSnapshotHtml(r,p.y,p.m)}<button class="btn green sm" style="margin-top:8px" onclick="confirmMonth('${r}',${p.y},${p.m})">✅ ${esc((SCHOOL_INFO[r]||{}).full||r)} を確定する</button></div>`;});
+  const w=document.createElement('div');w.className='featp';w.id='mconf-pop';
+  w.innerHTML=`<div class="featc" style="width:min(440px,94vw)"><div class="feath"><div class="featmc">📋</div><div class="feattt">${p.m+1}月の予定の確認</div><div style="font-size:12px;opacity:.9;margin-top:2px">担当教室の日時・場所に間違いがないか確認してください</div></div><div class="featb" style="max-height:62vh;overflow:auto;padding:12px 14px">${body}<div class="featbtns"><button class="featclose">直す（予定タブへ）</button>${p.rooms.length>1?`<button class="featok" onclick="confirmMonth(null,${p.y},${p.m})">すべて確定</button>`:'<button class="featok">あとで</button>'}</div></div></div>`;
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featclose').onclick=()=>{close();staffTab('schedule');};
+  const ok=w.querySelector('.featok');if(ok&&!ok.getAttribute('onclick'))ok.onclick=close;
+  return true;
+}catch(e){return false;}}
+async function confirmMonth(room,y,m){if(previewGuard())return;
+  const rooms=room?[room]:monthConfirmPending().rooms;if(!rooms.length)return;
+  showLoad(true);const ym=ymKey(y,m);const rows=rooms.map(r=>({room:r,ym,snapshot:monthSnapshot(r,y,m),confirmed_by:me.id,confirmed_at:new Date().toISOString()}));
+  const r=await db.from('month_confirms').upsert(rows,{onConflict:'room,ym'});
+  if(!r.error)await loadMonthConfirms();showLoad(false);
+  if(r.error){toast('確定できませんでした：'+r.error.message);return;}
+  toast((m+1)+'月の予定を確定しました（'+rooms.length+'教室）');
+  const w=document.getElementById('mconf-pop');if(w)w.remove();
+  if(monthConfirmPending().rooms.length&&room)showMonthConfirmPopup(true);
+  if(staffSection==='schedule')renderStaff();
+}
+function monthConfirmCardHtml(){if(!(staffRole==='staff'||staffRole==='admin'))return '';const rooms=monthConfirmRooms();if(!rooms.length)return '';
+  const t=monthConfirmTarget();const tt=new Date(t.y,t.m,1);const y=tt.getFullYear(),m=tt.getMonth();
+  const rows=rooms.map(r=>{const st=monthConfirmState(r,y,m);const lb=st==='ok'?'<span style="color:var(--green);font-weight:800">✅ 確定済み</span>':st==='changed'?'<span style="color:#b45309;font-weight:800">⚠️ 変更あり・再確認</span>':'<span style="color:#6b7280;font-weight:800">未確定</span>';return `<div style="display:flex;justify-content:space-between;font-size:13px;padding:3px 0"><span>${esc((SCHOOL_INFO[r]||{}).full||r)}</span>${lb}</div>`;}).join('');
+  const pend=rooms.some(r=>monthConfirmState(r,y,m)!=='ok');
+  return `<div class="card" style="padding:12px 14px"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:800">📋 ${m+1}月の予定の確認（保護者への月初案内）</div>${pend?`<button class="btn sm" style="width:auto;padding:8px 12px" onclick="showMonthConfirmPopup(true)">確認する</button>`:''}</div><div style="margin-top:6px">${rows}</div><p class="muted" style="font-size:11.5px;margin:6px 0 0">前月20日以降に確認できます。確定した教室の予定が、保護者に月初のポップアップで案内されます。</p></div>`;}
 /* ===== 振替設定 機能追加のお知らせ（スタッフ・管理者、初回のみ） ===== */
 function showFurikaeSetAnnounce(){try{
   if(!(staffRole==='staff'||staffRole==='admin'))return;
@@ -1914,6 +2003,7 @@ function enterStaffApp(role){
   if(role==='staff'&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
   else{setTimeout(showStaffTodaySummary,700);}
   setTimeout(showFurikaeSetAnnounce,1400);
+  setTimeout(showMonthConfirmPopup,2200); // 徳島限定・翌月（前月20日以降）／当月の予定の確認・確定
 }
 // 未返信（最後が保護者発言のスレッド）の件数。オーナーは担当エリアのみ。
 function unrepliedCount(){
@@ -2001,7 +2091,7 @@ function stShellCal(){
   const areaBar=(!allRooms)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted" style="font-size:11.5px">担当エリア</span><div style="font-weight:900">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
   const filterBar=allRooms?adminFilterBarHtml():'';
   const createBtn=(!isRoster&&monthlyRoomsInScope().length)?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
-  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">${isRoster?'全教室・閲覧のみ':'日付をタップで編集'}</span></div>${areaBar}${filterBar}${createBtn}
+  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">${isRoster?'全教室・閲覧のみ':'日付をタップで編集'}</span></div>${areaBar}${filterBar}${monthConfirmCardHtml()}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
   <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(legendRooms)}</div>
@@ -2044,9 +2134,12 @@ function openStaffDay(y,m,d,schools){
       h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（非開催）</b>です。</div>
         <button class="btn green sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',false)">休講を取り消す</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else if(monthly){
-      h+=`<div class="muted" style="margin-bottom:6px">📍 ${ct.place||inf.place}</div>`;
-      ct.classes.forEach(it=>{h+=`<div class="timeitem"><span class="cn">${it.c}</span><span class="tm">⏰ ${it.t}</span></div>`;});
-      h+=`<button class="btn soft sm" style="margin-top:8px" onclick="closeSheet();openEventEditor('${s}')">この教室の予定を編集（場所・クラス・日程）</button>`;
+      // 月3回教室: この日の場所・時間をその場で直せる（eventsのこの日だけ更新・他の日は変わらない）
+      const q=v=>(''+(v||'')).replace(/"/g,'&quot;');
+      h+=`<div style="font-weight:800;margin:4px 0 2px">📌 この日の場所・時間を変更（${m+1}/${d}のみ）</div>`;
+      h+=`<label class="fld">開催場所</label><input value="${q(ct.place||inf.place)}" onchange="saveDayOverride('${s}','${key}',{place:this.value})">`;
+      (ct.classes||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${s}','${key}',{cls:'${it.c}',t:this.value})">`; });
+      h+=`<button class="btn soft sm" style="margin-top:10px" onclick="closeSheet();openEventEditor('${s}')">🗓 開催日・クラス構成を編集（日程の追加・削除など）</button>`;
       h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else {
       // 毎週教室: 「この日だけ」の変更（既定）と「毎週の予定」の変更（折りたたみ）を分ける
