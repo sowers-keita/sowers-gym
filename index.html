@@ -2051,7 +2051,7 @@ function openStaffMore(){
   let h=`<h3>その他のメニュー</h3>`;
   if(staffRole==='admin'&&!_pv.on)h+=`<div class="opt" style="border-color:var(--brand);background:var(--soft)" onclick="closeSheet();openPreviewPicker()"><div class="ico">👀</div><div style="flex:1"><div class="nm">他の人の画面を見る</div><div class="ds">保護者・スタッフの画面をそのまま確認（変更はできません）</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>`;
   extra.forEach(k=>{const n=tabBadgeN(k);h+=`<div class="opt ${staffSection===k?'sel':''}" onclick="closeSheet();staffTab('${k}')"><div class="ico">${STAFF_TAB_META[k].ic}</div><div style="flex:1"><div class="nm">${STAFF_TAB_META[k].l}${n>0?`<span class="rolepill" style="background:var(--red);color:#fff;margin-left:8px">${n}</span>`:''}</div><div class="ds">${STAFF_TAB_DESC[k]||''}</div></div><span style="color:#9aa3b8;font-weight:900">›</span></div>`;});
-  h+=`<button class="btn gray" style="margin-top:6px" onclick="closeSheet()">閉じる</button>`;
+  h+=`<button class="btn gray" style="margin-top:6px" onclick="closeSheet()">閉じる</button><p class="muted center" style="font-size:11px;margin:8px 0 0">アプリ版 ${APP_BUILD}</p>`;
   openSheet(h);
 }
 const STAFF_TAB_DESC={schedule:'カレンダー・休講・会場/時間・シフト',furikae:'日ごとの欠席・振替の一覧',furikaeset:'振替で受け入れる教室の設定',roster:'名簿・人数・連絡先',pay:'送金・振込のご家庭の入金確認',finance:'教室ごとの売上・経費・収支',members:'役割の変更・申請の承認',announce:'保護者のホームに表示するお知らせ',messages:'保護者との個別メッセージ'};
@@ -2765,6 +2765,29 @@ async function refreshApp(){
   window._gymFlushRefresh=function(){ if(_dirty&&READY&&me&&!busy()){_dirty=false;_last=Date.now();refreshApp().catch(()=>{});} };
   document.addEventListener('visibilitychange',()=>{ if(!document.hidden)maybe(); });
   window.addEventListener('focus',maybe);
+})();
+
+/* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
+   iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
+   違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
+const APP_BUILD='20260910-4';
+(function setupAppUpdate(){
+  let _last=0;
+  async function check(){try{
+    if(location.protocol==='file:')return;
+    if(Date.now()-_last<120000)return; _last=Date.now();
+    const mask=document.getElementById('mask'); if(mask&&mask.classList.contains('show'))return;
+    const ae=document.activeElement; if(ae&&['SELECT','INPUT','TEXTAREA'].includes(ae.tagName))return;
+    const url=location.pathname.replace(/[^/]*$/,'')+'index.html?v='+Date.now();
+    const r=await fetch(url,{cache:'no-store'}); if(!r.ok)return;
+    const t=await r.text(); const m=t.match(/const APP_BUILD='([^']+)'/); if(!m||m[1]===APP_BUILD)return;
+    const k='sowers_gym_reloaded_'+m[1]; let done=false; try{done=sessionStorage.getItem(k)==='1';}catch(e){} if(done)return;
+    try{sessionStorage.setItem(k,'1');}catch(e){}
+    try{toast('アプリを最新版に更新します…');}catch(e){}
+    setTimeout(()=>location.reload(),900);
+  }catch(e){}}
+  window.addEventListener('load',()=>setTimeout(check,2500));
+  document.addEventListener('visibilitychange',()=>{ if(!document.hidden)setTimeout(check,800); });
 })();
 
 /* ============ 起動時：セッション確認 ============ */
