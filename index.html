@@ -100,6 +100,7 @@
   .pcard{background:#fff;border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;border-left:5px solid var(--brand)}
   .pcard .pmain{flex:1;min-width:0}
   .pbadge{display:inline-block;font-size:10.5px;font-weight:800;color:#fff;border-radius:6px;padding:2px 8px;margin-bottom:5px}
+  .pclass{font-size:14px;font-weight:800;color:var(--ink);margin:0 0 4px;overflow-wrap:anywhere}
   .pwhen{font-weight:900;font-size:14.5px;color:var(--ink)}
   .pwhen .pt{font-weight:800;color:var(--brand-d);margin-left:6px}
   .pwhere{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1392,7 +1393,7 @@ function pcardHtml(o){
   const allDone=o.kids.every(c=>absRecordOf(c,o)||o.furKids.includes(c.id));
   const enrolled=o.kids.some(c=>c.classroom===o.room&&c.class_name===o.cls);
   const btn=o.cancelled?`<span class="cnt cancel">休講</span>`:!enrolled?`<button class="absentbtn done" onclick='openFurCancelSheet(${JSON.stringify(o.room)},${JSON.stringify(o.cls)},${JSON.stringify(o.key)})'>振替<br>取消</button>`:`<button class="absentbtn ${allDone?'done':''}" onclick='absentFromCard(${JSON.stringify(o.room)},${JSON.stringify(o.cls)},${o.y},${o.m+1},${o.d})'>${allDone?'変更':'欠席'}</button>`;
-  return `<div class="pcard" style="border-left-color:${col.bg}"><div class="pmain"><span class="pbadge" style="background:${col.bg};color:${col.fg}">${esc(inf.full||o.room)}</span><div class="pwhen">${o.m+1}/${o.d}（${DOW[o.wd]}）<span class="pt">${esc(o.time)}</span></div><div class="pwhere">📍 ${esc(shortPlace(o.place))}</div><div class="pchildren">${chips}</div></div>${btn}</div>`;
+  return `<div class="pcard" style="border-left-color:${col.bg}"><div class="pmain"><span class="pbadge" style="background:${col.bg};color:${col.fg}">${esc(inf.full||o.room)}</span><div class="pclass">${esc(o.cls)}</div><div class="pwhen">${o.m+1}/${o.d}（${DOW[o.wd]}）<span class="pt">${esc(o.time)}</span></div><div class="pwhere">📍 ${esc(shortPlace(o.place))}</div><div class="pchildren">${chips}</div></div>${btn}</div>`;
 }
 function renderUpcoming(){
   const box=document.getElementById('home-up'); if(!box)return;
@@ -2781,7 +2782,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260910-8';
+const APP_BUILD='20260910-9';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
