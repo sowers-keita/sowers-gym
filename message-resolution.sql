@@ -56,7 +56,7 @@ begin
     where id=p_message_id;
 end;
 $$;
-revoke all on function public.gym_set_message_resolved(uuid,boolean) from public;
+revoke all on function public.gym_set_message_resolved(uuid,boolean) from public, anon;
 grant execute on function public.gym_set_message_resolved(uuid,boolean) to authenticated;
 commit;
 -- 戻し方: 旧 index.html を再公開。追加列と関数は残しても既存処理に影響しない。
