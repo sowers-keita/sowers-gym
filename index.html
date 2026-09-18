@@ -169,7 +169,7 @@
   .msg.me{background:var(--brand);color:#fff;align-self:flex-end;border-bottom-right-radius:5px}
   .msg .t{display:block;font-size:10px;opacity:.6;margin-top:3px}
   .msgbar{position:fixed;bottom:74px;left:0;right:0;max-width:430px;margin:0 auto;display:flex;gap:8px;padding:10px;background:#fff;border-top:1px solid var(--line)}
-  .msgbar input{flex:1;border-radius:999px}.msgbar button{width:auto;padding:0 18px;border-radius:999px;border:none;background:var(--brand);color:#fff;font-weight:800;cursor:pointer;font-family:inherit}
+  .msgbar textarea{flex:1;min-width:0}.msg-compose{align-items:flex-end}.msg-compose textarea,.msgbar textarea{min-height:72px;max-height:180px;resize:vertical;border-radius:16px;line-height:1.5;font-size:16px}.msg-compose textarea{flex:1;min-width:0}.msg-compose button,.msgbar button{min-height:44px;flex-shrink:0}.msgbar button{width:auto;padding:0 18px;border-radius:999px;border:none;background:var(--brand);color:#fff;font-weight:800;cursor:pointer;font-family:inherit}
   /* ---- 下タブ ---- */
   nav.tabbar{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border-top:1px solid var(--line);display:flex;height:70px;z-index:20;padding:0 4px;box-shadow:0 -4px 16px rgba(40,60,110,.06)}
   nav.tabbar button{flex:1;min-width:0;border:none;background:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#9aa3b8;font-size:10px;line-height:1.1;white-space:nowrap;cursor:pointer;font-family:inherit;font-weight:800;padding:0 2px;position:relative}
@@ -385,11 +385,11 @@
   <section class="screen" id="s-msg">
     <header class="topbar"><span class="logo">💬 メッセージ</span>
       <button class="linkbtn" style="margin-left:auto;color:#fff" onclick="openOther()">⋯ その他</button></header>
-    <div class="pad" style="padding-bottom:140px">
+    <div class="pad" style="padding-bottom:220px">
       <div class="tip">お休み・振替のお申し込みは、こちらではなく<b>ホーム画面</b>から行えます。</div>
       <div class="msgwrap" id="msg-list"></div>
     </div>
-    <div class="msgbar"><input id="msg-input" placeholder="運営にメッセージを送る…"><button onclick="sendMsg()">送信</button></div>
+    <div class="msgbar"><textarea id="msg-input" rows="3" aria-label="運営へのメッセージ" placeholder="運営にメッセージを送る…（改行できます）"></textarea><button onclick="sendMsg()">送信</button></div>
   </section>
 
   <nav class="tabbar" id="tabbar" style="display:none">
@@ -1850,10 +1850,9 @@ function renderMsgs(){const w=document.getElementById('msg-list');
   if(sc.classList.contains('active'))markMsgsSeen(); else updateMsgBadge();
 }
 async function sendMsg(){if(previewGuard())return;const i=document.getElementById('msg-input');const v=i.value.trim();if(!v)return;
-  i.value='';
   const r=await db.from('messages').insert({parent_id:me.id,sender:'parent',body:v}).select();
   if(r.error){toast('送信エラー：'+r.error.message);return;}
-  if(r.data)msgs.push(r.data[0]);renderMsgs();}
+  i.value='';if(r.data)msgs.push(r.data[0]);renderMsgs();}
 function openOther(){openSheet(`<h3>その他</h3>
   <div class="opt" onclick="otherFriend()"><div class="ico">🎁</div><div><div class="nm">お友達の紹介</div><div class="ds">お友達を紹介する</div></div></div>
   <div class="opt" onclick="otherQuit()"><div class="ico">📝</div><div><div class="nm">退会について</div><div class="ds">退会のお手続き</div></div></div>`);}
@@ -2093,13 +2092,16 @@ function enterStaffApp(role){
   setTimeout(showFurikaeSetAnnounce,1400);
   setTimeout(showMonthConfirmPopup,2200); // 徳島限定・翌月（前月20日以降）／当月の予定の確認・確定
 }
-// 未返信（最後が保護者発言のスレッド）の件数。オーナーは担当エリアのみ。
+// 外部対応済みはメッセージ単位で記録。新着の問い合わせは自動的に未返信へ戻る。
+function compareMessages(a,b){return (Date.parse(a.created_at)-Date.parse(b.created_at))||String(a.id).localeCompare(String(b.id));}
+function messageNeedsReply(m){return !!(m&&m.sender==='parent'&&!m.resolved_at);}
+// 未返信の件数。オーナーは担当エリアのみ。
 function unrepliedCount(){
   if(!allMsgs||!allMsgs.length)return 0;
   const byP={};allMsgs.forEach(m=>{(byP[m.parent_id]=byP[m.parent_id]||[]).push(m);});
   let ids=Object.keys(byP);
   if(staffRole!=='admin'){const area=myAreaParentIds();ids=ids.filter(id=>area.has(id));}
-  let n=0;ids.forEach(id=>{const ms=byP[id].slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));const last=ms[ms.length-1];if(last&&last.sender==='parent')n++;});
+  let n=0;ids.forEach(id=>{const ms=byP[id].slice().sort(compareMessages);const last=ms[ms.length-1];if(messageNeedsReply(last))n++;});
   return n;
 }
 // 下タブは主要4つ＋「その他」（機能は全て ROLE_TABS のまま。表示上まとめるだけ）
@@ -2532,7 +2534,7 @@ function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
 function openParentMsg(pid){
   const ms=allMsgs.filter(m=>m.parent_id===pid);
   let h=`<h3>${profName(pid)} への連絡</h3><div class="msgwrap" style="margin:8px 0;max-height:48vh;overflow:auto">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
-    <div style="display:flex;gap:8px"><input id="pmsg-${pid}" placeholder="メッセージを入力…"><button class="btn sm" style="width:auto;padding:0 16px" onclick="sendParentMsg('${pid}')">送信</button></div>
+    <div class="msg-compose" style="display:flex;gap:8px"><textarea id="pmsg-${pid}" rows="3" aria-label="保護者へのメッセージ" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px" onclick="sendParentMsg('${pid}')">送信</button></div>
     <button class="btn gray" style="margin-top:10px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
 }
@@ -2680,13 +2682,33 @@ function stAnnounce(){
   h+=`</details></div>`;
   return h;
 }
-async function postAnn(scope,room){if(previewGuard())return;
+let _annPosting=false;
+function announcementRecords(scope,room,body){
+  const sc=staffScope();
+  const allowed=classroomsIn(sc.p,sc.r);
+  if(!['all','area','room'].includes(scope))throw new Error('配信先を確認してください');
+  if(scope==='all'&&staffRole!=='admin')throw new Error('全体投稿は管理者のみ利用できます');
+  if(scope==='room'&&(!SCHOOLS[room]||(staffRole!=='admin'&&!allowed.includes(room))))throw new Error('担当教室を選択してください');
+  // 本番DBのscope制約(all/room)に合わせ、1回のINSERTで担当教室へ保存する。
+  const rooms=scope==='area'?[...new Set(allowed)]:[scope==='room'?room:null];
+  if(!rooms.length)throw new Error('担当エリアの教室がありません');
+  return rooms.map(r=>({scope:scope==='all'?'all':'room',room:r,body,created_by:me.id}));
+}
+async function postAnn(scope,room){
+  if(previewGuard()||_annPosting)return;
   const taId=scope==='all'?'ann-all-b':scope==='area'?'ann-area-b':'ann-'+room+'-b';
-  const ta=document.getElementById(taId);const body=ta.value.trim();if(!body){toast('内容を入力してください');return;}
-  const sc=staffScope();const rec={scope,room:scope==='room'?room:null,body,created_by:me.id};
-  if(scope==='area')rec.area=sc.p+'/'+sc.r;
-  showLoad(true);const r=await db.from('announcements').insert(rec);await loadAnns();showLoad(false);
-  if(r.error){toast('投稿エラー：'+r.error.message);return;}toast('投稿しました');renderStaff();}
+  const ta=document.getElementById(taId);const body=ta&&ta.value.trim();
+  if(!body){toast('内容を入力してください');return;}
+  let records;try{records=announcementRecords(scope,room,body);}catch(e){toast(e.message);return;}
+  _annPosting=true;showLoad(true);
+  try{
+    const r=await db.from('announcements').insert(records);
+    if(r.error){toast('投稿できませんでした。内容は残っています。'+r.error.message);return;}
+    ta.value='';
+    await loadAnns();renderStaff();toast('投稿しました');
+  }catch(e){toast('通信を確認できません。再投稿の前に投稿済み一覧を確認してください。');}
+  finally{_annPosting=false;showLoad(false);}
+}
 async function delAnn(id){if(previewGuard())return;showLoad(true);await db.from('announcements').delete().eq('id',id);await loadAnns();showLoad(false);toast('削除しました');renderStaff();}
 /* --- 連絡（メッセージ返信） --- */
 function parentRooms(pid){const rs=[...new Set(allChildren.filter(c=>c.parent_id===pid).map(c=>c.classroom))].filter(Boolean);return rs.length?'（'+rs.join('・')+'教室）':'';}
@@ -2698,15 +2720,29 @@ function stMessages(){
   const n=unrepliedCount();
   let h=`<div class="sech"><h2 class="title">💬 ${staffRole==='admin'?'保護者からの連絡':'担当生徒の保護者との連絡'}</h2>${n?`<span class="cnt abs">未返信 ${n}</span>`:''}</div>`;
   if(pids.length===0)return h+`<div class="card center"><span class="muted">${staffRole==='admin'?'まだメッセージはありません。':'担当の保護者がいません。'}</span></div>`;
-  const lastOf=pid=>{const ms=(byP[pid]||[]).slice().sort((a,b)=>(''+a.created_at).localeCompare(''+b.created_at));return ms[ms.length-1];};
-  const needs=pid=>{const l=lastOf(pid);return !!(l&&l.sender==='parent');};
+  const lastOf=pid=>{const ms=(byP[pid]||[]).slice().sort(compareMessages);return ms[ms.length-1];};
+  const needs=pid=>{const l=lastOf(pid);return messageNeedsReply(l);};
   pids=pids.slice().sort((a,b)=>{const na=needs(a)?1:0,nb=needs(b)?1:0;if(na!==nb)return nb-na;const la=lastOf(a),lb=lastOf(b);return (''+(lb&&lb.created_at||'')).localeCompare(''+(la&&la.created_at||''));});
   pids.forEach(pid=>{const ms=byP[pid]||[];const last=lastOf(pid);const nr=needs(pid);
     h+=`<div class="card" style="padding:8px 14px${nr?';border-left:5px solid var(--red)':''}"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:var(--ink)"><span style="min-width:0"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(profName(pid))}${nr?'<span class="cnt abs" style="font-size:10.5px">未返信</span>':''}</span><span class="muted" style="font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(parentRooms(pid))}${last?'　'+esc((last.body||'').replace(/\n/g,' ').slice(0,28)):''}</span></span><span class="cap">${ms.length}件</span></summary>
       <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
-      <div style="display:flex;gap:8px"><input id="reply-${pid}" placeholder="メッセージを入力…" style="border-radius:999px"><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>
+      ${last&&last.sender==='parent'?`<div style="margin:8px 0">${last.resolved_at?`<span class="muted">✓ LINE・電話等で対応済み</span> <button class="linkbtn" onclick="setMessageResolved('${last.id}',false)">未返信に戻す</button>`:`<button class="btn sm gray" onclick="setMessageResolved('${last.id}',true)">LINE・電話等で対応済みにする</button><p class="muted" style="font-size:11px;margin:5px 0">保護者へのメッセージは送信されません。</p>`}</div>`:''}
+      <div class="msg-compose" style="display:flex;gap:8px"><textarea id="reply-${pid}" rows="3" aria-label="保護者への返信" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
   return h;
+}
+let _resolutionBusy=false;
+async function setMessageResolved(id,resolved){
+  if(previewGuard()||_resolutionBusy)return;
+  _resolutionBusy=true;showLoad(true);
+  try{
+    const r=await db.rpc('gym_set_message_resolved',{p_message_id:id,p_resolved:resolved});
+    if(r.error){toast('対応状況を保存できませんでした：'+r.error.message);return;}
+    const e=await db.from('messages').select('*').order('created_at');
+    if(e.error){toast('保存しましたが再読み込みできません。画面を更新してください。');return;}
+    allMsgs=e.data||[];renderStaff();toast(resolved?'対応済みにしました':'未返信に戻しました');
+  }catch(e){toast('通信を確認できません。画面を更新して対応状況を確認してください。');}
+  finally{_resolutionBusy=false;showLoad(false);}
 }
 async function replyMsg(pid){if(previewGuard())return;const i=document.getElementById('reply-'+pid);const v=i.value.trim();if(!v)return;
   showLoad(true);const r=await db.from('messages').insert({parent_id:pid,sender:'staff',body:v});const e=await db.from('messages').select('*').order('created_at');allMsgs=e.data||[];showLoad(false);
