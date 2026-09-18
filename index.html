@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -1853,9 +1854,30 @@ async function payAnswer(done,ym){if(previewGuard())return;
 }
 
 /* ============ メッセージ ============ */
+// メッセージの日時は端末設定によらず日本時間で表示する。
+function messageTime(value){
+  if(!value)return '';
+  const date=new Date(value);if(Number.isNaN(date.getTime()))return '';
+  const parts=new Intl.DateTimeFormat('ja-JP',{timeZone:'Asia/Tokyo',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date);
+  const part=type=>parts.find(p=>p.type===type).value;
+  return `${part('month')}/${part('day')} ${part('hour')}:${part('minute')}`;
+}
+function messageFamilyLabel(pid){
+  const parent=profName(pid), children=allChildren.filter(c=>c.parent_id===pid);
+  const tokens=name=>String(name||'').trim().split(/[\s　]+/).filter(Boolean);
+  const pp=tokens(parent);
+  const surname=pp.length>1?pp[0]:'';
+  const names=children.map(c=>{
+    const parts=tokens(c.name);if(parts.length>1)return parts.slice(1).join(' ');
+    const full=parts[0]||'';
+    if(surname&&full.startsWith(surname)&&full.length>surname.length)return full.slice(surname.length);
+    return full;
+  }).filter(Boolean);
+  return parent+(names.length?'（'+names.join('・')+'）':'');
+}
 function renderMsgs(){const w=document.getElementById('msg-list');
   if(msgs.length===0){w.innerHTML=`<div class="msg them">こんにちは！sowersです。ご不明な点があればこちらからお気軽にどうぞ😊</div>`;}
-  else{w.innerHTML=msgs.map(m=>`<div class="msg ${m.sender==='parent'?'me':'them'}">${esc(m.body)}<span class="t">${(m.created_at||'').slice(5,16).replace('T',' ')}</span></div>`).join('');}
+  else{w.innerHTML=msgs.map(m=>`<div class="msg ${m.sender==='parent'?'me':'them'}">${esc(m.body)}<span class="t">${messageTime(m.created_at)}</span></div>`).join('');}
   const sc=document.getElementById('s-msg');setTimeout(()=>{sc.scrollTop=sc.scrollHeight;},30);
   if(sc.classList.contains('active'))markMsgsSeen(); else updateMsgBadge();
 }
@@ -2543,7 +2565,7 @@ function contactCard(c){const p=allProfiles.find(x=>x.id===c.parent_id)||{};
   </div>`;}
 function openParentMsg(pid){
   const ms=allMsgs.filter(m=>m.parent_id===pid);
-  let h=`<h3>${profName(pid)} への連絡</h3><div class="msgwrap" style="margin:8px 0;max-height:48vh;overflow:auto">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
+  let h=`<h3>${esc(messageFamilyLabel(pid))} への連絡</h3><div class="msgwrap" style="margin:8px 0;max-height:48vh;overflow:auto">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${messageTime(m.created_at)}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
     <div class="msg-compose" style="display:flex;gap:8px"><textarea id="pmsg-${pid}" rows="3" aria-label="保護者へのメッセージ" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px" onclick="sendParentMsg('${pid}')">送信</button></div>
     <button class="btn gray" style="margin-top:10px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);
@@ -2734,8 +2756,8 @@ function stMessages(){
   const needs=pid=>{const l=lastOf(pid);return messageNeedsReply(l);};
   pids=pids.slice().sort((a,b)=>{const na=needs(a)?1:0,nb=needs(b)?1:0;if(na!==nb)return nb-na;const la=lastOf(a),lb=lastOf(b);return (''+(lb&&lb.created_at||'')).localeCompare(''+(la&&la.created_at||''));});
   pids.forEach(pid=>{const ms=byP[pid]||[];const last=lastOf(pid);const nr=needs(pid);
-    h+=`<div class="card" style="padding:8px 14px${nr?';border-left:5px solid var(--red)':''}"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:var(--ink)"><span style="min-width:0"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(profName(pid))}${nr?'<span class="cnt abs" style="font-size:10.5px">未返信</span>':''}</span><span class="muted" style="font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(parentRooms(pid))}${last?'　'+esc((last.body||'').replace(/\n/g,' ').slice(0,28)):''}</span></span><span class="cap">${ms.length}件</span></summary>
-      <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${(''+m.created_at).slice(5,16).replace('T',' ')}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
+    h+=`<div class="card" style="padding:8px 14px${nr?';border-left:5px solid var(--red)':''}"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:var(--ink)"><span style="min-width:0"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(messageFamilyLabel(pid))}${nr?'<span class="cnt abs" style="font-size:10.5px">未返信</span>':''}</span><span class="muted" style="font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(parentRooms(pid))}${last?'　'+esc((last.body||'').replace(/\n/g,' ').slice(0,28)):''}</span></span><span class="cap">${ms.length}件</span></summary>
+      <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${messageTime(m.created_at)}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
       ${last&&last.sender==='parent'?`<div style="margin:8px 0">${last.resolved_at?`<span class="muted">✓ LINE・電話等で対応済み</span> <button class="linkbtn" onclick="setMessageResolved('${last.id}',false)">未返信に戻す</button>`:`<button class="btn sm gray" onclick="setMessageResolved('${last.id}',true)">LINE・電話等で対応済みにする</button><p class="muted" style="font-size:11px;margin:5px 0">保護者へのメッセージは送信されません。</p>`}</div>`:''}
       <div class="msg-compose" style="display:flex;gap:8px"><textarea id="reply-${pid}" rows="3" aria-label="保護者への返信" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>
     </details></div>`;});
