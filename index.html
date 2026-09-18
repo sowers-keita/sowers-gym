@@ -292,6 +292,12 @@
   .month-history-scroll-hint{display:none}
   @media(max-width:600px){.month-history-scroll-hint{display:block}}
 </style>
+<style>
+/* Scoped install guide: independent of application screen and modal styles. */
+.sig-entry-wrap{padding:8px 16px 0;max-width:680px;margin:0 auto;width:100%;box-sizing:border-box}.sig-entry-wrap button{appearance:none;border:1px solid #d7e5df;background:#f1f8f4;color:#24634e;border-radius:999px;padding:8px 14px;min-height:40px;font:600 13px/1.5 system-ui,sans-serif;cursor:pointer}.sig-entry-wrap button:focus-visible,#sowers-install-guide button:focus-visible{outline:3px solid #397fcb;outline-offset:3px}
+#sowers-install-guide{box-sizing:border-box;width:calc(100% - 28px);max-width:440px;max-height:calc(100dvh - 32px);overflow:auto;margin:auto;padding:24px;border:1px solid #e1e8e2;border-radius:24px;background:#fff;color:#253a30;box-shadow:0 24px 80px #132d3438;font:15px/1.7 system-ui,-apple-system,sans-serif;text-align:left;overscroll-behavior:contain}#sowers-install-guide::backdrop{background:#102b2d88}#sowers-install-guide *{box-sizing:border-box}#sowers-install-guide button{appearance:none;font-family:inherit;font-size:14px;font-weight:600;line-height:1.5;cursor:pointer;letter-spacing:0;box-shadow:none;transform:none}#sowers-install-guide .sig-top{display:flex;align-items:flex-start;gap:12px;justify-content:space-between}#sowers-install-guide .sig-kicker{font-size:11px;color:#62766b;margin:0 0 4px}#sowers-install-guide h2{font:750 22px/1.4 system-ui,sans-serif;margin:0;color:#253a30}#sowers-install-guide .sig-close{flex:none;border:0;background:#f1f5f2;color:#435b4d;border-radius:50%;width:36px;height:36px;padding:0;font-size:24px}#sowers-install-guide .sig-intro{font-size:13px;color:#63756b;margin:8px 0 18px}#sowers-install-guide .sig-devices{display:flex;gap:6px}#sowers-install-guide .sig-devices button{flex:1;border:1px solid #dce6df;background:#fff;color:#516859;border-radius:10px;padding:9px 3px;font-size:11px;white-space:nowrap;min-height:38px}#sowers-install-guide .sig-devices [aria-pressed=true]{background:#edf6ee;border-color:#6e9b79;color:#255d38}#sowers-install-guide .sig-step{margin:20px 0 12px}#sowers-install-guide .sig-number{font-size:11px;letter-spacing:2px;font-weight:700;color:#69846f}#sowers-install-guide .sig-visual{background:linear-gradient(140deg,#eff7ee,#f9f7ed);border:1px solid #e0eadb;border-radius:18px;min-height:120px;margin:12px 0 18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px;text-align:center}#sowers-install-guide .sig-visual span{font-size:30px;line-height:1.2;color:#3e7650}#sowers-install-guide .sig-visual svg{width:34px;height:34px}#sowers-install-guide .sig-visual b{font-size:13px}#sowers-install-guide h3{font:700 17px/1.6 system-ui,sans-serif;margin:0 0 8px;color:#253a30}#sowers-install-guide .sig-step p{font-size:14px;margin:0;color:#516458}#sowers-install-guide .sig-note{font-size:12px;background:#f5f6f1;border-radius:12px;padding:12px;color:#536252}#sowers-install-guide .sig-actions{display:flex;gap:10px;margin-top:22px}#sowers-install-guide .sig-actions button{flex:1;min-height:46px;border:1px solid #dce5de;border-radius:12px;padding:10px;background:#fff;color:#45644e}#sowers-install-guide .sig-primary{background:#376f4b!important;color:#fff!important;border:1px solid #376f4b!important}#sowers-install-guide .sig-native{display:block;width:100%;border-radius:12px;padding:12px;margin-top:10px}#sowers-install-guide .sig-footer{font-size:11px;color:#728276;margin:14px 0 0;text-align:center}@media(max-width:360px){#sowers-install-guide{padding:18px}#sowers-install-guide h2{font-size:20px}}
+
+</style>
 </head>
 <body>
 <div class="phone" id="phone">
@@ -303,6 +309,7 @@
 
   <!-- LOGIN -->
   <section class="screen auth active" id="s-login">
+<div class="sig-entry-wrap"><button type="button" data-sowers-install-open>＋ ホーム画面に追加</button></div>
     <div class="pad">
       <div class="logo-big"><img src="logo.png" alt="ロゴ" style="width:108px;height:108px;border-radius:50%;object-fit:cover;box-shadow:var(--shadow)"><h1>教室出席管理アプリ</h1><p>sowers</p></div>
       <div class="err" id="login-err" style="display:none"></div>
@@ -360,6 +367,7 @@
   <!-- HOME -->
   <section class="screen" id="s-home">
     <header class="topbar"><span class="logo">教室出席管理</span><span class="sub" id="home-fam"></span></header>
+<div class="sig-entry-wrap"><button type="button" data-sowers-install-open>＋ ホーム画面に追加</button></div>
     <div class="pad">
       <div id="home-hero"></div>
       <div id="home-ann"></div>
@@ -378,6 +386,7 @@
   <!-- MYPAGE -->
   <section class="screen" id="s-my">
     <header class="topbar"><span class="logo">マイページ</span><span class="sub" id="my-fam"></span></header>
+<div class="sig-entry-wrap"><button type="button" data-sowers-install-open>＋ ホーム画面に追加</button></div>
     <div class="pad" id="my-body"></div>
   </section>
 
@@ -402,6 +411,7 @@
   <section class="screen" id="s-staff">
     <header class="topbar"><span class="logo" id="staff-title">🛠 管理</span><span class="sub" id="staff-area"></span>
       <button class="linkbtn" style="margin-left:6px" onclick="logout()">ログアウト</button></header>
+<div class="sig-entry-wrap"><button type="button" data-sowers-install-open>＋ ホーム画面に追加</button></div>
     <div class="pad" id="staff-body"></div>
   </section>
   <nav class="tabbar" id="staff-tabbar" style="display:none"></nav>
@@ -2881,7 +2891,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260911-atomic1';
+const APP_BUILD='20260918-install-guide1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
@@ -2910,6 +2920,82 @@ window.addEventListener('load',async()=>{
   if(window._recovery){ go('s-reset'); return; }
   if(session){await afterAuth(session.user);}
 });
+</script>
+<script>
+/* Sowers install and notification walkthrough — 2026-09-18. */
+(() => {
+  'use strict';
+  const config = {"name": "教室出席管理", "notification": "マイページの「プッシュ通知」で「通知をオンにする」をタップしてください"};
+  const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  const ios = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  let device = ios ? 'ios' : /Android/.test(navigator.userAgent) ? 'android' : 'desktop';
+  let step = 0, deferredPrompt = null, opener = null;
+  const dialog = document.createElement('dialog');
+  dialog.id = 'sowers-install-guide';
+  dialog.setAttribute('aria-labelledby', 'sig-title');
+  document.body.appendChild(dialog);
+  const share = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 16V2m-4 4 4-4 4 4M7 9H4v12h16V9h-3"/></svg>';
+  const instructions = {
+    ios: [
+      ['Safariで「共有」をタップ', '四角から上向きの矢印が目印。「…」の中にある場合もあります。LINEなどで開いている場合は、先にSafariで開いてください。', share, '共有'],
+      ['「ホーム画面に追加」を選ぶ', '共有メニューを下へスクロールすると見つかります。', '＋', 'ホーム画面に追加'],
+      ['「追加」を押して、アイコンから開く', '「Webアプリとして開く」があればオンに。ホーム画面にできたアプリのアイコンから開き直します。', '追加', config.name]
+    ],
+    android: [
+      ['Chromeの「︙」をタップ', 'アドレスバーの横にあるメニューを開きます。LINEなどで開いている場合は、先にChromeで開いてください。', '︙', 'Chromeのメニュー'],
+      ['「ホーム画面に追加」を選ぶ', '「アプリをインストール」と表示される場合もあります。', '＋', 'ホーム画面に追加'],
+      ['追加したアイコンから開く', '「追加」または「インストール」で確定し、ホーム画面のアイコンからアプリを開きます。', '追加', config.name]
+    ],
+    desktop: [
+      ['ブラウザのメニューを開く', 'Chromeは右上の「︙」、MacのSafariは「ファイル」を開きます。', '︙', 'ブラウザのメニュー'],
+      ['アプリとして追加する', 'Chromeは「キャスト、保存、共有」などのメニューからアプリのインストールを選びます。Safariは「Dockに追加」を選びます。', '＋', 'アプリとして追加'],
+      ['追加したアイコンから開く', '「インストール」または「追加」で確定。項目がないブラウザでは、ブックマークからも利用できます。', '追加', config.name]
+    ]
+  };
+  function syncEntry() {
+    document.querySelectorAll('[data-sowers-install-open]').forEach(b => {
+      b.textContent = standalone() ? '🔔 通知の設定方法' : '＋ ホーム画面に追加';
+    });
+  }
+  function draw() {
+    const last = step === 3;
+    const entry = last ? ['大切なお知らせを、通知で受け取る', 'ログイン後、' + config.notification + '。確認画面では「許可」を選びます。', '🔔', '通知の設定'] : instructions[device][step];
+    const denied = 'Notification' in window && Notification.permission === 'denied';
+    dialog.innerHTML = `<div class="sig-top"><div><p class="sig-kicker">${config.name}</p><h2 id="sig-title">${last?'通知を設定する':'ホーム画面に追加'}</h2></div><button type="button" class="sig-close" data-sig-close aria-label="案内を閉じる">×</button></div>
+      <p class="sig-intro">いつものアプリを、ワンタップで。</p>
+      <div class="sig-devices" role="group" aria-label="端末を選ぶ">${[['ios','iPhone / iPad'],['android','Android'],['desktop','パソコン']].map(([id,label])=>`<button type="button" data-sig-device="${id}" aria-pressed="${device===id}">${label}</button>`).join('')}</div>
+      <div class="sig-step" aria-live="polite"><span class="sig-number">STEP ${step+1} / 4</span><div class="sig-visual" aria-hidden="true"><span>${entry[2]}</span><b>${entry[3]}</b></div><h3>${entry[0]}</h3><p>${entry[1]}</p></div>
+      ${last?`<div class="sig-note">${device==='ios'?'iPhone・iPadは iOS / iPadOS 16.4以降で、ホーム画面から開いたアプリで設定できます。<br>':''}${standalone()?'✓ ホーム画面から起動しています。<br>':''}${denied?'現在、このブラウザの通知はブロックされています。端末またはブラウザの設定で通知を許可してから、アプリで設定し直してください。':'届かないときは、端末の通知設定や集中モードも確認してください。'}<br>通知はいつでもアプリの設定からオフにできます。</div>`:''}
+      <div class="sig-actions"><button type="button" data-sig-back>${step?'戻る':'あとで'}</button><button type="button" class="sig-primary" ${last?'data-sig-close':'data-sig-next'}>${last?'閉じる':'次へ'}</button></div>
+      ${!last && deferredPrompt && device!=='ios' && !standalone()?'<button type="button" class="sig-native sig-primary" data-sig-native>この端末に追加する</button>':''}
+      <p class="sig-footer">この案内はアプリ上部から、いつでも見返せます。</p>`;
+  }
+  function close() { dialog.close(); }
+  document.addEventListener('click', async event => {
+    const b = event.target.closest('[data-sowers-install-open],#sowers-install-guide button');
+    if (!b) return;
+    if (b.hasAttribute('data-sowers-install-open')) {
+      opener = b; step = standalone()?3:0; draw(); if(!dialog.open)dialog.showModal(); return;
+    }
+    if (b.hasAttribute('data-sig-close')) return close();
+    if (b.dataset.sigDevice) { device = b.dataset.sigDevice; step = standalone()?3:0; }
+    else if (b.hasAttribute('data-sig-back')) { if(step===0)return close(); step--; }
+    else if (b.hasAttribute('data-sig-next')) step = Math.min(3,step+1);
+    else if (b.hasAttribute('data-sig-native')) {
+      const prompt = deferredPrompt; deferredPrompt = null; b.disabled = true;
+      if(prompt)try { await prompt.prompt(); const result=await prompt.userChoice; if(result.outcome==='accepted')step=3; } catch {}
+    }
+    if(dialog.open){draw();dialog.querySelector('[data-sig-next],.sig-actions .sig-primary')?.focus();}
+  });
+  dialog.addEventListener('click', e => { if(e.target===dialog){const r=dialog.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)close();} });
+  dialog.addEventListener('close', () => opener?.focus());
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt=e; if(dialog.open)draw(); });
+  window.addEventListener('appinstalled', () => { deferredPrompt=null; syncEntry(); if(dialog.open){step=3;draw();} });
+  matchMedia('(display-mode: standalone)').addEventListener('change', syncEntry);
+  window.addEventListener('pageshow', syncEntry);
+  syncEntry();
+})();
+
 </script>
 </body>
 </html>
