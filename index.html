@@ -2954,7 +2954,7 @@ window.addEventListener('load',async()=>{
   };
   function syncEntry() {
     document.querySelectorAll('[data-sowers-install-open]').forEach(b => {
-      b.textContent = standalone() ? '🔔 通知の設定方法' : '＋ ホーム画面に追加';
+      b.textContent = '＋ ホーム画面に追加';
     });
   }
   function draw() {
@@ -2975,10 +2975,10 @@ window.addEventListener('load',async()=>{
     const b = event.target.closest('[data-sowers-install-open],#sowers-install-guide button');
     if (!b) return;
     if (b.hasAttribute('data-sowers-install-open')) {
-      opener = b; step = standalone()?3:0; draw(); if(!dialog.open)dialog.showModal(); return;
+      opener = b; step = 0; draw(); if(!dialog.open)dialog.showModal(); return;
     }
     if (b.hasAttribute('data-sig-close')) return close();
-    if (b.dataset.sigDevice) { device = b.dataset.sigDevice; step = standalone()?3:0; }
+    if (b.dataset.sigDevice) { device = b.dataset.sigDevice; step = 0; }
     else if (b.hasAttribute('data-sig-back')) { if(step===0)return close(); step--; }
     else if (b.hasAttribute('data-sig-next')) step = Math.min(3,step+1);
     else if (b.hasAttribute('data-sig-native')) {
