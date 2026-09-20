@@ -1645,11 +1645,42 @@ async function retryGymPointAction(){
  try{const p=gymReadPending();if(p)await gymPointAction(p.args.p_action,p.args);else{await refreshGymPointState();closeSheet();toast('最新の予定とポイントを確認しました。');}}
  catch(e){gymPointErrorSheet('読み込めませんでした。通信状況を確認して再度お試しください。',true);}
 }
-async function doAction(mode,i,cls){
+/* ---- 同じ日に在籍クラスの練習があるのに欠席未登録のまま振替すると、ポイントが−1だけになる取り違えを防ぐ（2026-09-20） ---- */
+function ownClassSameDay(c){
+ if(!selClass||!c)return null;
+ const key=selClass.dateStr;if(selClass.room===c.classroom&&selClass.cls===c.class_name)return null;
+ const wd=new Date(key+'T00:00:00').getDay();
+ let ct;try{ct=contentOn(c.classroom,key,wd);}catch(e){return null;}
+ if(!(ct&&(ct.classes||[]).some(x=>x&&x.c===c.class_name)))return null;
+ if(isCancelled(c.classroom,key)||isHidden(c.classroom,key))return null;
+ if(myAbs.some(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===key&&a.classroom===c.classroom&&a.class_name===c.class_name))return null;
+ return {room:c.classroom,cls:c.class_name};
+}
+function openAbsentFirstSheet(i,cls,own){
+ const c=kids[i];const inf=SCHOOL_INFO[own.room]||{};const atCap=(c.points||0)>=maxPerChild();
+ openSheet(`<h3>同じ日の在籍クラスはお休みですか？</h3>
+  <p class="muted" style="margin-bottom:12px">${esc(c.name)}さんは この日 <b>${esc(inf.full||own.room)} ${esc(own.cls)}</b> の練習日です。<br>欠席を登録せずに振替だけすると、振替ポイントが1つ減ったままになります。</p>
+  <button class="btn" onclick="absentThenFurikae(${i},${JSON.stringify(cls)})">🙅 ${esc(own.cls)}を欠席にして、🔁 ${esc(cls)}に振替する${atCap?'':'<br><small style="font-weight:700;opacity:.9">ポイントは ±0（欠席で＋1・振替で−1）</small>'}</button>
+  ${atCap?`<p class="muted center" style="margin:8px 0 4px">※ポイントが上限（${maxPerChild()}）のため、欠席の＋1は付きません</p>`:''}
+  <button class="btn gray" style="margin-top:10px" onclick="doAction('furikae',${i},${JSON.stringify(cls)},true)">振替だけする（${esc(own.cls)}には出席・ポイント−1）</button>
+  <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);
+}
+async function absentThenFurikae(i,cls){
+ if(previewGuard()||gymPointBusy)return;
+ const c=kids[i];const own=c&&ownClassSameDay(c);if(!own||!selClass){return doAction('furikae',i,cls,true);}
+ const target={room:selClass.room,cls:selClass.cls,dateStr:selClass.dateStr};
+ const a=await gymPointAction('absent',{p_child_id:c.id,p_date:target.dateStr,p_room:own.room,p_class:own.cls});
+ if(!a||a.needsRefresh||a.resumedDifferent)return;
+ selClass=target;
+ const r=await gymPointAction('reserve',{p_child_id:c.id,p_date:target.dateStr,p_room:target.room,p_class:target.cls});
+ if(r&&!r.needsRefresh)toast(a.delta>0?'欠席と振替を受け付けました（ポイントは ±0）':'欠席と振替を受け付けました');
+}
+async function doAction(mode,i,cls,skipOwnCheck){
  if(previewGuard()||gymPointBusy)return;
  const c=kids[i];if(!c||!selClass)return;
  if(mode==='absent'&&!(c.classroom===selClass.room&&c.class_name===cls)){toast('欠席は在籍しているクラスのみ登録できます');return;}
- if(mode!=='absent'){const reason=furikaeNgReason(c,cls);if(reason){toast(reason);return;}}
+ if(mode!=='absent'){const reason=furikaeNgReason(c,cls);if(reason){toast(reason);return;}
+  if(!skipOwnCheck){const own=ownClassSameDay(c);if(own){openAbsentFirstSheet(i,cls,own);return;}}}
  const result=await gymPointAction(mode==='absent'?'absent':'reserve',{p_child_id:c.id,p_date:selClass.dateStr,p_room:selClass.room,p_class:cls});
  if(result&&result.action==='absent'&&result.status==='created'&&!result.replayed&&!result.resumedDifferent&&!result.needsRefresh){
   const fresh=kids.find(k=>k.id===c.id);if(fresh)setTimeout(()=>offerTransferAfterAbsence(fresh,result.delta>0),320);
