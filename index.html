@@ -1658,11 +1658,11 @@ function ownClassSameDay(c){
 }
 function openAbsentFirstSheet(i,cls,own){
  const c=kids[i];const inf=SCHOOL_INFO[own.room]||{};const atCap=(c.points||0)>=maxPerChild();
- openSheet(`<h3>同じ日の在籍クラスはお休みですか？</h3>
-  <p class="muted" style="margin-bottom:12px">${esc(c.name)}さんは この日 <b>${esc(inf.full||own.room)} ${esc(own.cls)}</b> の練習日です。<br>欠席を登録せずに振替だけすると、振替ポイントが1つ減ったままになります。</p>
-  <button class="btn" onclick="absentThenFurikae(${i},${JSON.stringify(cls)})">🙅 ${esc(own.cls)}を欠席にして、🔁 ${esc(cls)}に振替する${atCap?'':'<br><small style="font-weight:700;opacity:.9">ポイントは ±0（欠席で＋1・振替で−1）</small>'}</button>
+ openSheet(`<h3>${esc(own.cls)}はどうしますか？</h3>
+  <p class="muted" style="margin-bottom:12px">${esc(c.name)}さんは この日 <b>${esc(inf.full||own.room)} ${esc(own.cls)}</b> の練習日です。</p>
+  <button class="btn" onclick='absentThenFurikae(${i},${JSON.stringify(cls)})'>🙅 ${esc(own.cls)}は休んで、🔁 ${esc(cls)}に振替する${atCap?'':'<br><small style="font-weight:700;opacity:.9">ポイントは ±0（欠席で＋1・振替で−1）</small>'}</button>
   ${atCap?`<p class="muted center" style="margin:8px 0 4px">※ポイントが上限（${maxPerChild()}）のため、欠席の＋1は付きません</p>`:''}
-  <button class="btn gray" style="margin-top:10px" onclick="doAction('furikae',${i},${JSON.stringify(cls)},true)">振替だけする（${esc(own.cls)}には出席・ポイント−1）</button>
+  <button class="btn gray" style="margin-top:10px" onclick='doAction("furikae",${i},${JSON.stringify(cls)},true)'>🔁 ${esc(own.cls)}にも出て、${esc(cls)}にも振替で参加する（ポイント−1）</button>
   <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);
 }
 async function absentThenFurikae(i,cls){
