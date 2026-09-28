@@ -1150,6 +1150,8 @@ function monthSnapshot(room,y,m){const days=new Date(y,m+1,0).getDate(),out=[];f
 function monthCanonical(snap){return JSON.stringify((Array.isArray(snap)?snap:[]).map(s=>[s.d||'',s.p||'',(s.c||[]).map(c=>[c[0]||'',c[1]||'']),s.x?1:0]).sort((a,b)=>a[0].localeCompare(b[0])));}
 function monthConfirmState(room,y,m){const row=monthConfirms[room+'|'+ymKey(y,m)];return !row?'none':monthCanonical(row.snapshot)===monthCanonical(monthSnapshot(room,y,m))?'ok':'changed';}
 function isMonthConfirmed(room,y,m){return !!monthConfirms[room+'|'+ymKey(y,m)];}
+// 予定内容の短いハッシュ（保護者ポップアップの「見た/まだ」判定に使う。予定が変わればもう一度表示される）
+function monthHash(str){let h=5381;for(let i=0;i<str.length;i++)h=((h*33)^str.charCodeAt(i))>>>0;return h.toString(36);}
 function monthHtml(v){return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function monthTitle(y,m,staff){return `<header class="month-heading"><div class="month-eyebrow">${y}年${staff?' · 予定の確認':''}</div><h2>${m+1}<span>月の練習日程</span></h2><button type="button" class="month-x" aria-label="閉じる" onclick="closeMonthDialog(this.closest('.month-overlay').id)">×</button></header>`;}
 function closeMonthDialog(id){const w=document.getElementById(id);if(!w)return;if(id==='mconf-pop'&&mconfCtx&&mconfCtx.busy)return;w.remove();if(id==='mconf-pop'){mconfCtx=null;mconfOpen='';}if(id==='month-history')monthHistoryCtx=null;if(w._returnFocus&&w._returnFocus.isConnected)w._returnFocus.focus();}
@@ -1447,12 +1449,12 @@ function renderUpcoming(){
 /* 保護者への案内は、担当者がプレビューして確定したsnapshotから生成する。 */
 function monthPopRoomsOfFamily(){return [...new Set(activeKids().map(c=>c.classroom).filter(r=>r&&SCHEDULE[r]&&isMonthPopRoom(r)))];}
 function monthPublishedOccurrences(rooms,y,m,fromKey){const list=[],map={},act=activeKids();function add(room,cls,s,kid,fur){const key=room+'|'+cls+'|'+s.d,it=(s.c||[]).find(c=>c[0]===cls);if(!it)return;const dt=new Date(s.d+'T00:00:00');if(!map[key]){map[key]={room,cls,key:s.d,y,m,d:dt.getDate(),wd:dt.getDay(),time:it[1],place:s.p||'',cancelled:!!s.x||isCancelled(room,s.d),kids:[],furKids:[]};list.push(map[key]);}const o=map[key];if(!o.kids.some(k=>k.id===kid.id))o.kids.push(kid);if(fur&&!o.furKids.includes(kid.id))o.furKids.push(kid.id);}
- rooms.forEach(room=>{const row=monthConfirms[room+'|'+ymKey(y,m)];(row&&row.snapshot||[]).filter(s=>s.d>=fromKey&&s.d.startsWith(ymKey(y,m)+'-')).forEach(s=>{act.filter(c=>c.classroom===room).forEach(c=>add(room,c.class_name,s,c,false));myFur.filter(f=>f.to_room===room&&String(f.date).slice(0,10)===s.d).forEach(f=>{const kid=act.find(c=>c.id===f.child_id);if(kid)add(room,f.to_class,s,kid,true);});});});return list.sort((a,b)=>a.key.localeCompare(b.key)||(a.time||'').localeCompare(b.time||''));}
+ rooms.forEach(room=>{const row=monthConfirms[room+'|'+ymKey(y,m)];(row?monthSnapshot(room,y,m):[]).filter(s=>s.d>=fromKey&&s.d.startsWith(ymKey(y,m)+'-')).forEach(s=>{act.filter(c=>c.classroom===room).forEach(c=>add(room,c.class_name,s,c,false));myFur.filter(f=>f.to_room===room&&String(f.date).slice(0,10)===s.d).forEach(f=>{const kid=act.find(c=>c.id===f.child_id);if(kid)add(room,f.to_class,s,kid,true);});});});return list.sort((a,b)=>a.key.localeCompare(b.key)||(a.time||'').localeCompare(b.time||''));}
 function showMonthSchedulePopup(force){try{
  if(!me||!profile||profile.role!=='parent'||(window.__suppressMonthPop&&!force))return false;
  const now=monthTodayParts(),y=now.y,m=now.m,rooms=monthPopRoomsOfFamily(),ready=rooms.filter(r=>isMonthConfirmed(r,y,m));
  if(!ready.length){if(force)toast('今月の練習日程は準備中です');return false;}
- const who=profile.id||me.id,seenKey=r=>'sowers_gym_monthpop_v2_'+who+'_'+r+'_'+ymKey(y,m)+'_'+monthConfirms[r+'|'+ymKey(y,m)].confirmed_at;
+ const who=profile.id||me.id,seenKey=r=>'sowers_gym_monthpop_v2_'+who+'_'+r+'_'+ymKey(y,m)+'_'+monthConfirms[r+'|'+ymKey(y,m)].confirmed_at+'_'+monthHash(monthCanonical(monthSnapshot(r,y,m)));
  if(!force){let unseen=true;try{unseen=ready.some(r=>localStorage.getItem(seenKey(r))!=='1');}catch(e){}if(!unseen)return false;if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__monthPopRetry=(window.__monthPopRetry||0)+1;if(window.__monthPopRetry<=6)setTimeout(showMonthSchedulePopup,3000);return false;}}
  const occ=monthPublishedOccurrences(ready,y,m,dateKey(y,m,now.d));let body=occ.length?occ.map(o=>pcardHtml(o)).join(''):'<div class="month-empty">今月の残りの練習日程はありません。</div>';
  const w=mountMonthDialog('month-parent-pop',`<section class="month-panel" role="dialog" aria-modal="true" aria-label="${m+1}月の練習日程">${monthTitle(y,m,false)}<div class="month-scroll">${body}</div><footer class="month-footer"><button class="btn" onclick="closeMonthDialog('month-parent-pop');openTransferPicker()">振替を申し込む</button><button class="btn gray" onclick="closeMonthDialog('month-parent-pop')">閉じる</button></footer></section>`);
@@ -2951,7 +2953,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260918-install-guide1';
+const APP_BUILD='20260928-monthpop-live1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
