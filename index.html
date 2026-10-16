@@ -2121,6 +2121,19 @@ function renderMonthHistory(){const w=document.getElementById('month-history');i
 
 function monthCurrentCardHtml(rooms,own){const n=monthCurrentTarget();return `<div class="card"><div style="font-weight:800">${n.m+1}月の練習日程を案内</div><p class="month-meta">今月分も、内容を確認してから保護者に案内できます。</p><details><summary>教室ごとの案内状況</summary>${rooms.map(r=>`<div class="month-overview-row"><b>${monthHtml(r)}</b> <span class="month-meta">担当：${monthHtml(monthReviewerName(r))}</span><div>${monthStateLabel(r,n.y,n.m)}</div></div>`).join('')}</details>${own.length?`<button class="btn sm" style="margin-top:12px" onclick="showMonthConfirmPopup(true,'current')">${n.m+1}月分を確認・案内する</button>`:''}</div>`;}
 function monthConfirmCardHtml(){if(!['staff','admin'].includes(staffRole))return '';const own=monthConfirmRooms(),admin=staffRole==='admin',t=monthNextTarget(),now=monthTodayParts(),open=!!monthConfirmTarget();if(!admin&&!own.length&&!monthReviewersError)return '';const rooms=admin?Object.keys(SCHEDULE).filter(isMonthPopRoom):own;return staffIdentityCardHtml()+monthCurrentCardHtml(rooms,own)+`<div class="card"><div style="font-weight:800">${t.m+1}月の練習日程の確認</div><p class="month-meta">${now.m+1}/20〜月末に、各教室の担当者が確認します。</p>${monthReviewersError?`<p class="month-status error">${monthHtml(monthReviewersError)}</p>`:''}${rooms.map(r=>`<div class="month-overview-row"><b>${monthHtml(r)}</b> <span class="month-meta">担当：${monthHtml(monthReviewerName(r))}</span><div>${monthStateLabel(r,t.y,t.m)}</div></div>`).join('')}${own.length?`<button class="btn sm" style="margin-top:12px" ${open?'':'disabled'} onclick="showMonthConfirmPopup(true)">${open?'担当教室を確認する':'20日から確認できます'}</button>`:''}${admin?'<button class="btn soft sm" style="margin-top:8px" onclick="openMonthReviewerSettings()">教室ごとの確認担当者を設定</button>':''}</div>`;}
+function monthGuideCardHtml(){if(!['staff','admin'].includes(staffRole)||!monthHistoryAllowed())return staffIdentityCardHtml();const own=monthConfirmRooms(),admin=staffRole==='admin',cur=monthCurrentTarget(),nx=monthNextTarget(),open=!!monthConfirmTarget();const rooms=admin?monthHistoryRooms():(own.length?own:monthHistoryRooms());if(!rooms.length)return staffIdentityCardHtml();
+const cs=rooms.map(r=>({room:r,...monthHistoryStatus(r,cur.y,cur.m)})),cMiss=cs.filter(x=>x.code==='none'),cChg=cs.filter(x=>x.code==='changed');
+const nOk=rooms.filter(r=>monthConfirmState(r,nx.y,nx.m)==='ok').length,nChg=rooms.filter(r=>monthConfirmState(r,nx.y,nx.m)==='changed');
+const pill=(t,ok)=>`<span style="display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:800;background:${ok?'#e6f7ee':'#fff1e6'};color:${ok?'#1a8a4c':'#c25a00'}">${t}</span>`;
+const row=(label,status,note,btn)=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #eef0f5"><div style="flex:1;min-width:0"><div style="font-weight:800">${label} ${status}</div>${note?`<div class="month-meta" style="margin-top:2px">${note}</div>`:''}</div>${btn||''}</div>`;
+const sbtn=(t,on,dis)=>`<button class="btn sm" style="width:auto;padding:8px 12px;white-space:nowrap" ${dis?'disabled':''} onclick="${on}">${t}</button>`;
+const curNote=[cMiss.length?'未案内：'+cMiss.map(x=>monthHtml(x.room)).join('、'):'',cChg.length?'再案内が必要：'+cChg.map(x=>monthHtml(x.room)).join('、'):''].filter(Boolean).join('<br>');
+const nxNote=(nOk<rooms.length?(open?'今月20日〜月末に担当者が確認':(cur.m+1)+'/20から確認できます'):'')+(nChg.length?(nOk<rooms.length?'<br>':'')+'変更あり：'+nChg.map(r=>monthHtml(r)).join('、'):'');
+const detail=`<details style="margin-top:4px"><summary class="month-meta" style="cursor:pointer">教室ごとの担当・状況</summary>${rooms.map(r=>`<div class="month-overview-row"><b>${monthHtml(r)}</b> <span class="month-meta">担当：${monthHtml(monthReviewerName(r))}</span><div class="month-meta">${cur.m+1}月：${monthHistoryStatus(r,cur.y,cur.m).label}／${nx.m+1}月：${monthStateLabel(r,nx.y,nx.m)}</div></div>`).join('')}</details>`;
+return staffIdentityCardHtml()+`<div class="card"><div style="font-weight:800;margin-bottom:4px">📋 保護者への月の案内${admin?'（徳島）':''}</div>`
++row(`${cur.m+1}月`,pill(`案内済み ${cs.length-cMiss.length}/${cs.length}`,!cMiss.length&&!cChg.length),curNote,own.length?sbtn('確認・案内',"showMonthConfirmPopup(true,'current')"):'')
++row(`${nx.m+1}月`,pill(`確定 ${nOk}/${rooms.length}`,nOk===rooms.length),nxNote,own.length?sbtn(open?'確認する':'20日から','showMonthConfirmPopup(true)',!open):'')
++detail+`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"><button class="btn soft sm" style="width:auto;padding:8px 12px" onclick="openMonthHistory()">確定した表を見る</button>${admin?'<button class="btn soft sm" style="width:auto;padding:8px 12px" onclick="openMonthReviewerSettings()">確認担当者を設定</button>':''}</div>${monthReviewersError?`<p class="month-status error">${monthHtml(monthReviewersError)}</p>`:''}</div>`;}
 function openMonthReviewerSettings(){if(staffRole!=='admin')return;const rooms=Object.keys(SCHEDULE).filter(isMonthPopRoom),people=allProfiles.filter(p=>['admin','staff'].includes(p.role));mountMonthDialog('month-reviewer-settings',`<section class="month-panel" role="dialog" aria-modal="true" aria-label="確認担当者の設定"><header class="month-heading"><h2 style="font-size:22px">教室ごとの確認担当者</h2><button class="month-x" aria-label="閉じる" onclick="closeMonthDialog('month-reviewer-settings')">×</button></header><div class="month-scroll"><p class="month-status">指定した担当者の画面に、その教室の翌月確認を表示します。複数の教室を同じ人に設定できます。</p>${rooms.map((r,i)=>`<label class="month-settings-row" style="display:block">${monthHtml((SCHOOL_INFO[r]||{}).full||r)}<select id="month-owner-${i}" data-room="${monthHtml(r)}"><option value="">未設定</option>${people.map(p=>`<option value="${p.id}" ${monthReviewers[r]&&monthReviewers[r].user_id===p.id?'selected':''}>${monthHtml(p.parent_name||'(名前未設定)')}（${p.role==='admin'?'管理者':p.staff_region||'スタッフ'}）</option>`).join('')}</select></label>`).join('')}</div><footer class="month-footer"><p id="month-owner-status" class="month-status" role="status"></p><button class="btn gray" onclick="closeMonthDialog('month-reviewer-settings')">閉じる</button><button id="month-owner-save" class="btn" onclick="saveMonthReviewerSettings()">担当者を保存</button></footer></section>`);}
 async function saveMonthReviewerSettings(){if(previewGuard()||staffRole!=='admin')return;const w=document.getElementById('month-reviewer-settings');if(!w)return;const b=document.getElementById('month-owner-save'),s=document.getElementById('month-owner-status');if(b.disabled)return;const inputs=[...w.querySelectorAll('select[data-room]')];if(inputs.some(i=>!i.value)){s.textContent='各教室の担当者を選択してください。';s.className='month-status error';return;}b.disabled=true;s.textContent='保存しています…';try{const rows=inputs.map(i=>({room:i.dataset.room,user_id:i.value,assigned_by:me.id,updated_at:new Date().toISOString()}));const r=await db.from('month_popup_reviewers').upsert(rows,{onConflict:'room'});if(r.error)throw new Error(r.error.message);await loadMonthReviewers();if(monthReviewersError)throw new Error(monthReviewersError);s.className='month-status success';s.textContent='担当者を保存しました。';if(staffSection==='schedule')renderStaff();}catch(e){s.className='month-status error';s.textContent='保存できませんでした：'+e.message;}finally{b.disabled=false;}}
 
@@ -2145,7 +2158,7 @@ function showFurikaeSetAnnounce(){try{
 
 let staffIdentityChecks={},staffIdentityError=false,staffIdentityBusy=false;
 async function loadStaffIdentityChecks(){try{const r=await db.from('staff_identity_checks').select('user_id,proposed_name,status');if(r.error)throw r.error;staffIdentityChecks={};(r.data||[]).forEach(x=>staffIdentityChecks[x.user_id]=x);staffIdentityError=false;}catch(e){staffIdentityError=true;}}
-function staffIdentityCardHtml(){if(staffRole!=='admin')return '';const rows=Object.values(staffIdentityChecks);return rows.length?`<div class="card"><b>スタッフの氏名確認</b>${rows.map(x=>`<p>${monthHtml((allProfiles.find(p=>p.id===x.user_id)||{}).parent_name||'名前未設定')} → ${monthHtml(x.proposed_name)}<br><span class="month-meta">${x.status==='confirmed'?'本人から「はい」の回答がありました':x.status==='rejected'?'本人から「いいえ」の回答がありました。担当者設定を確認してください':'本人の回答待ち'}</span></p>`).join('')}</div>`:'';}
+function staffIdentityCardHtml(){if(staffRole!=='admin')return '';const rows=Object.values(staffIdentityChecks).filter(x=>x.status!=='confirmed');return rows.length?`<div class="card"><b>スタッフの氏名確認</b>${rows.map(x=>`<p>${monthHtml((allProfiles.find(p=>p.id===x.user_id)||{}).parent_name||'名前未設定')} → ${monthHtml(x.proposed_name)}<br><span class="month-meta">${x.status==='confirmed'?'本人から「はい」の回答がありました':x.status==='rejected'?'本人から「いいえ」の回答がありました。担当者設定を確認してください':'本人の回答待ち'}</span></p>`).join('')}</div>`:'';}
 function showStaffIdentityPopup(){const x=staffIdentityChecks[me&&me.id];if(_pv.on||!x||x.status!=='pending')return false;mountMonthDialog('staff-identity-pop',`<section class="month-panel" role="dialog" aria-modal="true" aria-label="お名前の確認"><header class="month-heading"><h2>お名前の確認</h2></header><div class="month-scroll"><p style="font-size:22px;font-weight:800;line-height:1.6">${monthHtml(x.proposed_name)}さんでお間違いないですか？</p><p class="month-meta">教室の担当者設定を確認するため、お答えください。回答は管理者に表示されます。</p><p id="staff-identity-status" role="status"></p></div><footer class="month-footer"><button class="btn gray" onclick="answerStaffIdentity(false)">いいえ、違います</button><button class="btn" onclick="answerStaffIdentity(true)">はい、私です</button></footer></section>`);return true;}
 async function answerStaffIdentity(yes){if(previewGuard()||staffIdentityBusy)return;staffIdentityBusy=true;const w=document.getElementById('staff-identity-pop'),status=document.getElementById('staff-identity-status');if(!w){staffIdentityBusy=false;return;}w.querySelectorAll('button').forEach(b=>b.disabled=true);try{const r=await db.rpc('respond_staff_identity_check',{p_confirm:yes});if(r.error)throw r.error;await loadStaffIdentityChecks();if(staffIdentityError)throw new Error('回答の確認に失敗しました');closeMonthDialog('staff-identity-pop');renderStaff();toast(yes?'回答を保存しました。':'回答を保存しました。管理者が担当者設定を確認します。');setTimeout(showMonthConfirmPopup,500);}catch(e){status.textContent='回答を保存できませんでした。もう一度お試しください。';w.querySelectorAll('button').forEach(b=>b.disabled=false);}finally{staffIdentityBusy=false;}}
 
@@ -2250,11 +2263,11 @@ function stShellCal(){
   const areaBar=(!allRooms)?`<div class="card" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px"><div><span class="muted" style="font-size:11.5px">担当エリア</span><div style="font-weight:900">${staffScope().p}・${staffScope().r}</div></div><button class="btn sm gray" style="width:auto;padding:8px 12px" onclick="openStaffAreaPicker()">変更</button></div>`:'';
   const filterBar=allRooms?adminFilterBarHtml():'';
   const createBtn=(!isRoster&&monthlyRoomsInScope().length)?`<button class="btn soft sm" style="margin-bottom:10px" onclick="openEventEditor()">＋ 開催日・予定を作成/編集（月3回の教室）</button>`:'';
-  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">${isRoster?'全教室・閲覧のみ':'日付をタップで編集'}</span></div>${areaBar}${filterBar}${monthHistoryEntryHtml()}${monthConfirmCardHtml()}${createBtn}
+  return `<div class="sech"><h2 class="title">📅 スケジュール</h2><span class="muted" style="font-size:11.5px">${isRoster?'全教室・閲覧のみ':'日付をタップで編集'}</span></div>${areaBar}${filterBar}${createBtn}
   <div class="card"><div class="calhead"><button onclick="calStaffMove(-1)">‹</button><span class="mlabel" id="scal-label"></span><button onclick="calStaffMove(1)">›</button></div>
   <div id="scal-holi"></div><div class="cal" id="scal"></div>
   <div class="legend" style="flex-wrap:wrap;gap:5px">${legendChipsHtml(legendRooms)}</div>
-  <p class="muted" style="margin-top:6px;font-size:12px">${isRoster?'活動日をタップすると、その日の教室・会場・時間を確認できます。':'活動日をタップすると、会場・時間の変更や休講の設定ができます。'+(monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':'')}</p></div>`;}
+  <p class="muted" style="margin-top:6px;font-size:12px">${isRoster?'活動日をタップすると、その日の教室・会場・時間を確認できます。':'活動日をタップすると、会場・時間の変更や休講の設定ができます。'+(monthlyRoomsInScope().length?'月3回の教室は「開催日を作成」で開く日を登録してください。':'')}</p></div>${isRoster?'':monthGuideCardHtml()}`;}
 function adminFilterBarHtml(){return `<div class="filterbar"><select onchange="adminFilter.p=this.value;if(adminFilter.p&&regionsFor(adminFilter.p).indexOf(adminFilter.r)<0)adminFilter.r='';renderStaff()"><option value="">種目：すべて</option>${PROGRAMS.map(p=>`<option value="${p.k}" ${adminFilter.p===p.k?'selected':''}>${p.k}</option>`).join('')}</select><select onchange="adminFilter.r=this.value;renderStaff()"><option value="">都道府県：すべて</option>${(adminFilter.p?regionsFor(adminFilter.p):REGION_ORDER).map(r=>`<option value="${r}" ${adminFilter.r===r?'selected':''}>${r}</option>`).join('')}</select></div>`;}
 function renderStaffCal(){
   const lab=document.getElementById('scal-label'); if(!lab)return; lab.textContent=`${scal.y}年 ${MONTHS[scal.m]}`;
@@ -2520,6 +2533,39 @@ function stPay(){
 async function togglePay(pid){if(previewGuard())return;const ym=payYm||monthKey();const cur=allPay.find(x=>x.parent_id===pid&&x.ym===ym);const np=!(cur&&cur.paid);
   showLoad(true);await db.from('payment_status').upsert({parent_id:pid,ym,paid:np,updated_at:new Date().toISOString()},{onConflict:'parent_id,ym'});
   const d=await db.from('payment_status').select('*');allPay=d.data||[];showLoad(false);renderStaff();}
+/* --- 生徒数の推移（毎月末の在籍記録 gym_monthly_roster） --- */
+let rosterHist=null, rosterHistLoading=false;
+async function loadRosterHist(){if(rosterHistLoading)return;rosterHistLoading=true;
+  const r=await db.from('gym_monthly_roster').select('ym,room,class_name,enrolled,joined,left_count,source').order('ym');
+  rosterHist=r.error?[]:(r.data||[]);rosterHistLoading=false;if(staffSection==='finance')renderStaff();}
+function rosterTrendHtml(){
+  const head=`<div class="sech"><h2 class="title">👥 生徒数の推移</h2></div>`;
+  if(rosterHist===null){loadRosterHist();return head+`<div class="card" style="padding:12px 14px"><span class="muted">読み込み中…</span></div>`;}
+  if(!rosterHist.length)return head+`<div class="card" style="padding:12px 14px"><span class="muted">まだ記録がありません。毎月末の在籍数が自動で記録されます。</span></div>`;
+  const ymsAll=[...new Set(rosterHist.map(x=>x.ym))].sort().slice(-6);const cur=nowYM();
+  const est=new Set(rosterHist.filter(x=>x.source==='推定').map(x=>x.ym));
+  const ml=ym=>Number(ym.slice(5))+'月'+(est.has(ym)?'※':'')+(ym===cur?'<br><span style="font-weight:400">途中</span>':'');
+  const avg=a=>a.length?(a.reduce((x,y)=>x+y,0)/a.length):0;
+  const f1=v=>(Math.round(v*10)/10).toFixed(1);
+  let cards='';
+  furikaeRooms().forEach(room=>{
+    const rows=rosterHist.filter(x=>x.room===room&&ymsAll.includes(x.ym));if(!rows.length)return;
+    const yms=ymsAll.filter(ym=>rows.some(x=>x.ym===ym));
+    const order=SCHOOLS[room]||[];
+    const cls=[...new Set(rows.map(x=>x.class_name))].sort((a,b)=>{const ia=order.indexOf(a),ib=order.indexOf(b);return (ia<0?99:ia)-(ib<0?99:ib);});
+    const v=(ym,c)=>{const r=rows.find(x=>x.ym===ym&&x.class_name===c);return r?r.enrolled:0;};
+    const tot=ym=>rows.filter(x=>x.ym===ym).reduce((a,x)=>a+x.enrolled,0);
+    const done=yms.filter(ym=>ym<cur);const base=done.length?done:yms;
+    const latest=tot(yms[yms.length-1]);
+    let t=`<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>クラス</th>${yms.map(ym=>`<th class="num">${ml(ym)}</th>`).join('')}<th class="num">平均</th></tr></thead><tbody>`;
+    cls.forEach(c=>{t+=`<tr><td style="white-space:nowrap">${esc(c)}</td>${yms.map(ym=>`<td class="num">${v(ym,c)}</td>`).join('')}<td class="num"><b>${f1(avg(base.map(ym=>v(ym,c))))}</b></td></tr>`;});
+    t+=`<tr style="font-weight:800"><td>合計</td>${yms.map(ym=>`<td class="num">${tot(ym)}</td>`).join('')}<td class="num">${f1(avg(base.map(tot)))}</td></tr>`;
+    t+=`<tr class="muted"><td style="white-space:nowrap">入会/退会</td>${yms.map(ym=>{const j=rows.filter(x=>x.ym===ym).reduce((a,x)=>a+x.joined,0),l=rows.filter(x=>x.ym===ym).reduce((a,x)=>a+x.left_count,0);return `<td class="num" style="font-size:11px;white-space:nowrap">+${j}/−${l}</td>`;}).join('')}<td class="num" style="font-size:11px;white-space:nowrap">1クラス${f1(avg(base.map(tot))/Math.max(cls.length,1))}</td></tr>`;
+    t+=`</tbody></table></div>`;
+    cards+=`<div class="card" style="padding:8px 14px;border-left:5px solid ${scolor(room).bg}"><details class="acc" style="border-top:none;padding-top:0"><summary>${roomSummaryHtml(room,latest,'')}</summary>${t}</details></div>`;
+  });
+  return head+(cards||`<div class="card" style="padding:12px 14px"><span class="muted">該当する教室の記録がありません。</span></div>`)+`<p class="muted" style="font-size:11px;margin:-4px 0 14px">各月末の在籍数（退会予定の人は最終月まで含む）。平均は終わった月の平均。※は記録開始前の推定値（今の名簿の入会月・退会月から算出、クラスは現在のもの）。</p>`;
+}
 /* --- 分析（売上・経費・収支） admin --- */
 function stFinance(){
   let h=`<div class="sech"><h2 class="title">📊 分析（売上・経費）</h2></div><p class="muted" style="margin:-6px 0 10px;font-size:12px">体育館使用料・人件費を入力すると、教室ごとの概算収支が出ます。会場名の変更は「予定」タブから。</p>`;
@@ -2546,6 +2592,7 @@ function stFinance(){
   });
   h+=`<div class="statgrid"><div class="stat brand"><div class="n" style="font-size:15px;padding-top:5px">${yen(tFee)}</div><div class="l">月謝収入</div></div><div class="stat abs"><div class="n" style="font-size:15px;padding-top:5px">${yen(tCost)}</div><div class="l">概算コスト</div></div><div class="stat ${tFee-tCost>=0?'att':'abs'}"><div class="n" style="font-size:15px;padding-top:5px">${tFee-tCost>=0?'+':''}${yen(tFee-tCost)}</div><div class="l">概算収支（月）</div></div></div>`;
   h+=cards;
+  h+=rosterTrendHtml();
   return h;
 }
 async function saveCost(room,field,val){if(previewGuard())return;
@@ -2957,7 +3004,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20260928-monthpop-next1';
+const APP_BUILD='20261016-sched-ui1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
