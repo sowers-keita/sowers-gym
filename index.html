@@ -2025,9 +2025,31 @@ function openChildAdmin(cid){
       ${c.last_month?`<div class="kv"><span class="k">最終在籍月</span><span class="v">${ymLabel(c.last_month)}${c.withdrawn_at?'　退会日：'+(''+c.withdrawn_at).slice(0,10):''}</span></div>`:''}
     </div>
     ${(()=>{const x=paySubOf(c.id);if(!x||!payUiOn())return '';const m=PAY_M[x.method]||{lbl:x.method,col:'#555',bg:'#eee'};return `<div class="muted" style="margin:-4px 0 10px">💳 アプリ決済：<span class="pill" style="background:${m.bg};color:${m.col};margin:0;padding:3px 8px;font-size:11px">${m.lbl}</span> ${x.status==='cancel_at_period_end'?'解約予定':x.status==='past_due'?'未納あり':x.status==='active'?'有効':x.status}・${yen(x.amount)}/月</div>`;})()}
-    <div class="actions" style="margin-top:0"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 この保護者に連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${staffRole==='roster'?'':`<button class="btn sm gray" onclick="editFeeSheet('${c.id}')">月謝を変更</button>`}${withdrawBtn(c)}</div>
+    <div class="actions" style="margin-top:0"><button class="btn sm soft" onclick="openParentMsg('${c.parent_id}')">💬 この保護者に連絡</button><button class="btn sm gray" onclick="openClassChange('${c.id}')">クラス変更</button>${(staffRole==='staff'||staffRole==='admin')&&!isWithdrawn(c)?`<button class="btn sm gray" onclick="openPointsEdit('${c.id}')">振替数を変更</button>`:''}${staffRole==='roster'?'':`<button class="btn sm gray" onclick="editFeeSheet('${c.id}')">月謝を変更</button>`}${withdrawBtn(c)}</div>
     <button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);
 }
+/* ===== 先生・管理者：振替数の変更（2026-10-20）。DB関数 gym_staff_set_points_v1 経由・理由必須・管理者へ通知 ===== */
+let _ptEdit=null,_ptReq=null;
+function ptEsc(s){return (''+(s||'')).replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function openPointsEdit(cid){const c=allChildren.find(x=>x.id===cid);if(!c)return;const cur=c.points||0;_ptEdit={cid,cur,val:cur,reason:''};renderPointsEdit();}
+function stepPoints(d){const e=_ptEdit;if(!e)return;const rs=document.getElementById('pe-reason');if(rs)e.reason=rs.value;const max=Math.max(maxPerChild(),e.cur);e.val=Math.min(max,Math.max(0,e.val+d));renderPointsEdit();}
+function renderPointsEdit(){const e=_ptEdit;if(!e)return;const c=allChildren.find(x=>x.id===e.cid);if(!c)return;const cap=maxPerChild(),max=Math.max(cap,e.cur);
+  const sb='width:56px;height:56px;font-size:26px;padding:0;flex:0 0 auto';
+  openSheet(`<h3>${esc(c.name)} の振替数を変更</h3><p class="muted" style="margin:-2px 0 10px">今の振替数 <b>${e.cur}</b>（上限 ${cap}）。変更すると管理者に通知されます。</p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:18px;margin:4px 0 12px"><button class="btn soft" style="${sb}" ${e.val<=0?'disabled':''} onclick="stepPoints(-1)" aria-label="1つ減らす">−</button><div style="font-size:40px;font-weight:900;min-width:64px;text-align:center">${e.val}</div><button class="btn soft" style="${sb}" ${e.val>=max?'disabled':''} onclick="stepPoints(1)" aria-label="1つ増やす">＋</button></div>
+    <label class="fld">理由（必須）</label><textarea id="pe-reason" rows="2" maxlength="200" placeholder="例：教室都合のお休みのため1つ戻す">${ptEsc(e.reason)}</textarea>
+    <button class="btn green" style="margin-top:12px" ${e.val===e.cur?'disabled':''} onclick="savePoints()">${e.val===e.cur?'＋−で数を選んでください':e.cur+' → '+e.val+' に変更する'}</button>
+    <button class="btn gray" style="margin-top:8px" onclick="openChildAdmin('${c.id}')">戻る</button>`);}
+async function savePoints(){if(previewGuard())return;const e=_ptEdit;if(!e)return;const c=allChildren.find(x=>x.id===e.cid);if(!c)return;
+  const rs=document.getElementById('pe-reason');const reason=((rs&&rs.value)||'').trim();e.reason=reason;
+  if(e.val===e.cur){toast('振替数が変わっていません');return;}
+  if(!reason){toast('理由を入力してください');if(rs)rs.focus();return;}
+  const key=[e.cid,e.val,e.cur,reason].join('|');if(!_ptReq||_ptReq.key!==key)_ptReq={key,id:crypto.randomUUID()};
+  showLoad(true);let r;try{r=await db.rpc('gym_staff_set_points_v1',{p_request_id:_ptReq.id,p_child_id:e.cid,p_new_points:e.val,p_expected:e.cur,p_reason:reason});}catch(err){r={error:{message:'通信できませんでした。もう一度「変更する」を押してください'}};}
+  if(r.error){const m=(r.error.message||'保存できませんでした');
+    if(/変わっています/.test(m)){try{const q=await db.from('children').select('points').eq('id',e.cid).single();if(q.data){c.points=q.data.points||0;_ptReq=null;_ptEdit={cid:e.cid,cur:c.points,val:c.points,reason};showLoad(false);renderPointsEdit();toast('ほかの操作で振替数が変わったため、今の数を表示し直しました');return;}}catch(_){}}
+    showLoad(false);toast(m);return;}
+  _ptReq=null;_ptEdit=null;c.points=e.val;showLoad(false);closeSheet();renderStaff();toast(`${c.name}さんの振替数を ${e.cur} → ${e.val} にしました`);}
 function shortPlace(p){return (''+(p||'')).replace(/[（(][^）)]*[）)]/g,'').trim();}
 function telLink(t){if(!t)return '<span class="muted">未登録</span>';const d=(''+t).replace(/[^0-9+]/g,'');return d?`<a href="tel:${d}" style="color:var(--red);font-weight:800;text-decoration:none">📞 ${esc(t)}</a>`:esc(t);}
 function withdrawnListCard(rooms){
@@ -3004,7 +3026,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261016-sched-ui1';
+const APP_BUILD='20261020-staff-pts1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
