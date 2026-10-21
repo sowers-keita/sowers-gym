@@ -440,6 +440,13 @@ if (READY) { db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, 
   auth: { persistSession: true, autoRefreshToken: true, storage: window.localStorage, storageKey: 'sowers-gym-auth' }
 }); }
 else { document.getElementById('setup-warn').style.display='block'; }
+/* 名前など自由入力欄の記号を全角化（表示崩れ・スクリプト混入の防止）2026-10-21。読込時と保存時に適用 */
+const NAME_FIELDS={children:['name','kana','school','ec1_note','ec2_note','ec3_note','ec1_rel','ec2_rel','ec3_rel'],profiles:['parent_name','relation'],shifts:['staff_name'],change_requests:['child_name']};
+function safeName(s){return (typeof s!=='string')?s:s.replace(/[<>"'`&]/g,ch=>({'<':'＜','>':'＞','"':'”',"'":'’','`':'｀','&':'＆'}[ch]));}
+function safeNameRows(t,rows){const f=NAME_FIELDS[t];if(!f||!rows)return rows;(Array.isArray(rows)?rows:[rows]).forEach(r=>{if(r&&typeof r==='object')f.forEach(k=>{if(typeof r[k]==='string')r[k]=safeName(r[k]);});});return rows;}
+if (db) { const _from=db.from.bind(db); db.from=function(t){const qb=_from(t);if(!NAME_FIELDS[t]||!qb||typeof qb.select!=='function')return qb;const _sel=qb.select;
+  qb.select=function(){const fb=_sel.apply(this,arguments);if(fb&&typeof fb.then==='function'){const _then=fb.then;fb.then=function(ok,ng){return _then.call(this,r=>{try{if(r&&r.data)safeNameRows(t,r.data);}catch(e){}return r;}).then(ok,ng);};}return fb;};
+  return qb;}; }
 
 /* パスワード再設定リンクから開いたかどうか（起動時のログイン処理をスキップして再設定画面へ） */
 window._recovery = /type=recovery/.test(location.hash || '') || /type=recovery/.test(location.search || '');
@@ -754,7 +761,7 @@ function renderEventEditor(){
   }
   h+=`<div class="card" style="box-shadow:none;border:1px solid var(--line)"><div style="font-weight:800;margin-bottom:6px">内容（場所・クラス・時間）</div>`;
   h+=`<label class="fld">場所</label><input value="${(evEdit.place||'').replace(/"/g,'&quot;')}" oninput="evEdit.place=this.value" placeholder="例：◯◯体育館">`;
-  evEdit.classes.forEach((c,i)=>{h+=`<div class="row2" style="margin-top:8px"><input value="${(c.c||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'c',this.value)" placeholder="クラス名"><input value="${(c.t||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'t',this.value)" placeholder="時間 例：16:00–17:00"></div><button class="linkbtn" style="color:var(--red);padding:2px 4px" onclick="evDelClass(${i})">－ この行を削除</button>`;});
+  evEdit.classes.forEach((c,i)=>{h+=`<div class="row2" style="margin-top:8px"><input value="${(c.c||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'c',this.value)" placeholder="クラス名"><input value="${(c.t||'').replace(/"/g,'&quot;')}" oninput="evSetClass(${i},'t',this.value)" placeholder="時間 例：16:00–17:00"></div>${furCapSelect(c.cap,`evSetClass(${i},'cap',furCapVal(this.value))`)}<button class="linkbtn" style="color:var(--red);padding:2px 4px" onclick="evDelClass(${i})">－ この行を削除</button>`;});
   h+=`<div><button class="btn soft sm" style="margin-top:6px" onclick="evAddClass()">＋ クラスを追加</button></div>`;
   h+=`<label class="fld" style="margin-top:10px">ひな形として保存（任意）</label><div style="display:flex;gap:6px"><input style="flex:1" value="${evEdit.tplName||''}" oninput="evEdit.tplName=this.value" placeholder="名前 例：通常・短縮"><button class="btn gray sm" style="width:auto;padding:0 12px" onclick="saveTemplate()">保存</button></div></div>`;
   if(evEdit.mode==='individual'){
@@ -780,7 +787,7 @@ function applyTemplate(id){const room=evEdit.room;const list=PT[room]||[];if(!id
 async function delTemplate(id){if(previewGuard())return;if(!id){toast('削除するひな形を選んでください');return;}showLoad(true);const r=await db.from('practice_templates').delete().eq('id',id);await loadTemplates();showLoad(false);if(r&&r.error){toast('削除エラー：'+r.error.message);return;}evEdit.tplSel='';toast('ひな形を削除しました');renderEventEditor();}
 async function saveTemplate(){if(previewGuard())return;const room=evEdit.room;const list=PT[room]||[];const name=(evEdit.tplName||'').trim()||('ひな形'+(list.length+1));const existing=list.find(function(x){return x.name===name;});if(!existing&&list.length>=5){toast('ひな形は1教室5個までです');return;}showLoad(true);let r;if(existing){r=await db.from('practice_templates').update({place:evEdit.place,classes:evEdit.classes,updated_by:me.id,updated_at:new Date().toISOString()}).eq('id',existing.id);}else{r=await db.from('practice_templates').insert({room:room,name:name,place:evEdit.place,classes:evEdit.classes,updated_by:me.id});}await loadTemplates();showLoad(false);if(r&&r.error){toast('保存エラー：'+r.error.message);return;}toast('ひな形『'+name+'』を保存しました');evEdit.tplName='';renderEventEditor();}
 async function addOneDate(){if(previewGuard())return;const room=evEdit.room;const k=evEdit.dadd;if(!k){toast('日付を選んでください');return;}showLoad(true);const r=await db.from('events').upsert({room,date:k,place:evEdit.place,classes:evEdit.classes,created_by:me.id},{onConflict:'room,date'});await loadEvents();showLoad(false);if(r.error){toast('追加エラー：'+r.error.message);return;}toast('開催日を追加しました');renderEventEditor();renderStaff();}
-async function delEventDate(k){if(previewGuard())return;const room=evEdit.room;showLoad(true);const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました');renderEventEditor();renderStaff();}
+async function delEventDate(k){if(previewGuard())return;const room=evEdit.room;showLoad(true);const vd=await voidDayPoints(room,k);if(vd.error){showLoad(false);toast('削除できませんでした：'+vd.error.message);return;}const r=await db.from('events').delete().eq('room',room).eq('date',k);await loadEvents();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('削除しました'+vd.msg);renderEventEditor();renderStaff();}
 async function addRule(){if(previewGuard())return;const room=evEdit.room;if(evEdit.rw===''){toast('曜日を選んでください');return;}showLoad(true);const r=await db.from('event_rules').insert({room,weekday:Number(evEdit.rw),weeks:evEdit.rweeks.slice().sort((a,b)=>a-b),place:evEdit.place,classes:evEdit.classes,active:true,created_by:me.id});if(r.error){showLoad(false);toast('ルール保存エラー：'+r.error.message);return;}await loadRules();await ensureRuleEvents();await loadEvents();showLoad(false);toast('ルールを保存し、予定を作成しました');renderEventEditor();renderStaff();}
 async function delRule(id){if(previewGuard())return;showLoad(true);const r=await db.from('event_rules').delete().eq('id',id);await loadRules();showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}toast('ルールを削除しました');renderEventEditor();}
 function nthWeekOfMonth(d){return Math.floor((d.getDate()-1)/7)+1;}
@@ -835,8 +842,18 @@ function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new D
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
 function isRoomTransferBlocked(fromRoom,toRoom){if(!fromRoom||!toRoom||fromRoom===toRoom)return false;return FURIKAE_BLOCKS.some(b=>b.from_room===fromRoom&&b.to_room===toRoom);}
-function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';if(selClass&&child&&child.classroom&&selClass.room!==child.classroom&&isRoomTransferBlocked(child.classroom,selClass.room))return 'この教室へは振替できません';const a=ageYears(child.birth);if(a!==null&&a<5&&(""+cls).indexOf("スタート")!==0)return '満5歳未満はスタートのみ';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
+function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';if(selClass&&child&&child.classroom&&selClass.room!==child.classroom&&isRoomTransferBlocked(child.classroom,selClass.room))return 'この教室へは振替できません';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
 function canFurikaeTo(child,cls){return furikaeNgReason(child,cls)==='';}
+/* 振替の定員（クラスごと cap。null=無制限）2026-10-21 復元。空き = cap + 欠席 − 振替参加（class_counts） */
+function furCapVal(v){const n=parseInt(v,10);return n>=1?n:null;}
+function furCapOf(room,dateStr,cls){try{const ct=contentOn(room,dateStr,new Date(dateStr+'T00:00:00').getDay());const it=(ct.classes||[]).find(x=>x&&x.c===cls);return it?furCapVal(it.cap):null;}catch(e){return null;}}
+async function furCapFree(room,dateStr,cls){const cap=furCapOf(room,dateStr,cls);if(cap==null)return null;try{const r=await db.rpc('class_counts',{p_room:room,p_date:dateStr,p_class:cls});if(r.error||!r.data)return null;const x=Array.isArray(r.data)?r.data[0]:r.data;if(!x)return null;return Math.max(0,cap+(Number(x.absent)||0)-(Number(x.furikae_in)||0));}catch(e){return null;}}
+async function furCapFull(room,dateStr,cls){if(furCapOf(room,dateStr,cls)==null)return false;showLoad(true);let free=null;try{free=await furCapFree(room,dateStr,cls);}finally{showLoad(false);}if(free!==null&&free<=0){toast('満員のため振替できません');return true;}return false;}
+async function showFurCap(room,dateStr,cls,canF){const free=await furCapFree(room,dateStr,cls);const el=document.getElementById('fcap'),b=document.getElementById('fbtn');if(!el||!b||!selClass||selClass.room!==room||selClass.dateStr!==dateStr||selClass.cls!==cls)return;
+  if(free===null){el.remove();b.disabled=!canF;return;}
+  if(free<=0){el.textContent='満員';el.classList.add('full');b.disabled=true;b.classList.add('gray');}else{el.textContent='振替の空き あと'+free+'名';b.disabled=!canF;}}
+function furCapSelect(cur,onch){const n=furCapVal(cur);let o='<option value=""'+(n==null?' selected':'')+'>無制限</option>';for(let k=1;k<=Math.max(10,n||0);k++){if(k>10&&k!==n)continue;o+='<option value="'+k+'"'+(n===k?' selected':'')+'>'+k+'名</option>';}
+  return '<div style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="muted" style="font-size:12px;white-space:nowrap">振替の定員</span><select style="width:auto" onchange="'+onch+'">'+o+'</select></div>';}
 function dateKey(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
 function isPast(y,m,d){const t=new Date();return new Date(y,m,d)<new Date(t.getFullYear(),t.getMonth(),t.getDate());}
 function holidayName(y,m,d){const mo=m+1;if((mo===4&&d>=29)||(mo===5&&d<=6))return'GW';if(mo===8&&d>=11&&d<=16)return'お盆';if((mo===12&&d>=29)||(mo===1&&d<=3))return'年末年始';return null;}
@@ -926,7 +943,7 @@ function showClassFixModal(){
   let h=`<div id="classfix" style="position:fixed;inset:0;z-index:99999;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:18px"><div style="background:#fff;border-radius:18px;max-width:420px;width:100%;max-height:88vh;overflow:auto;padding:20px 16px;box-shadow:0 20px 60px rgba(0,0,0,.35)"><div style="font-weight:800;font-size:18px;text-align:center;margin-bottom:4px">クラスの確認をお願いします</div><p class="muted" style="text-align:center;margin:0 0 14px">お子様のクラスを選んでください。<br>選択するまで先に進めません。</p>`;
   need.forEach(c=>{
     const opts=(SCHOOLS[c.classroom]||[]).map(cl=>`<button type="button" onclick="pickClassFix('${c.id}','${(''+cl).replace(/'/g,"\\'")}',this)" style="text-align:left;padding:12px 14px;border:2px solid var(--line);border-radius:12px;background:#fff;font-weight:700;font-size:15px">${cl}</button>`).join('');
-    h+=`<div style="margin-bottom:14px;border:1px solid var(--line);border-radius:12px;padding:12px"><div style="font-weight:800">${c.name}</div><div class="muted" style="margin-bottom:8px">${c.classroom}教室</div><div style="display:flex;flex-direction:column;gap:8px">${opts}</div></div>`;
+    h+=`<div style="margin-bottom:14px;border:1px solid var(--line);border-radius:12px;padding:12px"><div style="font-weight:800">${esc(c.name)}</div><div class="muted" style="margin-bottom:8px">${esc(c.classroom)}教室</div><div style="display:flex;flex-direction:column;gap:8px">${opts}</div></div>`;
   });
   h+=`<button id="cfsave" onclick="saveClassFix()" disabled style="width:100%;padding:14px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-weight:800;font-size:16px;opacity:.45">選択して進む</button></div></div>`;
   const w=document.createElement('div'); w.innerHTML=h; document.body.appendChild(w.firstElementChild);
@@ -1096,10 +1113,10 @@ async function finishRegister(){
   let uid=data.user&&data.user.id;
   if(!data.session){ const r=await db.auth.signInWithPassword({email:draft.email,password:draft.pass}); if(r.error){showLoad(false);showErr('reg-err','登録は完了しましたが自動ログインできませんでした。ログイン画面からお試しください。');return;} uid=r.data.user.id; }
   // profile
-  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:draft.parent.name,relation:draft.parent.rel,tel:draft.parent.tel,payment:draft.payment,email:draft.email});
+  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:safeName(draft.parent.name),relation:safeName(draft.parent.rel),tel:draft.parent.tel,payment:draft.payment,email:draft.email});
   if(pe.error){showLoad(false);showErr('reg-err','保護者情報の保存に失敗：'+pe.error.message);return;}
   // children
-  const rows=draft.children.map(c=>({parent_id:uid,name:c.name,birth:c.birth||null,school:c.school,classroom:c.classroom,class_name:c.class_name,program:metaOf(c.classroom).p,region:metaOf(c.classroom).r,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec1_rel:'',ec2:'',ec2_note:'',ec2_rel:'',ec3:'',ec3_note:'',ec3_rel:''}));
+  const rows=draft.children.map(c=>({parent_id:uid,name:safeName(c.name),birth:c.birth||null,school:safeName(c.school),classroom:c.classroom,class_name:c.class_name,program:metaOf(c.classroom).p,region:metaOf(c.classroom).r,fee:c.fee,enroll:c.enroll,points:Math.min(3,c.points||0),ec1:'',ec1_note:'',ec1_rel:'',ec2:'',ec2_note:'',ec2_rel:'',ec3:'',ec3_note:'',ec3_rel:''}));
   const ce=await db.from('children').insert(rows);
   showLoad(false);
   if(ce.error){showErr('reg-err','お子様情報の保存に失敗：'+ce.error.message);return;}
@@ -1170,7 +1187,8 @@ async function saveTime(room,cls,time){if(previewGuard())return;showLoad(true);c
 async function saveDayOverride(room,key,ch){if(previewGuard())return;showLoad(true);
   const wd=new Date(key+'T00:00:00').getDay();const cur=contentOn(room,key,wd);
   const place=('place' in ch)?ch.place:cur.place;
-  const classes=(cur.classes||[]).map(it=>({c:it.c,t:('cls' in ch&&ch.cls===it.c)?ch.t:it.t,...(it.g?{g:it.g}:{})}));
+  const hit=it=>('cls' in ch&&ch.cls===it.c);
+  const classes=(cur.classes||[]).map(it=>{const cap=(hit(it)&&'cap' in ch)?ch.cap:furCapVal(it.cap);return {c:it.c,t:(hit(it)&&'t' in ch)?ch.t:it.t,...(it.g?{g:it.g}:{}),...(cap!=null?{cap}:{})};});
   const r=await db.from('events').upsert({room,date:key,place,classes,created_by:me.id},{onConflict:'room,date'});
   if(!r.error)await loadEvents();showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
@@ -1536,17 +1554,17 @@ function enrolledKidsFor(room,cls){return activeKids().filter(c=>c.classroom===r
 function openClass(school,cls,time,target,y,m,d){
   selClass={room:school,cls,dateStr:`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`};
   if(kids.length&&activeKids().length===0){const inf0=SCHOOL_INFO[school];openSheet(`<h3>${inf0.full} ${cls}</h3><div class="muted" style="margin-bottom:12px">📅 ${m}月${d}日 ・ ⏰ ${time}</div><div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#4b5563">退会済みのため、欠席・振替のお手続きはご利用いただけません。</div><button class="btn gray" style="margin-top:12px" onclick="closeSheet()">閉じる</button>`);return;}
-  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;
+  const canF=totalPoints()>0;const inf=SCHOOL_INFO[school];const _wd=new Date(y,m-1,d).getDay();const _place=contentOn(school,selClass.dateStr,_wd).place||inf.place;const _cap=furCapOf(school,selClass.dateStr,cls);
   openSheet(`<h3>${inf.full} ${cls}</h3>
     <div class="muted" style="margin-bottom:4px">📅 ${m}月${d}日 ・ ⏰ ${time}${target?'　🧒 '+target:''}</div>
     <div class="muted" style="margin-bottom:16px">📍 ${_place}</div>
     ${activeKids().filter(c=>furRecordFor(c,school,cls,selClass.dateStr)).map(c=>`<div class="opt" style="border-color:var(--green);background:#eafaf2;margin-bottom:8px" onclick="cancelFurFromSheet('${furRecordFor(c,school,cls,selClass.dateStr).id}')"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds" style="color:var(--green)">振替で受付済み ・ タップで取り消す</div></div></div>`).join('')}
-    <button class="btn ${canF?'':'gray'}" ${canF?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
+    ${_cap!=null?'<div id="fcap" class="cap" style="text-align:center;margin:0 0 6px">&nbsp;</div>':''}<button id="fbtn" class="btn ${canF?'':'gray'}" ${canF&&_cap==null?'':'disabled'} onclick="chooseChild('furikae','${cls}')">🔁 振替で参加する</button>
     ${canF?'':'<p class="muted center" style="margin:8px 0 4px">振替ポイントがたまると押せます</p>'}
-    <p class="muted" style="margin:8px 0 0">※振替は、満5歳未満のお子様はスタートクラス、満5歳以上はすべてのクラスにご参加いただけます。</p>
     <div style="height:14px"></div>
     ${enrolledKidsFor(school,cls).length?`<button class="btn red" onclick="chooseChild('absent','${cls}')">🙅 欠席する（お休み連絡）</button>
     <p class="muted center" style="margin-top:12px">欠席すると振替ポイントが1つたまります（上限：お子様1人につき${maxPerChild()}）</p>`:`<p class="muted center" style="margin:4px 0 0">※欠席の連絡は、お子様が在籍している教室・クラスの日から行えます。</p>`}`);
+  if(_cap!=null)showFurCap(school,selClass.dateStr,cls,canF);
 }
 // この日・教室・クラスに登録済みの振替（取り消し用）
 function furRecordFor(child,room,cls,dateStr){return myFur.find(f=>f.child_id===child.id&&(''+f.date).slice(0,10)===dateStr&&f.to_room===room&&f.to_class===cls);}
@@ -1571,11 +1589,11 @@ function chooseChild(mode,cls){
     if(mode==='furikae'){let dis=false,rs='';
       if(totalPoints()<=0){dis=true;rs='家族の振替ポイントなし';}
       if(!dis){const _ng=furikaeNgReason(c,cls);if(_ng){dis=true;rs=_ng;}}
-      html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds">${c.classroom}教室 ${c.class_name} ・ 振替pt ${c.points}/${maxPerChild()}${rs?' ・ '+rs:''}</div></div></div>`;
+      html+=`<div class="opt ${dis?'disabled':''}" ${dis?'':`onclick="doAction('furikae',${i},'${cls}')"`}><div class="ico">🔁</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.classroom)}教室 ${esc(c.class_name)} ・ 振替pt ${c.points}/${maxPerChild()}${rs?' ・ '+rs:''}</div></div></div>`;
     }else{
       const ab=myAbs.find(a=>a.child_id===c.id&&(''+a.date).slice(0,10)===selClass.dateStr&&a.classroom===selClass.room&&a.class_name===cls);
       if(ab){
-        html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${c.name}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
+        html+=`<div class="opt" style="border-color:var(--green);background:#eafaf2" onclick="cancelAbsent('${ab.id}',${i})"><div class="ico">↩️</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds" style="color:var(--green)">欠席で受付済み ・ タップで取り消す</div></div></div>`;
       }else if(!(c.classroom===selClass.room&&c.class_name===cls)){
         html+=`<div class="opt disabled"><div class="ico">🙅</div><div style="flex:1"><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.classroom)}教室 ${esc(c.class_name)} ・ このクラスには在籍していません</div></div></div>`;
       }else{
@@ -1675,6 +1693,7 @@ async function absentThenFurikae(i,cls){
  if(previewGuard()||gymPointBusy)return;
  const c=kids[i];const own=c&&ownClassSameDay(c);if(!own||!selClass){return doAction('furikae',i,cls,true);}
  const target={room:selClass.room,cls:selClass.cls,dateStr:selClass.dateStr};
+ if(await furCapFull(target.room,target.dateStr,target.cls))return;
  const a=await gymPointAction('absent',{p_child_id:c.id,p_date:target.dateStr,p_room:own.room,p_class:own.cls});
  if(!a||a.needsRefresh||a.resumedDifferent)return;
  selClass=target;
@@ -1686,6 +1705,7 @@ async function doAction(mode,i,cls,skipOwnCheck){
  const c=kids[i];if(!c||!selClass)return;
  if(mode==='absent'&&!(c.classroom===selClass.room&&c.class_name===cls)){toast('欠席は在籍しているクラスのみ登録できます');return;}
  if(mode!=='absent'){const reason=furikaeNgReason(c,cls);if(reason){toast(reason);return;}
+  if(await furCapFull(selClass.room,selClass.dateStr,cls))return;
   if(!skipOwnCheck){const own=ownClassSameDay(c);if(own){openAbsentFirstSheet(i,cls,own);return;}}}
  const result=await gymPointAction(mode==='absent'?'absent':'reserve',{p_child_id:c.id,p_date:selClass.dateStr,p_room:selClass.room,p_class:cls});
  if(result&&result.action==='absent'&&result.status==='created'&&!result.replayed&&!result.resumedDifferent&&!result.needsRefresh){
@@ -1739,10 +1759,10 @@ function manageBlock(){
   const abs=myAbs.slice().sort((a,b)=>(''+b.date).localeCompare(''+a.date));
   let h=`<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🔁 振替・欠席の管理　<span style="color:var(--sub);font-weight:700">${furs.length+abs.length}件</span></summary>`;
   h+=`<div style="font-weight:800;font-size:13px;margin:8px 0 4px">🔁 振替で参加</div>`;
-  if(furs.length){furs.forEach(f=>{h+=`<div class="sumrow"><span>${dLabel(f.date)}　${f.to_room} ${f.to_class}<br><span class="muted" style="font-size:11px">${kidName(f.child_id)}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelFur('${f.id}')">取り消す</button></div>`;});}
+  if(furs.length){furs.forEach(f=>{h+=`<div class="sumrow"><span>${dLabel(f.date)}　${f.to_room} ${f.to_class}<br><span class="muted" style="font-size:11px">${esc(kidName(f.child_id))}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelFur('${f.id}')">取り消す</button></div>`;});}
   else h+=`<p class="muted" style="margin:2px 0 0">予定はありません</p>`;
   h+=`<div style="font-weight:800;font-size:13px;margin:12px 0 4px">🙅 欠席</div>`;
-  if(abs.length){abs.forEach(a=>{h+=`<div class="sumrow"><span>${dLabel(a.date)}　${a.classroom} ${a.class_name}<br><span class="muted" style="font-size:11px">${kidName(a.child_id)}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelAbs('${a.id}')">取り消す</button></div>`;});}
+  if(abs.length){abs.forEach(a=>{h+=`<div class="sumrow"><span>${dLabel(a.date)}　${a.classroom} ${a.class_name}<br><span class="muted" style="font-size:11px">${esc(kidName(a.child_id))}</span></span><button class="btn gray sm" style="width:auto;padding:7px 12px" onclick="cancelAbs('${a.id}')">取り消す</button></div>`;});}
   else h+=`<p class="muted" style="margin:2px 0 0">欠席はありません</p>`;
   h+=`</details></div>`;
   return h;
@@ -1812,13 +1832,14 @@ function renderMy(){
 }
 async function saveChild(i){if(previewGuard())return;const c=kids[i];showLoad(true);
   const patch={name:(document.getElementById('nm-'+i).value.trim()||c.name),birth:document.getElementById('bd-'+i).value||null,school:document.getElementById('sc-'+i).value,ec1:document.getElementById('ec1-'+i).value,ec1_note:document.getElementById('ec1n-'+i).value,ec1_rel:document.getElementById('ec1rel-'+i).value,ec2:document.getElementById('ec2-'+i).value,ec2_note:document.getElementById('ec2n-'+i).value,ec2_rel:document.getElementById('ec2rel-'+i).value,ec3:document.getElementById('ec3-'+i).value,ec3_note:document.getElementById('ec3n-'+i).value,ec3_rel:document.getElementById('ec3rel-'+i).value};
+  safeNameRows('children',patch);
   const r=await db.from('children').update(patch).eq('id',c.id);showLoad(false);
   if(r.error){toast('保存エラー：'+r.error.message);return;}
   Object.assign(c,patch);toast('保存しました');renderMy();}
 function openChangeReq(i){
   const c=kids[i];const schoolOpts=Object.keys(SCHOOLS).map(s=>`<option ${s===c.classroom?'selected':''}>${s}</option>`).join('');
   openSheet(`<h3>教室・クラスの変更申請</h3>
-    <p class="muted" style="margin-bottom:10px">${c.name} さんの希望を選んで送信してください。<b>管理者が承認すると反映</b>されます。</p>
+    <p class="muted" style="margin-bottom:10px">${esc(c.name)} さんの希望を選んで送信してください。<b>管理者が承認すると反映</b>されます。</p>
     <label class="fld">希望する教室</label>
     <select id="cr-room" onchange="document.getElementById('cr-cls').innerHTML=clsOptionsHtml(this.value,'')">${schoolOpts}</select>
     <label class="fld">希望するクラス</label>
@@ -1851,10 +1872,10 @@ function openAddSibling(){
     <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">キャンセル</button>`);
 }
 async function saveSibling(){if(previewGuard())return;
-  const name=document.getElementById('sb-name').value.trim();if(!name){toast('お名前を入力してください');return;}
+  const name=safeName(document.getElementById('sb-name').value.trim());if(!name){toast('お名前を入力してください');return;}
   showLoad(true);
   const _sbRoom=document.getElementById('sb-room').value;
-  const row={parent_id:me.id,name,birth:document.getElementById('sb-birth').value||null,school:document.getElementById('sb-school').value,classroom:_sbRoom,class_name:document.getElementById('sb-cls').value,program:metaOf(_sbRoom).p,region:metaOf(_sbRoom).r,fee:Number(document.getElementById('sb-fee').value)||0,enroll:(document.getElementById('sb-enroll-y').value&&document.getElementById('sb-enroll-m').value)?document.getElementById('sb-enroll-y').value+'-'+String(document.getElementById('sb-enroll-m').value).padStart(2,'0'):'',points:0};
+  const row={parent_id:me.id,name,birth:document.getElementById('sb-birth').value||null,school:safeName(document.getElementById('sb-school').value),classroom:_sbRoom,class_name:document.getElementById('sb-cls').value,program:metaOf(_sbRoom).p,region:metaOf(_sbRoom).r,fee:Number(document.getElementById('sb-fee').value)||0,enroll:(document.getElementById('sb-enroll-y').value&&document.getElementById('sb-enroll-m').value)?document.getElementById('sb-enroll-y').value+'-'+String(document.getElementById('sb-enroll-m').value).padStart(2,'0'):'',points:0};
   const r=await db.from('children').insert(row);showLoad(false);
   if(r.error){toast('追加エラー：'+r.error.message);return;}
   await loadKids();closeSheet();renderMy();toast(name+'を追加しました');
@@ -1975,8 +1996,8 @@ function withdrawnStudents(){return allChildren.filter(c=>!isStaffParent(c.paren
 function withdrawSheet(cid){
   const c=allChildren.find(x=>x.id===cid); if(!c){toast('生徒が見つかりません');return;}
   const def=leaveLastMonth(); const opts=[nowYM(),addMonths(nowYM(),1),addMonths(nowYM(),2)];
-  openSheet(`<h3>${c.name} を退会にする</h3>
-    <p class="muted" style="margin:-2px 0 10px">${c.classroom}教室 ${c.class_name}。データは削除されず、あとから「在籍に戻す」で復帰できます。</p>
+  openSheet(`<h3>${esc(c.name)} を退会にする</h3>
+    <p class="muted" style="margin:-2px 0 10px">${esc(c.classroom)}教室 ${esc(c.class_name)}。データは削除されず、あとから「在籍に戻す」で復帰できます。</p>
     <div class="note" style="margin-bottom:10px">締めは<b>毎月15日</b>：15日までのお申し出→当月末退会／16日以降→翌月末退会。最終在籍月まではこれまでどおり通えます。</div>
     <label class="fld">最終在籍月（この月の末日まで通えます）</label>
     <select id="wd-last">${opts.map(ym=>`<option value="${ym}" ${ym===def?'selected':''}>${ymLabel(ym)}末まで</option>`).join('')}</select>
@@ -2055,13 +2076,15 @@ function telLink(t){if(!t)return '<span class="muted">未登録</span>';const d=
 function withdrawnListCard(rooms){
   const list=allChildren.filter(c=>!isStaffParent(c.parent_id)&&(isWithdrawn(c)||isLeaving(c))&&(!rooms||rooms.includes(c.classroom)));
   if(!list.length)return '';
-  let rows='';list.slice().sort((a,b)=>(''+(b.withdrawn_at||b.last_month||'')).localeCompare(''+(a.withdrawn_at||a.last_month||''))).forEach(c=>{rows+=`<div class="sumrow" style="align-items:center"><span><b style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${c.name}</b>${statusPill(c)}<br><span class="muted" style="font-size:12px">${SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom}・${c.class_name}</span></span>${withdrawBtn(c)}</div>`;});
+  let rows='';list.slice().sort((a,b)=>(''+(b.withdrawn_at||b.last_month||'')).localeCompare(''+(a.withdrawn_at||a.last_month||''))).forEach(c=>{rows+=`<div class="sumrow" style="align-items:center"><span><b style="cursor:pointer;text-decoration:underline dotted" onclick="openChildAdmin('${c.id}')">${esc(c.name)}</b>${statusPill(c)}<br><span class="muted" style="font-size:12px">${esc(SCHOOL_INFO[c.classroom]?SCHOOL_INFO[c.classroom].full:c.classroom)}・${esc(c.class_name)}</span></span>${withdrawBtn(c)}</div>`;});
   return `<div class="card" style="padding:8px 14px"><details class="acc" style="border-top:none;padding-top:0"><summary>🎓 退会予定・退会済み（${list.length}名）</summary><p class="muted" style="margin:4px 0 6px">退会予定は最終在籍月の翌月に自動で退会済みになります。名簿・人数には含まれません。</p>${rows}</details></div>`;
 }
 /* ===== スタッフ・管理者向け：練習がある日の欠席・振替まとめポップアップ ===== */
 function todaysPracticeRoomsForStaff(){
-  const now=new Date();const key=dateKey(now.getFullYear(),now.getMonth(),now.getDate());
-  return furikaeRooms().filter(room=>isHeld(room,key));
+  const now=new Date();const y=now.getFullYear(),m=now.getMonth(),d=now.getDate();const key=dateKey(y,m,d);
+  if(holidayName(y,m,d))return []; // GW・お盆・年末年始はカレンダー同様に非開催（国民の祝日は開催扱い）
+  const on=new Set(schoolsOn(now.getDay())); // 毎週教室は曜日一致、月3回教室は開催日（events）のみ
+  return furikaeRooms().filter(room=>on.has(room)&&isHeld(room,key)&&!isCancelled(room,key));
 }
 function showStaffTodaySummary(){try{
   if(!(staffRole==='staff'||staffRole==='admin'))return;
@@ -2081,8 +2104,8 @@ function showStaffTodaySummary(){try{
     const a=absOf.filter(x=>x.classroom===room);
     const f=furOf.filter(x=>x.to_room===room);
     body+=`<div style="margin-bottom:12px"><div style="font-weight:800;color:${scolor(room).bg}">${(SCHOOL_INFO[room]||{}).full||room}</div>
-      <div style="font-size:13px;margin-top:4px">🙅 欠席：<b>${a.length}人</b>${a.length?'　'+a.map(x=>childName(x.child_id)).join('、'):''}</div>
-      <div style="font-size:13px;margin-top:2px">🔁 振替で参加：<b>${f.length}人</b>${f.length?'　'+f.map(x=>childName(x.child_id)+(x.from_room!==room?`（${x.from_room}から）`:'')).join('、'):''}</div>
+      <div style="font-size:13px;margin-top:4px">🙅 欠席：<b>${a.length}人</b>${a.length?'　'+a.map(x=>esc(childName(x.child_id))).join('、'):''}</div>
+      <div style="font-size:13px;margin-top:2px">🔁 振替で参加：<b>${f.length}人</b>${f.length?'　'+f.map(x=>esc(childName(x.child_id))+(x.from_room!==room?`（${esc(x.from_room)}から）`:'')).join('、'):''}</div>
     </div>`;
   });
   const w=document.createElement('div');w.className='featp';
@@ -2117,7 +2140,7 @@ function mconfBodyHtml(p){const room=p.active,st=monthConfirmState(room,p.y,p.m)
 function rerenderMconf(){const w=document.getElementById('mconf-pop');if(!w||!mconfCtx)return;const box=w.querySelector('.month-scroll'),scroll=box?box.scrollTop:0;w.querySelector('.month-panel').innerHTML=mconfBodyHtml(mconfCtx);const next=w.querySelector('.month-scroll');next.scrollTop=scroll;}
 function mconfRefresh(){if(mconfCtx)rerenderMconf();}
 function mconfBack(){if(!mconfCtx||mconfCtx.busy)return;mconfCtx.mode='edit';mconfCtx.message='';rerenderMconf();}
-async function mconfSaveDay(){if(previewGuard()||!mconfCtx||mconfCtx.busy||!mconfCtx.draft)return;const p=mconfCtx,d=p.draft;if(!monthCanReview(d.room,p.y,p.m)){mconfSetMessage('確認期間または担当者の設定を確認してください。',true);return;}if(!d.place.trim()||d.classes.some(c=>!c.start||!c.end||c.start>=c.end)){mconfSetMessage('開催場所と開始・終了時刻を入力してください。終了は開始より後にしてください。',true);return;}p.busy=true;p.message='保存しています…';p.error=false;rerenderMconf();try{await loadEvents();await loadCancels();const current=monthSnapshot(d.room,p.y,p.m).find(s=>s.d===d.key);if(!current||monthCanonical([current])!==d.original)throw new Error('別の画面で予定が変更されています。編集を閉じて開き直し、最新の内容を確認してください。');const row={room:d.room,date:d.key,place:d.place.trim(),classes:d.classes.map(c=>{const original=(contentOn(d.room,d.key,new Date(d.key+'T00:00:00').getDay()).classes||[]).find(x=>x.c===c.c);return {c:c.c,t:c.start+'–'+c.end,...(original&&original.g?{g:original.g}:{})};}),created_by:me.id};const r=await db.from('events').upsert(row,{onConflict:'room,date'});if(r.error)throw new Error(r.error.message);await loadEvents();mconfOpen='';p.draft=null;p.message='この日の修正を保存しました。';}catch(e){p.message='保存できませんでした：'+e.message;p.error=true;}finally{p.busy=false;rerenderMconf();}}
+async function mconfSaveDay(){if(previewGuard()||!mconfCtx||mconfCtx.busy||!mconfCtx.draft)return;const p=mconfCtx,d=p.draft;if(!monthCanReview(d.room,p.y,p.m)){mconfSetMessage('確認期間または担当者の設定を確認してください。',true);return;}if(!d.place.trim()||d.classes.some(c=>!c.start||!c.end||c.start>=c.end)){mconfSetMessage('開催場所と開始・終了時刻を入力してください。終了は開始より後にしてください。',true);return;}p.busy=true;p.message='保存しています…';p.error=false;rerenderMconf();try{await loadEvents();await loadCancels();const current=monthSnapshot(d.room,p.y,p.m).find(s=>s.d===d.key);if(!current||monthCanonical([current])!==d.original)throw new Error('別の画面で予定が変更されています。編集を閉じて開き直し、最新の内容を確認してください。');const row={room:d.room,date:d.key,place:d.place.trim(),classes:d.classes.map(c=>{const original=(contentOn(d.room,d.key,new Date(d.key+'T00:00:00').getDay()).classes||[]).find(x=>x.c===c.c);return {c:c.c,t:c.start+'–'+c.end,...(original&&original.g?{g:original.g}:{}),...(original&&furCapVal(original.cap)!=null?{cap:furCapVal(original.cap)}:{})};}),created_by:me.id};const r=await db.from('events').upsert(row,{onConflict:'room,date'});if(r.error)throw new Error(r.error.message);await loadEvents();mconfOpen='';p.draft=null;p.message='この日の修正を保存しました。';}catch(e){p.message='保存できませんでした：'+e.message;p.error=true;}finally{p.busy=false;rerenderMconf();}}
 async function mconfCancel(room,key,on){if(previewGuard()||!mconfCtx||mconfCtx.busy)return;const p=mconfCtx;if(!monthCanReview(room,p.y,p.m)){mconfSetMessage('確認期間または担当者の設定を確認してください。',true);return;}p.busy=true;p.message='保存しています…';p.error=false;rerenderMconf();try{const q=db.from('cancellations');const r=on?await q.upsert({room,date:key,created_by:me.id},{onConflict:'room,date'}):await q.delete().eq('room',room).eq('date',key);if(r.error)throw new Error(r.error.message);let vm='';if(on){const v=await db.rpc('gym_cancel_day_v1',{p_room:room,p_date:key});if(v.error)vm='（欠席・振替の整理に失敗: '+v.error.message+'）';else if(v.data&&(v.data.absences||v.data.furikae))vm=`（欠席${v.data.absences}件・振替${v.data.furikae}件を取り消し、ポイントを戻しました）`;}await loadCancels();p.draft=null;mconfOpen='';p.message=(on?'休講に変更しました。':'休講を取り消しました。')+vm;}catch(e){p.error=true;p.message='保存できませんでした：'+e.message;}finally{p.busy=false;rerenderMconf();}}
 async function mconfPreview(){if(!mconfCtx||mconfCtx.busy)return;if(mconfOpen){mconfSetMessage('開いている「修正」欄を閉じてから、保護者への表示を確認してください。',true);return;}const p=mconfCtx;p.busy=true;p.message='最新の予定を確認しています…';p.error=false;rerenderMconf();try{await Promise.all([loadEvents(),loadCancels(),loadHidden(),loadMonthConfirms(),loadMonthReviewers()]);if(!monthCanReview(p.active,p.y,p.m))throw new Error('確認期間または担当者の設定が変更されています。');const snap=monthSnapshot(p.active,p.y,p.m);if(!snap.length)throw new Error('開催日を登録してから確認してください。');p.approval=JSON.parse(JSON.stringify(snap));p.mode='approve';p.message='';}catch(e){p.error=true;p.message=e.message;}finally{p.busy=false;rerenderMconf();const b=document.querySelector('#mconf-pop .month-scroll');if(b)b.scrollTop=0;}}
 function showMonthConfirmPopup(force,which){try{if(!['staff','admin'].includes(staffRole)||(_pv.on&&!force)||(window.__suppressMonthPop&&!force))return false;const t=force&&which==='current'?monthCurrentTarget():monthConfirmTarget();if(!t){if(force)toast('翌月の日程確認は毎月20日から月末まで行えます。');return false;}const rooms=monthConfirmRooms();if(!rooms.length){if(force)toast(monthReviewersError||'確認を担当する教室が設定されていません。');return false;}const pending=rooms.filter(r=>monthConfirmState(r,t.y,t.m)!=='ok');if(!force&&!pending.length)return false;const day=monthTodayParts(),seenKey='gym_month_review_v2_'+monthReviewerIdentity()+'_'+dateKey(day.y,day.m,day.d);if(!force){try{if(localStorage.getItem(seenKey)==='1')return false;}catch(e){}if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__mconfRetry=(window.__mconfRetry||0)+1;if(window.__mconfRetry<=6)setTimeout(showMonthConfirmPopup,3000);return false;}try{localStorage.setItem(seenKey,'1');}catch(e){}}mconfCtx={...t,rooms,active:pending[0]||rooms[0],mode:'edit',busy:false,message:'',error:false,draft:null};mconfOpen='';mountMonthDialog('mconf-pop',`<section class="month-panel" role="dialog" aria-modal="true" aria-label="${t.m+1}月の練習日程の確認">${mconfBodyHtml(mconfCtx)}</section>`);return true;}catch(e){if(force)toast('予定確認を開けませんでした。再読み込みしてください。');return false;}}
@@ -2332,7 +2355,7 @@ function openStaffDay(y,m,d,schools){
       const q=v=>(''+(v||'')).replace(/"/g,'&quot;');
       h+=`<div style="font-weight:800;margin:4px 0 2px">📌 この日の場所・時間を変更（${m+1}/${d}のみ）</div>`;
       h+=`<label class="fld">開催場所</label><input value="${q(ct.place||inf.place)}" onchange="saveDayOverride('${s}','${key}',{place:this.value})">`;
-      (ct.classes||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${s}','${key}',{cls:'${it.c}',t:this.value})">`; });
+      (ct.classes||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${s}','${key}',{cls:'${it.c}',t:this.value})">`+furCapSelect(it.cap,`saveDayOverride('${s}','${key}',{cls:'${it.c}',cap:furCapVal(this.value)})`); });
       h+=`<button class="btn soft sm" style="margin-top:10px" onclick="closeSheet();openEventEditor('${s}')">🗓 開催日・クラス構成を編集（日程の追加・削除など）</button>`;
       h+=`<button class="btn red sm" style="margin-top:10px" onclick="setCancel('${s}','${key}',true)">🚫 この日を休講にする</button><button class="btn sm warn" style="margin-top:10px" onclick="delDay('${s}','${key}')">🗑 削除（カレンダーから消す）</button>`;
     } else {
@@ -2340,7 +2363,7 @@ function openStaffDay(y,m,d,schools){
       const q=v=>(''+(v||'')).replace(/"/g,'&quot;');
       h+=`<div style="font-weight:800;margin:4px 0 2px">📌 この日だけ変更（${m+1}/${d}のみ）</div>${ct.dayOverride?'<div class="muted" style="font-size:12px;color:#b45309">この日は個別に変更されています</div>':''}`;
       h+=`<label class="fld">開催場所</label><input value="${q(ct.place)}" onchange="saveDayOverride('${s}','${key}',{place:this.value})">`;
-      (ct.classes||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${s}','${key}',{cls:'${it.c}',t:this.value})">`; });
+      (ct.classes||[]).forEach(it=>{ h+=`<label class="fld">${it.c} の開催時間</label><input value="${q(it.t)}" onchange="saveDayOverride('${s}','${key}',{cls:'${it.c}',t:this.value})">`+furCapSelect(it.cap,`saveDayOverride('${s}','${key}',{cls:'${it.c}',cap:furCapVal(this.value)})`); });
       if(ct.dayOverride)h+=`<button class="btn sm gray" style="margin-top:8px" onclick="clearDayOverride('${s}','${key}')">↩ この日だけの変更を取り消す（毎週の予定に戻す）</button>`;
       h+=`<details class="acc" style="margin-top:10px"><summary>🔁 毎週の予定を変更する（全ての${DOW[wd]}曜に反映）</summary>`;
       h+=`<label class="fld">開催場所（毎週）</label><input value="${q(inf.place)}" onchange="saveVenue('${s}',this.value)">`;
@@ -2370,13 +2393,17 @@ async function setCancel(room,key,on){if(previewGuard())return;
   const schools=schoolsOn(new Date(key).getDay());
   closeSheet();renderStaffCal();
 }
+/* 削除前に休講と同じく欠席・振替を整理（gym_cancel_day_v1）。失敗したら削除しない 2026-10-21 */
+async function voidDayPoints(room,key){const v=await db.rpc('gym_cancel_day_v1',{p_room:room,p_date:key});if(v.error)return {error:v.error};return {msg:(v.data&&(v.data.absences||v.data.furikae))?`（欠席${v.data.absences}件・振替${v.data.furikae}件を取り消し、ポイントを戻しました）`:''};}
 async function delDay(room,key){if(previewGuard())return;
   showLoad(true);
+  const vd=await voidDayPoints(room,key);
+  if(vd.error){showLoad(false);toast('削除できませんでした：'+vd.error.message);return;}
   const r=await db.from('hidden_days').upsert({room,date:key,created_by:me.id},{onConflict:'room,date'});
   if(!(r&&r.error)) await db.from('cancellations').delete().eq('room',room).eq('date',key);
   if(r&&r.error){showLoad(false);toast('削除できませんでした：'+r.error.message);return;}
   await loadHidden(); await loadCancels();
-  showLoad(false);toast('カレンダーから削除しました');closeSheet();renderStaffCal();
+  showLoad(false);toast('カレンダーから削除しました'+vd.msg);closeSheet();renderStaffCal();
 }
 async function restoreDay(room,key){if(previewGuard())return;
   showLoad(true);
@@ -2644,7 +2671,7 @@ function openClassChange(cid){
   const startRoom=rooms.includes(c.classroom)?c.classroom:(rooms[0]||c.classroom);
   const roomOpts=rooms.map(function(sM){return '<option value="'+sM+'"'+(sM===c.classroom?' selected':'')+'>'+((SCHOOL_INFO[sM]&&SCHOOL_INFO[sM].full)||sM)+'</option>';}).join('');
   const clsOpts=clsOptionsHtml(startRoom,c.class_name);
-  openSheet(`<h3>${c.name} のクラス変更</h3>
+  openSheet(`<h3>${esc(c.name)} のクラス変更</h3>
     <p class="muted" style="margin:-2px 0 8px">担当エリアの教室・クラスに変更できます。すぐに名簿・カレンダーへ反映されます。</p>
     <label class="fld">教室</label>
     <select id="cc-room" onchange="document.getElementById('cc-cls').innerHTML=clsOptionsHtml(this.value,'')">${roomOpts}</select>
@@ -2737,7 +2764,7 @@ async function submitStaffSignup(){
   if(error){showLoad(false);toast('申請エラー：'+error.message);return;}
   let uid=data.user&&data.user.id;
   if(!data.session){const r=await db.auth.signInWithPassword({email:staffSignup.email.trim(),password:staffSignup.pass});if(r.error){showLoad(false);toast('申請は作成しましたが、ログイン画面から再度お試しください');return;}uid=r.data.user.id;}
-  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:staffSignup.name.trim(),email:staffSignup.email.trim(),staff_request:staffSignup.role,staff_approved:false,staff_program:staffSignup.p,staff_region:staffSignup.r});
+  const pe=await db.from('profiles').upsert({id:uid,role:'parent',parent_name:safeName(staffSignup.name.trim()),email:staffSignup.email.trim(),staff_request:staffSignup.role,staff_approved:false,staff_program:staffSignup.p,staff_region:staffSignup.r});
   await db.auth.signOut();
   showLoad(false);
   if(pe.error){toast('申請保存エラー：'+pe.error.message);return;}
@@ -3026,7 +3053,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261020-staff-pts1';
+const APP_BUILD='20261021-fix-a1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
