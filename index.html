@@ -592,7 +592,7 @@ function pushHowToGuide(){
   </details>`;
 }
 function pushCard(){
-  if(window.__pushOn)return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px">通知はオンです。<b>新しい練習日の追加</b>・<b>休校</b>・<b>イベントの空き</b>のお知らせが届きます。</p><button class="btn gray sm" onclick="pushUnsubscribe()">通知をオフにする</button>${pushHowToGuide()}</div>`;
+  if(window.__pushOn)return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px">通知はオンです。<b>新しい練習日の追加</b>や<b>休校のお知らせ</b>が届きます。</p><button class="btn gray sm" onclick="pushUnsubscribe()">通知をオフにする</button>${pushHowToGuide()}</div>`;
   if(pushSupported())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px"><b>新しい練習日の追加</b>や<b>休校のお知らせ</b>を、スマホの通知でお届けします。</p><button class="btn sm" onclick="pushSubscribe(false)">通知をオンにする</button>${pushHowToGuide()}</div>`;
   if(isIOSDevice()&&!isStandalonePWA())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">iPhoneでは<b>ホーム画面に追加</b>したアプリから通知を受け取れます。</p>${pushHowToGuide()}</div>`;
   return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">この端末・ブラウザはプッシュ通知に対応していません。</p></div>`;
@@ -1507,7 +1507,7 @@ function openGymEvent(id){const ev=gevById(id);if(!ev)return;const mine=gevMine[
     if(open)h+=`<button class="btn gray" style="margin-top:8px" onclick="gevStartForm('${id}')">内容を変更する</button><button class="btn gray" style="margin-top:8px;color:var(--red)" onclick="gevCancel('${id}')">申し込みを取り消す</button>`;
     else h+=`<p class="muted" style="font-size:12.5px">受付時間を過ぎたため、変更・取り消しは教室へご連絡ください。</p>`;}
   else if(!open){h+=`<button class="btn gray" disabled>受付は終了しました</button>`;}
-  else if(gevLeft(ev)<=0){h+=`<button class="btn gray" disabled>満員になりました</button><p class="muted center" style="font-size:12px;margin:6px 0 0">キャンセルが出たら通知でお知らせします</p>`;}
+  else if(gevLeft(ev)<=0){h+=`<button class="btn gray" disabled>満員になりました</button>`;}
   else{h+=`<button class="btn" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)" onclick="gevStartForm('${id}')">参加する</button>`;}
   h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);}
@@ -1594,7 +1594,7 @@ function gevStaffHtml(){if(staffRole==='roster')return '';const list=gevStaffEve
   list.forEach(ev=>{const act=gevAll.filter(x=>x.event_id===ev.id&&x.status==='active');const d=new Date(ev.date+'T00:00:00');const ppl=act.reduce((a,x)=>a+(x.people||0),0);
     const rooms={};act.forEach(x=>gevRoomsOf(x).forEach(r=>{rooms[r]=(rooms[r]||0)+1;}));
     h+=`<div class="gevcard" onclick="openGevAdmin('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain"><div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">申込 <b style="color:var(--ink)">${act.length}</b> / ${ev.capacity}組・${ppl}人</div><div class="gevsub">${Object.keys(rooms).map(r=>esc(r)+' '+rooms[r]).join('　')||'まだ申し込みはありません'}</div></div><div class="gevgo">›</div></div>`;});
-  if(pushSupported()&&!window.__pushOn)h+=`<button class="btn soft sm" style="margin:-4px 0 12px" onclick="pushSubscribe(false)">🔔 キャンセルが出たら通知を受け取る</button>`;
+  if(staffRole==='admin'&&pushSupported()&&!window.__pushOn)h+=`<button class="btn soft sm" style="margin:-4px 0 12px" onclick="pushSubscribe(false)">🔔 キャンセルが出たら通知を受け取る</button>`;
   return h;}
 function gevChipBg(r){return r==='教室外'?'#9aa3b8':r==='クラブ'?'#16a34a':r==='サークル'?'#0ea5e9':scolor(r).bg;}
 function gevRoomChip(r){return `<span class="rc" style="background:${gevChipBg(r)}">${esc(r)}</span>`;}
@@ -3277,7 +3277,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261026-event1';
+const APP_BUILD='20261026-event2';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
