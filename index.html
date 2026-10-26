@@ -76,6 +76,54 @@
   .featbtns button{flex:1;min-height:48px;border-radius:14px;font-weight:800;font-size:15px;cursor:pointer;border:none;font-family:inherit}
   .featclose{border:1px solid var(--line)!important;background:#fff;color:var(--sub)}
   .featok{background:var(--brand);color:#fff;box-shadow:0 8px 20px rgba(47,125,246,.35)}
+
+  /* ---- 特別イベント（親子バク転教室など・2026-10-26） ---- */
+  .gevcard{position:relative;background:linear-gradient(135deg,#fff7ec,#fff);border:1.5px solid #ffd2a8;border-radius:18px;padding:14px 14px 12px;margin-bottom:12px;box-shadow:var(--shadow);cursor:pointer;display:flex;gap:12px;align-items:center}
+  .gevcard:active{transform:scale(.99)}
+  .gevdate{flex:0 0 58px;height:62px;border-radius:14px;background:var(--accent);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;line-height:1.05}
+  .gevdate small{font-size:11px;opacity:.9}.gevdate b{font-size:24px}
+  .gevmain{min-width:0;flex:1}
+  .gevtag{display:inline-block;font-size:10.5px;font-weight:800;color:#c25a10;background:#ffe6cf;border-radius:999px;padding:2px 9px;margin:0 4px 4px 0}
+  .gevtag.g{color:#0f7a4f;background:#dff6ea}.gevtag.r{color:#b4233c;background:#fde3e7}.gevtag.n{color:#54607a;background:#eef1f7}
+  .gevtt{font-size:16px;font-weight:800;color:var(--ink)}
+  .gevsub{font-size:12px;color:var(--sub);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gevgo{color:var(--accent);font-weight:800;font-size:20px}
+  .ev.gev{background:var(--accent)!important;color:#fff!important}
+  .gevhero{margin:-4px -4px 12px;border-radius:16px;background:linear-gradient(135deg,#ff8a3d,#ffb36b);color:#fff;padding:16px;text-align:center}
+  .gevhero .e{font-size:42px;line-height:1}.gevhero .t{font-size:20px;font-weight:800;margin-top:6px}
+  .gevrow{display:flex;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.5}
+  .gevrow .k{flex:0 0 64px;color:var(--sub);font-size:12.5px;font-weight:700;padding-top:1px}
+  .gevrow .v{flex:1;color:var(--ink)}
+  .gevdesc{background:#f6f8fc;border-radius:12px;padding:12px;font-size:13.5px;line-height:1.7;color:#384055;margin:12px 0}
+  .gevleft{font-weight:800;color:var(--accent)}
+  .gevf h4{margin:16px 0 6px;font-size:14px}
+  .gevf .hint{font-size:12px;color:var(--sub);margin:-2px 0 8px}
+  .gevchk{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px;font-size:15px;cursor:pointer}
+  .gevchk input{width:22px;height:22px;accent-color:var(--brand);flex:0 0 auto}
+  .gevchk.on{border-color:var(--brand);background:var(--soft)}
+  .gevstep{display:flex;align-items:center;gap:12px}
+  .gevstep button{width:44px;height:44px;border-radius:12px;border:1.5px solid var(--line);background:#fff;font-size:22px;font-weight:800;cursor:pointer;color:var(--ink)}
+  .gevstep .n{font-size:20px;font-weight:800;min-width:40px;text-align:center}
+  .gevguest{display:flex;gap:6px;align-items:center;margin-bottom:8px}
+  .gevguest input,.gevguest select,.gevf textarea{font-size:16px;border:1.5px solid var(--line);border-radius:10px;padding:10px;font-family:inherit;min-width:0;box-sizing:border-box;background:#fff}
+  .gevguest input{flex:1}.gevguest select{flex:0 0 96px}
+  .gevguest .x{flex:0 0 36px;height:40px;border:none;background:#f1f3f8;border-radius:10px;font-size:16px;cursor:pointer}
+  .gevf textarea{width:100%;min-height:64px}
+  .gevfee{position:sticky;bottom:-1px;background:#fff;border-top:1px solid var(--line);margin:14px -4px 0;padding:12px 4px 4px}
+  .gevfee .sum{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--sub);margin-bottom:8px}
+  .gevfee .sum b{font-size:22px;color:var(--ink)}
+  .gevstat{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 10px}
+  .gevstat div{background:#f6f8fc;border-radius:12px;padding:10px 6px;text-align:center}
+  .gevstat b{display:block;font-size:19px;color:var(--ink)}.gevstat span{font-size:11px;color:var(--sub)}
+  .gevroom{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+  .gevroom span{font-size:12px;font-weight:800;border-radius:999px;padding:4px 10px;color:#fff}
+  .geventry{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;font-size:13px;line-height:1.65}
+  .geventry .hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+  .geventry .nm{font-weight:800;font-size:15px}
+  .geventry .kid{display:flex;align-items:center;gap:6px}
+  .geventry .rc{font-size:11px;font-weight:800;border-radius:6px;padding:1px 6px;color:#fff;flex:0 0 auto}
+  .geventry .acts{display:flex;gap:6px;margin-top:8px}
+  .geventry .acts .btn{padding:8px 10px;font-size:13px;margin:0}
   /* ---- ログイン・登録 ---- */
   .logo-big{text-align:center;margin:26px 0 6px}
   .logo-big .mark{width:74px;height:74px;border-radius:22px;background:linear-gradient(135deg,var(--brand),#5aa0ff);display:inline-flex;align-items:center;justify-content:center;font-size:38px;box-shadow:var(--shadow)}
@@ -544,7 +592,7 @@ function pushHowToGuide(){
   </details>`;
 }
 function pushCard(){
-  if(window.__pushOn)return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px">通知はオンです。<b>新しい練習日の追加</b>や<b>休校のお知らせ</b>が届きます。</p><button class="btn gray sm" onclick="pushUnsubscribe()">通知をオフにする</button>${pushHowToGuide()}</div>`;
+  if(window.__pushOn)return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px">通知はオンです。<b>新しい練習日の追加</b>・<b>休校</b>・<b>イベントの空き</b>のお知らせが届きます。</p><button class="btn gray sm" onclick="pushUnsubscribe()">通知をオフにする</button>${pushHowToGuide()}</div>`;
   if(pushSupported())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0 0 10px"><b>新しい練習日の追加</b>や<b>休校のお知らせ</b>を、スマホの通知でお届けします。</p><button class="btn sm" onclick="pushSubscribe(false)">通知をオンにする</button>${pushHowToGuide()}</div>`;
   if(isIOSDevice()&&!isStandalonePWA())return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">iPhoneでは<b>ホーム画面に追加</b>したアプリから通知を受け取れます。</p>${pushHowToGuide()}</div>`;
   return `<div class="card"><div style="font-weight:800;margin-bottom:6px">🔔 プッシュ通知</div><p class="muted" style="margin:0">この端末・ブラウザはプッシュ通知に対応していません。</p></div>`;
@@ -1393,6 +1441,7 @@ function enterApp(){
   pushBoot();
   setTimeout(showEcUpgradeAnnounce,900);
   setTimeout(pushIntroAnnounce,1700);
+  gevLoad().then(()=>{renderHomeAnn();renderCal();gevBootReturn();setTimeout(showGymEventPopup,new URLSearchParams(location.search).get('gev')?4000:1300);}); // 特別イベント（その県の教室の家庭のみ・イベントごとに1回）
   setTimeout(showMonthSchedulePopup,2600); // 徳島限定・月初の練習予定（担当者が確定した教室のみ・月1回）
 }
 
@@ -1406,6 +1455,179 @@ function withdrawStatusHtml(){let h='';
     else if(isWithdrawn(c))h+=`<div class="note" style="margin-bottom:12px;background:#f1f3f8;border-color:#dfe4ee;color:#4b5563"><b>🎓 ${esc(c.name)}さんは退会済みです</b><br>お月謝の請求はありません。ご利用ありがとうございました。</div>`;
   });
   return h;}
+
+/* ============ 特別イベント（親子バク転教室など）2026-10-26 ============
+   gym_events（その県の教室に在籍する家庭にだけ表示）／ gym_event_entries（1家庭1申込＝1組）
+   申込＝RPC gym_event_apply_v1。取消・アプリ決済・キャンセル通知＝Edge Function「gym-event」 */
+let gymEvents=[],gevMine={},gevCount={},gevAll=[],gevDraft=null;
+const GEV_GRADES=['未就学','年少','年中','年長','小1','小2','小3','小4','小5','小6','中学生以上'];
+async function gevLoad(){try{
+  const [e,m,c]=await Promise.all([db.from('gym_events').select('*').eq('published',true),db.from('gym_event_entries').select('*').eq('parent_id',me.id).eq('status','active'),db.rpc('gym_event_counts')]);
+  gymEvents=(e&&e.data)||[];gevMine={};((m&&m.data)||[]).forEach(r=>{gevMine[r.event_id]=r;});
+  gevCount={};((c&&c.data)||[]).forEach(r=>{gevCount[r.event_id]=r.groups;});
+}catch(err){console.warn('gevLoad',err);}}
+async function gevLoadStaff(){try{
+  const [e,a]=await Promise.all([db.from('gym_events').select('*'),db.from('gym_event_entries').select('*').order('created_at')]);
+  gymEvents=(e&&e.data)||[];gevAll=(a&&a.data)||[];
+  gevCount={};gevAll.filter(x=>x.status==='active').forEach(x=>{gevCount[x.event_id]=(gevCount[x.event_id]||0)+1;});
+}catch(err){console.warn('gevLoadStaff',err);}}
+function gevNowStr(){return jstNow().toISOString().slice(0,16);}
+function gevStartStr(ev){return ev.date+'T'+String(ev.start_time).padStart(5,'0');}
+function gevIsOpen(ev){return gevNowStr()<gevStartStr(ev);}
+function gevFamilyOk(ev){return activeKids().some(c=>metaOf(c.classroom).r===ev.region);}
+function gevVisible(){const t=todayYmdJST();return gymEvents.filter(ev=>ev.published!==false&&ev.date>=t&&gevFamilyOk(ev)).sort((a,b)=>gevStartStr(a).localeCompare(gevStartStr(b)));}
+function gevById(id){return gymEvents.find(e=>e.id===id);}
+function gevOn(key){return gevVisible().filter(ev=>ev.date===key);}
+function gevDateLabel(ev){const d=new Date(ev.date+'T00:00:00');return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;}
+function gevLeft(ev){return Math.max(0,ev.capacity-(gevCount[ev.id]||0));}
+function gevFee(ev,n){return n<=0?0:ev.fee_base+Math.max(0,n-2)*ev.fee_add;}
+function gevPayLabel(e){if(e.pay_method==='app')return e.pay_status==='paid'?'<span class="gevtag g">アプリ決済 済み</span>':e.pay_status==='refunded'?'<span class="gevtag n">返金済み</span>':'<span class="gevtag r">アプリ決済 未完了</span>';return e.pay_status==='paid'?'<span class="gevtag g">現金 受取済み</span>':'<span class="gevtag">当日 現金</span>';}
+function gevHomeHtml(){const list=gevVisible();if(!list.length)return '';
+  let h=`<div class="sech"><h2 class="title">🎪 イベント</h2><span class="muted" style="font-size:11.5px">タップで詳細・申し込み</span></div>`;
+  list.forEach(ev=>{const d=new Date(ev.date+'T00:00:00');const mine=gevMine[ev.id];const left=gevLeft(ev);const open=gevIsOpen(ev);
+    const tag=mine?'<span class="gevtag g">申込済み</span>'+(mine.pay_method==='app'&&mine.pay_status!=='paid'?'<span class="gevtag r">お支払い未完了</span>':''):!open?'<span class="gevtag n">受付終了</span>':left?'<span class="gevtag">受付中</span>':'<span class="gevtag n">満員</span>';
+    h+=`<div class="gevcard" onclick="openGymEvent('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain">${tag}<div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">⏰ ${esc(ev.start_time)}〜${esc(ev.end_time)}　📍 ${esc(ev.place)}</div><div class="gevsub">残り <span class="gevleft">${left}組</span> / ${ev.capacity}組　💴 1組${yen(ev.fee_base)}</div></div><div class="gevgo">›</div></div>`;});
+  return h;}
+function gevInfoHtml(ev){const left=gevLeft(ev);
+  return `<div class="gevhero"><div class="e">${ev.emoji||'🎪'}</div><div class="t">${esc(ev.title)}</div></div>`
+   +`<div class="gevrow"><div class="k">日時</div><div class="v"><b>${gevDateLabel(ev)}</b><br>${esc(ev.start_time)}〜${esc(ev.end_time)}</div></div>`
+   +`<div class="gevrow"><div class="k">場所</div><div class="v">${esc(ev.place)}</div></div>`
+   +(ev.target?`<div class="gevrow"><div class="k">対象</div><div class="v">${esc(ev.target)}</div></div>`:'')
+   +`<div class="gevrow"><div class="k">参加費</div><div class="v">1組（親子2人）<b>${yen(ev.fee_base)}</b>${ev.fee_add?`<br><span class="muted">1人追加につき ＋${yen(ev.fee_add)}</span>`:''}</div></div>`
+   +`<div class="gevrow"><div class="k">定員</div><div class="v">${ev.capacity}組（残り <span class="gevleft">${left}組</span>）</div></div>`
+   +(ev.bring?`<div class="gevrow"><div class="k">持ち物</div><div class="v">${esc(ev.bring)}</div></div>`:'')
+   +`<div class="gevrow"><div class="k">お支払い</div><div class="v">当日受付で現金、またはアプリで事前決済（クレジットカード）</div></div>`
+   +`<div class="gevrow" style="border-bottom:none"><div class="k">締め切り</div><div class="v">当日 ${esc(ev.start_time)} まで（取り消しも同じ）</div></div>`
+   +(ev.body?`<div class="gevdesc">${esc(ev.body)}</div>`:'');}
+function gevKidsText(e){return (e.kids||[]).map(k=>esc(k.name)).concat((e.guests||[]).map(g=>esc(g.name)+(g.grade?'（'+esc(g.grade)+'）':''))).join('、');}
+function gevSummary(e){return `👧 ${gevKidsText(e)}<br>🧑 大人 ${e.adults}人<br>💴 合計 ${e.people}人・<b>${yen(e.fee)}</b>　${gevPayLabel(e)}`+(e.note?`<br>📝 ${esc(e.note)}`:'');}
+function openGymEvent(id){const ev=gevById(id);if(!ev)return;const mine=gevMine[id];const open=gevIsOpen(ev);let h=gevInfoHtml(ev);
+  if(mine){h+=`<div class="note" style="background:#e9f8f0;border-color:#bfe8d2;color:#0f6b45;margin-bottom:10px"><b>✅ 申し込み済みです</b><br>${gevSummary(mine)}</div>`;
+    if(mine.pay_method==='app'&&mine.pay_status!=='paid'&&open)h+=`<div class="note" style="margin-bottom:10px">アプリでのお支払いがまだ完了していません。下のボタンからお支払いいただくか、当日受付の現金に変更してください。</div><button class="btn" style="background:var(--accent)" onclick="gevPay('${mine.id}')">💳 アプリで支払う（${yen(mine.fee)}）</button><button class="btn gray" style="margin-top:8px" onclick="gevSwitchCash('${id}')">当日受付の現金に変更する</button>`;
+    if(open)h+=`<button class="btn gray" style="margin-top:8px" onclick="gevStartForm('${id}')">内容を変更する</button><button class="btn gray" style="margin-top:8px;color:var(--red)" onclick="gevCancel('${id}')">申し込みを取り消す</button>`;
+    else h+=`<p class="muted" style="font-size:12.5px">受付時間を過ぎたため、変更・取り消しは教室へご連絡ください。</p>`;}
+  else if(!open){h+=`<button class="btn gray" disabled>受付は終了しました</button>`;}
+  else if(gevLeft(ev)<=0){h+=`<button class="btn gray" disabled>満員になりました</button><p class="muted center" style="font-size:12px;margin:6px 0 0">キャンセルが出たら通知でお知らせします</p>`;}
+  else{h+=`<button class="btn" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)" onclick="gevStartForm('${id}')">参加する</button>`;}
+  h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);}
+function gevStartForm(id){const ev=gevById(id);const mine=gevMine[id];
+  const def=activeKids().filter(c=>metaOf(c.classroom).r===ev.region).map(c=>c.id);
+  gevDraft=mine?{id,kids:(mine.kids||[]).map(k=>k.id),adults:mine.adults,guests:JSON.parse(JSON.stringify(mine.guests||[])),note:mine.note||'',pay:mine.pay_method}:{id,kids:def.slice(0,1),adults:1,guests:[],note:'',pay:'cash'};
+  gevRenderForm(true);}
+function gevRenderForm(top){const d=gevDraft;const ev=gevById(d.id);const mine=gevMine[d.id];const n=d.kids.length+d.adults+d.guests.length;const paidApp=mine&&mine.pay_method==='app'&&mine.pay_status==='paid';
+  let h=`<h3>${ev.emoji||'🎪'} ${esc(ev.title)}に申し込む</h3><div class="muted" style="margin-bottom:6px">${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}・${esc(ev.place)}</div><div class="gevf">`;
+  h+=`<h4>① 参加するお子さま</h4><div class="hint">登録済みのお子さまはタップで選ぶだけです</div>`;
+  activeKids().forEach(c=>{const on=d.kids.includes(c.id);h+=`<label class="gevchk${on?' on':''}"><input type="checkbox" ${on?'checked':''} onchange="gevToggleKid('${c.id}')"><span><b>${esc(c.name)}</b>　<span class="muted">${esc(c.classroom)}・${esc(c.class_name||'')}</span></span></label>`;});
+  h+=`<h4>② 一緒に参加する大人</h4><div class="hint">補助の練習をするので、1組に大人1人以上が必要です</div><div class="gevstep"><button onclick="gevAdults(-1)">−</button><span class="n">${d.adults}</span><button onclick="gevAdults(1)">＋</button><span class="muted">人（${esc(profile.parent_name||'')} 様 ほか）</span></div>`;
+  h+=`<h4>③ 教室に通っていないきょうだい・お友だち</h4><div class="hint">いる場合だけ、名前と学年を入れてください</div>`;
+  d.guests.forEach((g,i)=>{h+=`<div class="gevguest"><input placeholder="なまえ（例：たなか ゆい）" value="${esc(g.name).replace(/"/g,'&quot;')}" oninput="gevDraft.guests[${i}].name=this.value"><select onchange="gevDraft.guests[${i}].grade=this.value"><option value="">学年</option>${GEV_GRADES.map(x=>`<option${g.grade===x?' selected':''}>${x}</option>`).join('')}</select><button class="x" onclick="gevDelGuest(${i})">✕</button></div>`;});
+  if(d.guests.length<6)h+=`<button class="btn gray" style="padding:10px;font-size:14px" onclick="gevAddGuest()">＋ 子どもを追加</button>`;
+  h+=`<h4>④ お支払い方法</h4>`+(paidApp?`<div class="hint">アプリでお支払い済みです（変更する場合は、取り消して申し込み直してください）</div>`:'');
+  [['cash','💴 当日受付で現金','当日、受付でお支払いください'],['app','💳 アプリで事前に支払う','クレジットカード。取り消した場合は全額返金します']].forEach(([k,t,ds])=>{const on=d.pay===k;h+=`<label class="gevchk${on?' on':''}"><input type="radio" name="gevpay" ${on?'checked':''} ${paidApp?'disabled':''} onchange="gevDraft.pay='${k}';gevRenderForm()"><span><b>${t}</b><br><span class="muted" style="font-size:12px">${ds}</span></span></label>`;});
+  h+=`<h4>⑤ 連絡事項（任意）</h4><textarea placeholder="例：バク転は初めてです／見学の祖母も来ます" oninput="gevDraft.note=this.value">${(d.note||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`;
+  h+=`<div class="gevfee"><div class="sum"><span>合計 ${n}人（子ども ${d.kids.length+d.guests.length}・大人 ${d.adults}）</span><b>${yen(gevFee(ev,n))}</b></div><div class="muted" style="font-size:11.5px;margin:-4px 0 10px">1組（親子2人）${yen(ev.fee_base)}＋追加${Math.max(0,n-2)}人×${yen(ev.fee_add)}</div><button class="btn" style="background:var(--accent)" onclick="gevSubmit()">${d.pay==='app'&&!paidApp?'申し込んで支払いへ進む':'この内容で申し込む'}</button><button class="btn gray" style="margin-top:8px" onclick="openGymEvent('${ev.id}')">戻る</button></div></div>`;
+  const sc=document.getElementById('sheet');const st=sc?sc.scrollTop:0;openSheet(h);if(sc)sc.scrollTop=top===true?0:st;}
+function gevToggleKid(id){const k=gevDraft.kids;const i=k.indexOf(id);if(i>=0)k.splice(i,1);else k.push(id);gevRenderForm();}
+function gevAdults(dl){gevDraft.adults=Math.min(4,Math.max(1,gevDraft.adults+dl));gevRenderForm();}
+function gevAddGuest(){gevDraft.guests.push({name:'',grade:''});gevRenderForm();}
+function gevDelGuest(i){gevDraft.guests.splice(i,1);gevRenderForm();}
+async function gevApply(d){
+  const {data,error}=await db.rpc('gym_event_apply_v1',{p_event_id:d.id,p_child_ids:d.kids,p_adults:d.adults,p_guests:d.guests,p_note:d.note||'',p_pay_method:d.pay});
+  if(error){toast((error.message||'申し込みに失敗しました').replace(/^.*?ERROR:\s*/,''));return null;}
+  return Array.isArray(data)?data[0]:data;}
+async function gevSubmit(){if(previewGuard())return;const d=gevDraft;
+  d.guests=d.guests.map(g=>({name:(g.name||'').trim(),grade:g.grade||''}));
+  if(d.guests.some(g=>!g.name)){toast('追加したお子さまの名前を入れてください');return;}
+  if(d.kids.length+d.guests.length<1){toast('参加するお子さまを選んでください');return;}
+  showLoad(true);const row=await gevApply(d);
+  if(!row){showLoad(false);return;}
+  await gevLoad();showLoad(false);renderHomeAnn();renderCal();
+  if(row.pay_method==='app'&&row.pay_status!=='paid'&&row.fee>0){gevPay(row.id);return;}
+  toast('申し込みました');openGymEvent(d.id);}
+async function gevPay(entryId){showLoad(true);const j=await payFn('gym-event',{action:'checkout',entry_id:entryId});showLoad(false);
+  if(j&&j.url){(window.__gevNavigate||(u=>{location.href=u;}))(j.url);return;}
+  if(j&&j.paid){await gevLoad();renderHomeAnn();toast('お支払い済みです');}}
+async function gevSwitchCash(id){if(previewGuard())return;const m=gevMine[id];if(!m)return;showLoad(true);
+  const row=await gevApply({id,kids:(m.kids||[]).map(k=>k.id),adults:m.adults,guests:m.guests||[],note:m.note||'',pay:'cash'});
+  await gevLoad();showLoad(false);renderHomeAnn();if(row){toast('当日受付の現金に変更しました');openGymEvent(id);}}
+async function gevCancel(id){if(previewGuard())return;const m=gevMine[id];
+  const paid=m&&m.pay_method==='app'&&m.pay_status==='paid';
+  if(!confirm(paid?'申し込みを取り消しますか？\nアプリでお支払いいただいた参加費は全額返金します（カード会社により反映まで数日かかります）':'申し込みを取り消しますか？'))return;
+  showLoad(true);const j=await payFn('gym-event',{action:'cancel',event_id:id});await gevLoad();showLoad(false);
+  if(!j)return;renderHomeAnn();renderCal();toast(j.refunded?'取り消しました（全額返金の手続き済み）':'取り消しました');openGymEvent(id);}
+async function gevBootReturn(){try{const sp=new URLSearchParams(location.search);const g=sp.get('gev');if(!g)return;
+  const sid=sp.get('gev_sid');sp.delete('gev');sp.delete('gev_sid');try{history.replaceState(null,'',location.pathname+(sp.toString()?'?'+sp.toString():''));}catch(_){}
+  if(g==='paid'){await payFn('gym-event',{action:'confirm',session_id:sid});await gevLoad();renderHomeAnn();renderCal();
+    const ev=gymEvents.find(e=>gevMine[e.id]&&gevMine[e.id].stripe_session_id===sid)||gevVisible().find(e=>gevMine[e.id]);
+    if(ev){const m=gevMine[ev.id];openSheet(`<div class="center" style="font-size:40px;line-height:1">🎉</div><h3 class="center">${m&&m.pay_status==='paid'?'お支払いが完了しました':'お支払いを確認しています'}</h3><div style="line-height:1.9;font-size:14px">${esc(ev.title)}（${gevDateLabel(ev)} ${esc(ev.start_time)}〜）のお申し込みを受け付けました。${m&&m.pay_status==='paid'?'当日は受付でお名前をお伝えください。':'反映まで少し時間がかかることがあります。'}</div><button class="btn" style="margin-top:12px" onclick="openGymEvent('${ev.id}')">申し込み内容を見る</button><button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`);}
+  }else{toast('お支払いを中断しました。イベントの画面からもう一度お支払いできます');}
+}catch(e){}}
+function showGymEventPopup(force){try{
+  if(!me||!profile||profile.role!=='parent')return false;
+  const ev=gevVisible().find(e=>!gevMine[e.id]&&gevIsOpen(e));if(!ev)return false;
+  const key='sowers_gym_evpop_'+ev.id+'_'+(profile.id||me.id);
+  if(!force&&!window.__gevPopAlways){let seen=false;try{seen=localStorage.getItem(key)==='1';}catch(e){}if(seen)return false;}
+  if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__gevRetry=(window.__gevRetry||0)+1;if(window.__gevRetry<=6)setTimeout(showGymEventPopup,2500);return false;}
+  if(!_pv.on){try{localStorage.setItem(key,'1');}catch(e){}}
+  const left=gevLeft(ev);
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc"><div class="feath" style="background:linear-gradient(135deg,#ff8a3d,#ffb36b)"><div class="featbadge">EVENT</div><div class="featmc">${ev.emoji||'🎪'}</div><div class="feattt">${esc(ev.title)}</div></div><div class="featb">`
+   +`<div class="featli"><span class="e">📅</span><div><b>${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}</b></div></div>`
+   +`<div class="featli"><span class="e">📍</span><div>${esc(ev.place)}</div></div>`
+   +`<div class="featli"><span class="e">💴</span><div>1組（親子2人）<b>${yen(ev.fee_base)}</b>・1人追加 ＋${yen(ev.fee_add)}<br><span class="muted" style="font-size:12px">当日現金 または アプリで事前決済</span></div></div>`
+   +`<div class="featli"><span class="e">👨‍👧</span><div>定員 <b>${ev.capacity}組</b>（残り ${left}組）</div></div>`
+   +(ev.body?`<div class="featli" style="background:#fff7ec;border-radius:12px;padding:10px"><span class="e">💡</span><div>${esc(ev.body)}</div></div>`:'')
+   +`<div class="featbtns"><button class="featclose">あとで</button><button class="featok" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)">${left?'くわしく見る':'内容を見る'}</button></div></div></div>`;
+  document.body.appendChild(w);
+  const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('.featclose').onclick=close;
+  w.querySelector('.featok').onclick=()=>{close();openGymEvent(ev.id);};
+  return true;
+}catch(e){return false;}}
+/* --- スタッフ・管理者: 申し込み一覧（どの教室から参加か） --- */
+function gevStaffEvents(){const t=todayYmdJST();let list=gymEvents.filter(ev=>ev.date>=t);if(staffRole==='staff')list=list.filter(ev=>ev.region===staffScope().r);return list.sort((a,b)=>gevStartStr(a).localeCompare(gevStartStr(b)));}
+const GEV_SRC={club:'クラブ',circle:'サークル'};
+function gevRoomsOf(e){const r=[...new Set((e.kids||[]).map(k=>k.classroom).filter(Boolean))];return r.length?r:[GEV_SRC[e.source]||'教室外'];}
+function gevStaffHtml(){if(staffRole==='roster')return '';const list=gevStaffEvents();if(!list.length)return '';
+  let h=`<div class="sech"><h2 class="title">🎪 イベントの申し込み</h2><span class="muted" style="font-size:11.5px">タップで一覧</span></div>`;
+  list.forEach(ev=>{const act=gevAll.filter(x=>x.event_id===ev.id&&x.status==='active');const d=new Date(ev.date+'T00:00:00');const ppl=act.reduce((a,x)=>a+(x.people||0),0);
+    const rooms={};act.forEach(x=>gevRoomsOf(x).forEach(r=>{rooms[r]=(rooms[r]||0)+1;}));
+    h+=`<div class="gevcard" onclick="openGevAdmin('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain"><div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">申込 <b style="color:var(--ink)">${act.length}</b> / ${ev.capacity}組・${ppl}人</div><div class="gevsub">${Object.keys(rooms).map(r=>esc(r)+' '+rooms[r]).join('　')||'まだ申し込みはありません'}</div></div><div class="gevgo">›</div></div>`;});
+  if(pushSupported()&&!window.__pushOn)h+=`<button class="btn soft sm" style="margin:-4px 0 12px" onclick="pushSubscribe(false)">🔔 キャンセルが出たら通知を受け取る</button>`;
+  return h;}
+function gevChipBg(r){return r==='教室外'?'#9aa3b8':r==='クラブ'?'#16a34a':r==='サークル'?'#0ea5e9':scolor(r).bg;}
+function gevRoomChip(r){return `<span class="rc" style="background:${gevChipBg(r)}">${esc(r)}</span>`;}
+function openGevAdmin(id){const ev=gevById(id);if(!ev)return;
+  const all=gevAll.filter(x=>x.event_id===id);const act=all.filter(x=>x.status==='active');const can=all.filter(x=>x.status==='cancelled');
+  const kidsN=act.reduce((a,x)=>a+(x.kids||[]).length+(x.guests||[]).length,0),adN=act.reduce((a,x)=>a+(x.adults||0),0),fee=act.reduce((a,x)=>a+(x.fee||0),0);
+  const appPaid=act.filter(x=>x.pay_method==='app'&&x.pay_status==='paid').reduce((a,x)=>a+x.fee,0);const cash=act.filter(x=>x.pay_method==='cash').reduce((a,x)=>a+x.fee,0);
+  const rooms={};act.forEach(x=>gevRoomsOf(x).forEach(r=>{rooms[r]=(rooms[r]||0)+1;}));
+  let h=`<h3>${ev.emoji||'🎪'} ${esc(ev.title)}</h3><div class="muted">${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}・${esc(ev.place)}</div>`;
+  h+=`<div class="gevstat"><div><b>${act.length}<small style="font-size:12px">/${ev.capacity}</small></b><span>組</span></div><div><b>${kidsN}</b><span>子ども</span></div><div><b>${adN}</b><span>大人</span></div></div>`;
+  h+=`<div class="gevstat"><div><b style="font-size:15px">${yen(fee)}</b><span>参加費 合計</span></div><div><b style="font-size:15px">${yen(appPaid)}</b><span>アプリ決済済み</span></div><div><b style="font-size:15px">${yen(cash)}</b><span>当日現金</span></div></div>`;
+  h+=`<div style="font-size:12.5px;font-weight:800;margin:4px 0 6px">どの教室から（組数）</div><div class="gevroom">${Object.keys(rooms).map(r=>`<span style="background:${gevChipBg(r)}">${esc(r)} ${rooms[r]}組</span>`).join('')||'<span class="muted">まだありません</span>'}</div>`;
+  const ro=Object.keys(CLASSROOM_META),ri=r=>{const i=ro.indexOf(r);return i<0?999:i;};const sorted=act.slice().sort((a,b)=>ri(gevRoomsOf(a)[0])-ri(gevRoomsOf(b)[0])||(a.created_at||'').localeCompare(b.created_at||''));
+  sorted.forEach(x=>{
+    h+=`<div class="geventry"><div class="hd"><span class="nm">${esc(x.parent_name||'（名前未登録）')} 様${x.source&&x.source!=='gym'?` <span class="muted" style="font-size:11px;font-weight:700">${GEV_SRC[x.source]}アプリ</span>`:''}</span>${gevPayLabel(x)}</div>`
+     +(x.kids||[]).map(k=>`<div class="kid">${gevRoomChip(k.classroom||'')}<span>${esc(k.name)}</span><span class="muted" style="font-size:11.5px">${esc(k.class_name||'')}</span></div>`).join('')
+     +(x.guests||[]).map(g=>`<div class="kid">${gevRoomChip('教室外')}<span>${esc(g.name)}</span><span class="muted" style="font-size:11.5px">${esc(g.grade||'')}</span></div>`).join('')
+     +`<div class="muted">🧑 大人 ${x.adults}人・合計 ${x.people}人・<b style="color:var(--ink)">${yen(x.fee)}</b></div>`
+     +(x.note?`<div>📝 ${esc(x.note)}</div>`:'')
+     +`<div class="acts">${x.pay_method==='cash'?`<button class="btn ${x.pay_status==='paid'?'gray':'soft'}" onclick="gevCashToggle('${x.id}')">${x.pay_status==='paid'?'受取を取り消す':'💴 現金を受け取った'}</button>`:''}${staffRole==='admin'?`<button class="btn gray" style="color:var(--red)" onclick="gevAdminCancel('${x.id}')">取り消す</button>`:''}</div></div>`;});
+  if(!act.length)h+=`<p class="muted">まだ申し込みはありません。</p>`;
+  if(can.length)h+=`<details style="margin-top:8px"><summary class="muted" style="cursor:pointer">取り消し済み ${can.length}件</summary>${can.map(x=>`<div class="geventry" style="opacity:.7"><div class="hd"><span class="nm">${esc(x.parent_name||'')} 様</span>${gevPayLabel(x)}</div><div>${gevRoomsOf(x).map(gevRoomChip).join(' ')} ${gevKidsText(x)}</div><div class="muted" style="font-size:11.5px">取り消し ${x.cancelled_at?new Date(x.cancelled_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</div></div>`).join('')}</details>`;
+  if(act.some(x=>x.pay_method==='app'&&x.pay_status!=='paid'))h+=`<button class="btn soft" style="margin-top:8px" onclick="gevSync('${id}')">アプリ決済の状況を更新</button>`;
+  h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  const sc=document.getElementById('sheet');const st=sc&&document.getElementById('mask').classList.contains('show')?sc.scrollTop:0;openSheet(h);if(sc)sc.scrollTop=st;}
+async function gevRefreshStaff(id){await gevLoadStaff();if(staffSection==='schedule')renderStaff();openGevAdmin(id);}
+async function gevCashToggle(entryId){if(previewGuard())return;const x=gevAll.find(e=>e.id===entryId);if(!x)return;
+  const paid=x.pay_status!=='paid';const {error}=await db.from('gym_event_entries').update({pay_status:paid?'paid':'unpaid',paid_at:paid?new Date().toISOString():null,updated_at:new Date().toISOString()}).eq('id',entryId);
+  if(error){toast('保存できませんでした');return;}toast(paid?'現金の受け取りを記録しました':'受け取りを取り消しました');gevRefreshStaff(x.event_id);}
+async function gevAdminCancel(entryId){if(previewGuard())return;const x=gevAll.find(e=>e.id===entryId);if(!x)return;
+  if(!confirm(`${x.parent_name||''} 様の申し込みを取り消しますか？`+(x.pay_method==='app'&&x.pay_status==='paid'?'\nアプリ決済分は全額返金されます':'')))return;
+  showLoad(true);const j=await payFn('gym-event',{action:'cancel',entry_id:entryId});showLoad(false);if(j)toast('取り消しました');gevRefreshStaff(x.event_id);}
+async function gevSync(id){showLoad(true);const j=await payFn('gym-event',{action:'sync',event_id:id});showLoad(false);if(j)toast(j.paid?j.paid+'件を支払い済みにしました':'新しく反映する決済はありませんでした');gevRefreshStaff(id);}
 function renderHomeAnn(){const box=document.getElementById('home-ann');const rooms=[...new Set(activeKids().map(c=>c.classroom))];let h=withdrawStatusHtml();
   const items=[];
   anns.filter(a=>a.scope==='all').forEach(a=>items.push({t:'お知らせ（全体）',b:a.body,c:'var(--accent)'}));
@@ -1413,7 +1635,7 @@ function renderHomeAnn(){const box=document.getElementById('home-ann');const roo
   anns.filter(a=>a.scope==='area'&&a.area===_area).forEach(a=>items.push({t:'お知らせ（'+esc(a.area)+'）',b:a.body,c:'var(--accent)'}));
   anns.filter(a=>a.scope==='room'&&rooms.includes(a.room)).forEach(a=>items.push({t:SCHOOL_INFO[a.room]?SCHOOL_INFO[a.room].full:a.room,b:a.body,c:scolor(a.room).bg}));
   if(items.length){h+=`<div class="sech"><h2 class="title">📢 お知らせ</h2><span class="muted" style="font-size:11.5px">${items.length}件</span></div>`;items.forEach(it=>{h+=`<div class="annc" style="border-left-color:${it.c}"><div class="ah">${it.t}</div><div class="ab">${esc(it.b)}</div></div>`;});}
-  box.innerHTML=h;}
+  box.innerHTML=gevHomeHtml()+h;}
 function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\n/g,'<br>');}
 
 /* ============ ホーム：あいさつ・振替ポイント・今後の練習（2026-09-06 リデザイン） ============ */
@@ -1534,13 +1756,15 @@ function renderCal(){
     if(holidayName(cal.y,cal.m,d)){e.classList.add('holi');cv.appendChild(e);continue;}
     const key=dateKey(cal.y,cal.m,d);
     schools.forEach(s=>{const ev=document.createElement('div');const cx=isCancelled(s,key);const chip=roomChip(s,wd);ev.className='ev'+(cx?' cancel':'');ev.textContent=cx?chip.label+' 休':chip.label;if(!cx){ev.style.background=chip.bg;ev.style.color=chip.fg;}e.appendChild(ev);});
-    if(schools.length&&!past)e.onclick=()=>openDay(cal.y,cal.m,d,schools);
+    const gevs=gevOn(key);gevs.forEach(g=>{const ev=document.createElement('div');ev.className='ev gev';ev.textContent='イベント';e.appendChild(ev);});if(gevs.length)e.classList.add('has');
+    if((schools.length||gevs.length)&&!past)e.onclick=()=>openDay(cal.y,cal.m,d,schools);
     cv.appendChild(e);
   }
 }
 function openDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
   let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
+  gevOn(key).forEach(g=>{html+=`<div class="gevcard" style="margin-top:10px" onclick="openGymEvent('${g.id}')"><div class="gevmain"><span class="gevtag">イベント</span>${gevMine[g.id]?'<span class="gevtag g">申込済み</span>':''}<div class="gevtt">${g.emoji||'🎪'} ${esc(g.title)}</div><div class="gevsub">⏰ ${esc(g.start_time)}〜${esc(g.end_time)}　📍 ${esc(g.place)}</div></div><div class="gevgo">›</div></div>`;});
   schools.forEach(s=>{const inf=SCHOOL_INFO[s];const ct=contentOn(s,key,wd);
     html+=`<div class="roomhead" style="margin:14px 0 4px;color:${scolor(s).bg}"><span class="roomdot" style="background:${scolor(s).bg}"></span>${inf.full}</div><div class="muted" style="margin-bottom:8px">📍 ${ct.place||inf.place}<br>${teacherLine(s,key)||('👨‍🏫 メインスタッフ：'+inf.teachers+'先生')}</div>`;
     if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
@@ -1984,7 +2208,7 @@ async function loadStaffData(){
   myShifts=sh.data||[];
   allPay=d.data||[];
   allMsgs=e.data||[];
-  await ensureRuleEvents(); await loadEvents(); await loadCapacity(); await loadShifts(); await loadPayData(true);
+  await ensureRuleEvents(); await loadEvents(); await loadCapacity(); await loadShifts(); await loadPayData(true); await gevLoadStaff();
 }
 function childName(id){const c=allChildren.find(x=>x.id===id);return c?c.name:'(不明)';}
 function profName(id){const p=allProfiles.find(x=>x.id===id);return p?(p.parent_name||p.email||'(無名)'):'(不明)';}
@@ -2212,7 +2436,7 @@ function enterStaffApp(role){
   const t=new Date(); scal.y=t.getFullYear(); scal.m=t.getMonth();
   document.getElementById('tabbar').style.display='none';
   document.getElementById('staff-tabbar').style.display='flex';
-  go('s-staff'); renderStaffNav(); renderStaff();
+  go('s-staff'); renderStaffNav(); renderStaff(); pushBoot();
   if(showStaffIdentityPopup())return;
   if(role==='staff'&&!(profile&&profile.staff_region)){setTimeout(openStaffAreaPicker,300);}
   else{setTimeout(showStaffTodaySummary,700);}
@@ -2258,7 +2482,7 @@ const STAFF_TAB_DESC={schedule:'カレンダー・休講・会場/時間・シ�
 function staffTab(k){staffSection=k;renderStaffNav();renderStaff();document.getElementById('s-staff').scrollTop=0;window.scrollTo(0,0);if(window._gymFlushRefresh)window._gymFlushRefresh();}
 function emgBtnHtml(){return (staffRole==='staff'||staffRole==='admin')?`<button class="emgbtn" onclick="openEmgSheet()">🚨 緊急連絡先をすぐ開く</button>`:'';}
 function renderStaff(){const b=document.getElementById('staff-body');
-  if(staffSection==='schedule'){b.innerHTML=emgBtnHtml()+staffTodayHtml()+stShellCal();renderStaffCal();}
+  if(staffSection==='schedule'){b.innerHTML=emgBtnHtml()+staffTodayHtml()+gevStaffHtml()+stShellCal();renderStaffCal();}
   else if(staffSection==='furikae')b.innerHTML=emgBtnHtml()+stFurikae();
   else if(staffSection==='furikaeset')b.innerHTML=stTransferSettings();
   else if(staffSection==='roster')b.innerHTML=emgBtnHtml()+stRoster();
@@ -3053,7 +3277,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261021-fix-a1';
+const APP_BUILD='20261026-event1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
