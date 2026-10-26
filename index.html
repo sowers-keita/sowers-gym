@@ -1480,13 +1480,14 @@ function gevById(id){return gymEvents.find(e=>e.id===id);}
 function gevOn(key){return gevVisible().filter(ev=>ev.date===key);}
 function gevDateLabel(ev){const d=new Date(ev.date+'T00:00:00');return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;}
 function gevLeft(ev){return Math.max(0,ev.capacity-(gevCount[ev.id]||0));}
+function gevShowLeft(ev){return (gevCount[ev.id]||0)>10;} /* 申込が10組を超えるまで残り数は出さない 2026-10-26 keita */
 function gevFee(ev,n){return n<=0?0:ev.fee_base+Math.max(0,n-2)*ev.fee_add;}
 function gevPayLabel(e){if(e.pay_method==='app')return e.pay_status==='paid'?'<span class="gevtag g">アプリ決済 済み</span>':e.pay_status==='refunded'?'<span class="gevtag n">返金済み</span>':'<span class="gevtag r">アプリ決済 未完了</span>';return e.pay_status==='paid'?'<span class="gevtag g">現金 受取済み</span>':'<span class="gevtag">当日 現金</span>';}
 function gevHomeHtml(){const list=gevVisible();if(!list.length)return '';
   let h=`<div class="sech"><h2 class="title">🎪 イベント</h2><span class="muted" style="font-size:11.5px">タップで詳細・申し込み</span></div>`;
   list.forEach(ev=>{const d=new Date(ev.date+'T00:00:00');const mine=gevMine[ev.id];const left=gevLeft(ev);const open=gevIsOpen(ev);
     const tag=mine?'<span class="gevtag g">申込済み</span>'+(mine.pay_method==='app'&&mine.pay_status!=='paid'?'<span class="gevtag r">お支払い未完了</span>':''):!open?'<span class="gevtag n">受付終了</span>':left?'<span class="gevtag">受付中</span>':'<span class="gevtag n">満員</span>';
-    h+=`<div class="gevcard" onclick="openGymEvent('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain">${tag}<div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">⏰ ${esc(ev.start_time)}〜${esc(ev.end_time)}　📍 ${esc(ev.place)}</div><div class="gevsub">残り <span class="gevleft">${left}組</span> / ${ev.capacity}組　💴 1組${yen(ev.fee_base)}</div></div><div class="gevgo">›</div></div>`;});
+    h+=`<div class="gevcard" onclick="openGymEvent('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain">${tag}<div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">⏰ ${esc(ev.start_time)}〜${esc(ev.end_time)}　📍 ${esc(ev.place)}</div><div class="gevsub">${gevShowLeft(ev)?`残り <span class="gevleft">${left}組</span> / `:'定員 '}${ev.capacity}組　💴 1組${yen(ev.fee_base)}</div></div><div class="gevgo">›</div></div>`;});
   return h;}
 function gevInfoHtml(ev){const left=gevLeft(ev);
   return `<div class="gevhero"><div class="e">${ev.emoji||'🎪'}</div><div class="t">${esc(ev.title)}</div></div>`
@@ -1494,7 +1495,7 @@ function gevInfoHtml(ev){const left=gevLeft(ev);
    +`<div class="gevrow"><div class="k">場所</div><div class="v">${esc(ev.place)}</div></div>`
    +(ev.target?`<div class="gevrow"><div class="k">対象</div><div class="v">${esc(ev.target)}</div></div>`:'')
    +`<div class="gevrow"><div class="k">参加費</div><div class="v">1組（親子2人）<b>${yen(ev.fee_base)}</b>${ev.fee_add?`<br><span class="muted">1人追加につき ＋${yen(ev.fee_add)}</span>`:''}</div></div>`
-   +`<div class="gevrow"><div class="k">定員</div><div class="v">${ev.capacity}組（残り <span class="gevleft">${left}組</span>）</div></div>`
+   +`<div class="gevrow"><div class="k">定員</div><div class="v">${ev.capacity}組${gevShowLeft(ev)?`（残り <span class="gevleft">${left}組</span>）`:''}</div></div>`
    +(ev.bring?`<div class="gevrow"><div class="k">持ち物</div><div class="v">${esc(ev.bring)}</div></div>`:'')
    +`<div class="gevrow"><div class="k">お支払い</div><div class="v">当日受付で現金、またはアプリで事前決済（クレジットカード）</div></div>`
    +`<div class="gevrow" style="border-bottom:none"><div class="k">締め切り</div><div class="v">当日 ${esc(ev.start_time)} まで（取り消しも同じ）</div></div>`
@@ -1576,7 +1577,7 @@ function showGymEventPopup(force){try{
    +`<div class="featli"><span class="e">📅</span><div><b>${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}</b></div></div>`
    +`<div class="featli"><span class="e">📍</span><div>${esc(ev.place)}</div></div>`
    +`<div class="featli"><span class="e">💴</span><div>1組（親子2人）<b>${yen(ev.fee_base)}</b>・1人追加 ＋${yen(ev.fee_add)}<br><span class="muted" style="font-size:12px">当日現金 または アプリで事前決済</span></div></div>`
-   +`<div class="featli"><span class="e">👨‍👧</span><div>定員 <b>${ev.capacity}組</b>（残り ${left}組）</div></div>`
+   +`<div class="featli"><span class="e">👨‍👧</span><div>定員 <b>${ev.capacity}組</b>${gevShowLeft(ev)?`（残り ${left}組）`:''}</div></div>`
    +(ev.body?`<div class="featli" style="background:#fff7ec;border-radius:12px;padding:10px"><span class="e">💡</span><div>${esc(ev.body)}</div></div>`:'')
    +`<div class="featbtns"><button class="featclose">あとで</button><button class="featok" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)">${left?'くわしく見る':'内容を見る'}</button></div></div></div>`;
   document.body.appendChild(w);
@@ -3277,7 +3278,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261026-event2';
+const APP_BUILD='20261026-event3';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
