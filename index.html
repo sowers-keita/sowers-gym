@@ -890,7 +890,9 @@ function ageYears(birth){ if(!birth)return null; const b=new Date(birth),n=new D
 function ageStr(b){const a=ageYears(b);return a===null?"":a+"歳";}
 function fmtDate(s){if(!s)return"未設定";const d=new Date(s);return `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;}
 function isRoomTransferBlocked(fromRoom,toRoom){if(!fromRoom||!toRoom||fromRoom===toRoom)return false;return FURIKAE_BLOCKS.some(b=>b.from_room===fromRoom&&b.to_room===toRoom);}
-function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';if(selClass&&child&&child.classroom&&selClass.room!==child.classroom&&isRoomTransferBlocked(child.classroom,selClass.room))return 'この教室へは振替できません';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls)return '同じクラス内のみ振替可';return '';}
+function furikaeNgReason(child,cls){if(selClass&&child&&selClass.room===child.classroom&&cls===child.class_name)return '普段のクラスには振替できません';if(selClass&&child&&child.classroom&&selClass.room!==child.classroom&&isRoomTransferBlocked(child.classroom,selClass.room))return 'この教室へは振替できません';const meta=child&&child.classroom?metaOf(child.classroom):null;if(meta&&meta.p==='ダンス'&&child.class_name!==cls&&!(DANCE_CROSS_CLASS_ROOMS.has(child.classroom)&&selClass&&selClass.room===child.classroom))return '同じクラス内のみ振替可';return '';}
+/* 長崎RISEは教室が1つのため、同じ教室のA⇄Bクラス間の振替を許可（2026-10-28 木原決定） */
+const DANCE_CROSS_CLASS_ROOMS=new Set(['長崎']);
 function canFurikaeTo(child,cls){return furikaeNgReason(child,cls)==='';}
 /* 振替の定員（クラスごと cap。null=無制限）2026-10-21 復元。空き = cap + 欠席 − 振替参加（class_counts） */
 function furCapVal(v){const n=parseInt(v,10);return n>=1?n:null;}
@@ -3278,7 +3280,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261026-event3';
+const APP_BUILD='20261028-nagasaki-fur';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
