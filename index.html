@@ -1274,7 +1274,10 @@ function payExcluded(c){const rg=paySetting('excluded_regions').regions||[];cons
 function paySubOf(cid){return paySubs.find(x=>x.child_id===cid)||null;}
 function paySubActive(cid){const x=paySubOf(cid);return !!(x&&['active','past_due','cancel_at_period_end'].includes(x.status));}
 function payEligible(c){return payUiOn()&&!isWithdrawn(c)&&!payExcluded(c)&&(c.fee||0)>0;}
-function payNeedsSetup(c){return payEligible(c)&&!paySubActive(c.id);}
+/* 支払い登録の受付開始日（旧システムで当月分を請求済みの教室。これより前は登録させない） */
+const PAY_OPEN_FROM={"室川":"2026-11-01"};
+function payOpenYet(c){const d=PAY_OPEN_FROM[c&&c.classroom];if(!d)return true;const t=new Date(Date.now()+9*3600e3).toISOString().slice(0,10);return t>=d;}
+function payNeedsSetup(c){return payEligible(c)&&!paySubActive(c.id)&&payOpenYet(c);}
 function feeFor(room,cls){const r=feeTable.find(f=>f.classroom===room&&f.class_name===cls);return r?r.fee:null;}
 function payCutoffDay(){return Number(paySetting('cancel_cutoff_day').day||15);}
 async function loadPayData(all,pid){
