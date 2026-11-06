@@ -1059,11 +1059,12 @@ async function doReset(){
 }
 async function logout(){ if(_pv.on){exitPreview();return;} await db.auth.signOut(); profile=null;kids=[];me=null; document.getElementById('tabbar').style.display='none'; document.getElementById('staff-tabbar').style.display='none'; go('s-login'); }
 function openDeleteAccount(){openSheet(`<h3 style="color:var(--red)">アカウントの削除（退会）</h3>
-  <p class="muted">お子様・保護者の情報、欠席・振替・連絡などが<b>すべて削除され、元に戻せません</b>。本当に削除しますか？</p>
-  <p class="muted" style="margin-top:6px">※ログイン用のメール／パスワード本体は、念のため運営側でも削除します。</p>
+  <p class="muted">アカウントを削除すると、このアプリに<b>ログインできなくなり</b>、お子様は退会済みになります。本当に削除しますか？</p>
+  <p class="muted" style="margin-top:6px">※アプリでお月謝をお支払い中の方は、先にマイページの「退会する」からお手続きください。</p>
+  <p class="muted" style="margin-top:6px">※退会手続きの確認のため、これまでの連絡やお支払いの記録は事務局に残ります。</p>
   <button class="btn red" style="margin-top:14px" onclick="deleteMyAccount()">削除する（取り消せません）</button>
   <button class="btn gray" style="margin-top:8px" onclick="closeSheet()">やめる</button>`);}
-async function deleteMyAccount(){if(previewGuard())return;showLoad(true);const r=await db.rpc('delete_my_account');showLoad(false);if(r.error){toast('削除エラー：'+r.error.message);return;}closeSheet();toast('アカウントを削除しました');try{await db.auth.signOut();}catch(_){ }profile=null;kids=[];me=null;document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='none';go('s-login');}
+async function deleteMyAccount(){if(previewGuard())return;showLoad(true);const r=await db.rpc('delete_my_account');showLoad(false);if(r.error){toast(String(r.error.message||'').includes('退会する')?r.error.message:'削除エラー：'+r.error.message);return;}closeSheet();toast('アカウントを削除しました');try{await db.auth.signOut();}catch(_){ }profile=null;kids=[];me=null;document.getElementById('tabbar').style.display='none';document.getElementById('staff-tabbar').style.display='none';go('s-login');}
 
 /* ============ 登録フロー ============ */
 const REG_TITLES=["教室を選ぶ","クラスを選ぶ","ログイン情報","保護者の情報","お子様の情報","現在の振替","お月謝の設定","お支払い方法"];
@@ -2150,7 +2151,11 @@ function messageTime(value){
   const part=type=>parts.find(p=>p.type===type).value;
   return `${part('month')}/${part('day')} ${part('hour')}:${part('minute')}`;
 }
+function isDeletedParent(pid){const p=allProfiles.find(x=>x.id===pid);return !!(p&&p.deleted_at);}
 function messageFamilyLabel(pid){
+  return messageFamilyLabelBase(pid)+(isDeletedParent(pid)?'（アプリ退会済み）':'');
+}
+function messageFamilyLabelBase(pid){
   const parent=profName(pid), children=allChildren.filter(c=>c.parent_id===pid);
   const tokens=name=>String(name||'').trim().split(/[\s　]+/).filter(Boolean);
   const pp=tokens(parent);
@@ -3129,7 +3134,7 @@ function stMessages(){
     h+=`<div class="card" style="padding:8px 14px${nr?';border-left:5px solid var(--red)':''}"><details class="acc" style="border-top:none;padding-top:0"><summary style="color:var(--ink)"><span style="min-width:0"><span style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">${esc(messageFamilyLabel(pid))}${nr?'<span class="cnt abs" style="font-size:10.5px">未返信</span>':''}</span><span class="muted" style="font-size:11.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px">${esc(parentRooms(pid))}${last?'　'+esc((last.body||'').replace(/\n/g,' ').slice(0,28)):''}</span></span><span class="cap">${ms.length}件</span></summary>
       <div class="msgwrap" style="margin:8px 0">${ms.length?ms.map(m=>`<div class="msg ${m.sender==='staff'?'me':'them'}">${esc(m.body)}<span class="t">${messageTime(m.created_at)}</span></div>`).join(''):'<p class="muted">まだメッセージはありません。</p>'}</div>
       ${last&&last.sender==='parent'?`<div style="margin:8px 0">${last.resolved_at?`<span class="muted">✓ LINE・電話等で対応済み</span> <button class="linkbtn" onclick="setMessageResolved('${last.id}',false)">未返信に戻す</button>`:`<button class="btn sm gray" onclick="setMessageResolved('${last.id}',true)">LINE・電話等で対応済みにする</button><p class="muted" style="font-size:11px;margin:5px 0">保護者へのメッセージは送信されません。</p>`}</div>`:''}
-      <div class="msg-compose" style="display:flex;gap:8px"><textarea id="reply-${pid}" rows="3" aria-label="保護者への返信" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>
+      ${isDeletedParent(pid)?`<p class="muted" style="font-size:12px;margin:6px 0">この保護者はアプリのアカウントを削除しています。アプリからの返信は届かないので、LINE・電話でご連絡ください。</p>`:`<div class="msg-compose" style="display:flex;gap:8px"><textarea id="reply-${pid}" rows="3" aria-label="保護者への返信" placeholder="メッセージを入力…（改行できます）"></textarea><button class="btn sm" style="width:auto;padding:0 16px;border-radius:999px" onclick="replyMsg('${pid}')">送信</button></div>`}
     </details></div>`;});
   return h;
 }
@@ -3283,7 +3288,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261028-nagasaki-fur';
+const APP_BUILD='20261106-keep-msgs';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
