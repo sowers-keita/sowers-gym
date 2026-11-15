@@ -1447,7 +1447,7 @@ function enterApp(){
   pushBoot();
   setTimeout(showEcUpgradeAnnounce,900);
   setTimeout(pushIntroAnnounce,1700);
-  gevLoad().then(()=>{renderHomeAnn();renderCal();gevBootReturn();setTimeout(showGymEventPopup,new URLSearchParams(location.search).get('gev')?4000:1300);}); // 特別イベント（その県の教室の家庭のみ・イベントごとに1回）
+  gevLoad().then(()=>{renderHomeAnn();renderCal();gevBootReturn();setTimeout(showGymEventPopup,new URLSearchParams(location.search).get('gev')?4000:1300);setTimeout(gkBootPopups,2200);}); // 特別イベント（その県の教室の家庭のみ・イベントごとに1回）
   setTimeout(showMonthSchedulePopup,2600); // 徳島限定・月初の練習予定（担当者が確定した教室のみ・月1回）
 }
 
@@ -1468,30 +1468,35 @@ function withdrawStatusHtml(){let h='';
 let gymEvents=[],gevMine={},gevCount={},gevAll=[],gevDraft=null;
 const GEV_GRADES=['未就学','年少','年中','年長','小1','小2','小3','小4','小5','小6','中学生以上'];
 async function gevLoad(){try{
-  const [e,m,c]=await Promise.all([db.from('gym_events').select('*').eq('published',true),db.from('gym_event_entries').select('*').eq('parent_id',me.id).eq('status','active'),db.rpc('gym_event_counts')]);
-  gymEvents=(e&&e.data)||[];gevMine={};((m&&m.data)||[]).forEach(r=>{gevMine[r.event_id]=r;});
+  const [e,m,c,kc]=await Promise.all([db.from('gym_events').select('*').or('published.eq.true,gym_only.eq.true'),db.from('gym_event_entries').select('*').eq('parent_id',me.id).eq('status','active'),db.rpc('gym_event_counts'),db.rpc('gym_event_kid_counts')]);
+  gymEvents=(e&&!e.error&&e.data)||[];
+  if(e&&e.error){const e2=await db.from('gym_events').select('*').eq('published',true);gymEvents=(e2&&e2.data)||[];} /* gym_only列が無い（SQL未実行）時の保険 */
+  gevMine={};((m&&m.data)||[]).forEach(r=>{gevMine[r.event_id]=r;});
   gevCount={};((c&&c.data)||[]).forEach(r=>{gevCount[r.event_id]=r.groups;});
+  gkCount={};((kc&&kc.data)||[]).forEach(r=>{gkCount[r.event_id]={kids:r.kids||0,waiting:r.waiting||0};});
 }catch(err){console.warn('gevLoad',err);}}
 async function gevLoadStaff(){try{
   const [e,a]=await Promise.all([db.from('gym_events').select('*'),db.from('gym_event_entries').select('*').order('created_at')]);
   gymEvents=(e&&e.data)||[];gevAll=(a&&a.data)||[];
   gevCount={};gevAll.filter(x=>x.status==='active').forEach(x=>{gevCount[x.event_id]=(gevCount[x.event_id]||0)+1;});
+  gkCount={};gevAll.filter(x=>x.status==='active').forEach(x=>{const o=gkCount[x.event_id]||(gkCount[x.event_id]={kids:0,waiting:0});o[x.waitlist?'waiting':'kids']+=gkN(x);});
 }catch(err){console.warn('gevLoadStaff',err);}}
 function gevNowStr(){return jstNow().toISOString().slice(0,16);}
 function gevStartStr(ev){return ev.date+'T'+String(ev.start_time).padStart(5,'0');}
 function gevIsOpen(ev){return gevNowStr()<gevStartStr(ev);}
 function gevFamilyOk(ev){return activeKids().some(c=>metaOf(c.classroom).r===ev.region);}
-function gevVisible(){const t=todayYmdJST();return gymEvents.filter(ev=>ev.published!==false&&ev.date>=t&&gevFamilyOk(ev)).sort((a,b)=>gevStartStr(a).localeCompare(gevStartStr(b)));}
+function gevVisible(){const t=todayYmdJST();return gymEvents.filter(ev=>(ev.published!==false||ev.gym_only)&&ev.date>=t&&gevFamilyOk(ev)).sort((a,b)=>gevStartStr(a).localeCompare(gevStartStr(b)));}
 function gevById(id){return gymEvents.find(e=>e.id===id);}
 function gevOn(key){return gevVisible().filter(ev=>ev.date===key);}
 function gevDateLabel(ev){const d=new Date(ev.date+'T00:00:00');return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;}
-function gevLeft(ev){return Math.max(0,ev.capacity-(gevCount[ev.id]||0));}
-function gevShowLeft(ev){return (gevCount[ev.id]||0)>10;} /* 申込が10組を超えるまで残り数は出さない 2026-10-26 keita */
+function gevLeft(ev){if(gkIs(ev))return Math.max(0,ev.capacity-gkUsed(ev));return Math.max(0,ev.capacity-(gevCount[ev.id]||0));}
+function gevShowLeft(ev){if(gkIs(ev))return gkUsed(ev)>10;return (gevCount[ev.id]||0)>10;} /* 申込が10組を超えるまで残り数は出さない 2026-10-26 keita */
 function gevFee(ev,n){return n<=0?0:ev.fee_base+Math.max(0,n-2)*ev.fee_add;}
 function gevPayLabel(e){if(e.pay_method==='app')return e.pay_status==='paid'?'<span class="gevtag g">アプリ決済 済み</span>':e.pay_status==='refunded'?'<span class="gevtag n">返金済み</span>':'<span class="gevtag r">アプリ決済 未完了</span>';return e.pay_status==='paid'?'<span class="gevtag g">現金 受取済み</span>':'<span class="gevtag">当日 現金</span>';}
 function gevHomeHtml(){const list=gevVisible();if(!list.length)return '';
   let h=`<div class="sech"><h2 class="title">🎪 イベント</h2><span class="muted" style="font-size:11.5px">タップで詳細・申し込み</span></div>`;
   list.forEach(ev=>{const d=new Date(ev.date+'T00:00:00');const mine=gevMine[ev.id];const left=gevLeft(ev);const open=gevIsOpen(ev);
+    if(gkIs(ev)){h+=gkHomeCard(ev);return;}
     const tag=mine?'<span class="gevtag g">申込済み</span>'+(mine.pay_method==='app'&&mine.pay_status!=='paid'?'<span class="gevtag r">お支払い未完了</span>':''):!open?'<span class="gevtag n">受付終了</span>':left?'<span class="gevtag">受付中</span>':'<span class="gevtag n">満員</span>';
     h+=`<div class="gevcard" onclick="openGymEvent('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain">${tag}<div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">⏰ ${esc(ev.start_time)}〜${esc(ev.end_time)}　📍 ${esc(ev.place)}</div><div class="gevsub">${gevShowLeft(ev)?`残り <span class="gevleft">${left}組</span> / `:'定員 '}${ev.capacity}組　💴 1組${yen(ev.fee_base)}</div></div><div class="gevgo">›</div></div>`;});
   return h;}
@@ -1508,7 +1513,7 @@ function gevInfoHtml(ev){const left=gevLeft(ev);
    +(ev.body?`<div class="gevdesc">${esc(ev.body)}</div>`:'');}
 function gevKidsText(e){return (e.kids||[]).map(k=>esc(k.name)).concat((e.guests||[]).map(g=>esc(g.name)+(g.grade?'（'+esc(g.grade)+'）':''))).join('、');}
 function gevSummary(e){return `👧 ${gevKidsText(e)}<br>🧑 大人 ${e.adults}人<br>💴 合計 ${e.people}人・<b>${yen(e.fee)}</b>　${gevPayLabel(e)}`+(e.note?`<br>📝 ${esc(e.note)}`:'');}
-function openGymEvent(id){const ev=gevById(id);if(!ev)return;const mine=gevMine[id];const open=gevIsOpen(ev);let h=gevInfoHtml(ev);
+function openGymEvent(id){const ev=gevById(id);if(!ev)return;if(gkIs(ev)){gkOpen(id);return;}const mine=gevMine[id];const open=gevIsOpen(ev);let h=gevInfoHtml(ev);
   if(mine){h+=`<div class="note" style="background:#e9f8f0;border-color:#bfe8d2;color:#0f6b45;margin-bottom:10px"><b>✅ 申し込み済みです</b><br>${gevSummary(mine)}</div>`;
     if(mine.pay_method==='app'&&mine.pay_status!=='paid'&&open)h+=`<div class="note" style="margin-bottom:10px">アプリでのお支払いがまだ完了していません。下のボタンからお支払いいただくか、当日受付の現金に変更してください。</div><button class="btn" style="background:var(--accent)" onclick="gevPay('${mine.id}')">💳 アプリで支払う（${yen(mine.fee)}）</button><button class="btn gray" style="margin-top:8px" onclick="gevSwitchCash('${id}')">当日受付の現金に変更する</button>`;
     if(open)h+=`<button class="btn gray" style="margin-top:8px" onclick="gevStartForm('${id}')">内容を変更する</button><button class="btn gray" style="margin-top:8px;color:var(--red)" onclick="gevCancel('${id}')">申し込みを取り消す</button>`;
@@ -1518,7 +1523,7 @@ function openGymEvent(id){const ev=gevById(id);if(!ev)return;const mine=gevMine[
   else{h+=`<button class="btn" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)" onclick="gevStartForm('${id}')">参加する</button>`;}
   h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
   openSheet(h);}
-function gevStartForm(id){const ev=gevById(id);const mine=gevMine[id];
+function gevStartForm(id){const ev=gevById(id);if(gkIs(ev)){gkStartForm(id);return;}const mine=gevMine[id];
   const def=activeKids().filter(c=>metaOf(c.classroom).r===ev.region).map(c=>c.id);
   gevDraft=mine?{id,kids:(mine.kids||[]).map(k=>k.id),adults:mine.adults,guests:JSON.parse(JSON.stringify(mine.guests||[])),note:mine.note||'',pay:mine.pay_method}:{id,kids:def.slice(0,1),adults:1,guests:[],note:'',pay:'cash'};
   gevRenderForm(true);}
@@ -1579,6 +1584,7 @@ function showGymEventPopup(force){try{
   if(!_pv.on){try{localStorage.setItem(key,'1');}catch(e){}}
   const left=gevLeft(ev);
   const w=document.createElement('div');w.className='featp';
+  if(gkIs(ev))w.innerHTML=gkPopupHtml(ev);else
   w.innerHTML=`<div class="featc"><div class="feath" style="background:linear-gradient(135deg,#ff8a3d,#ffb36b)"><div class="featbadge">EVENT</div><div class="featmc">${ev.emoji||'🎪'}</div><div class="feattt">${esc(ev.title)}</div></div><div class="featb">`
    +`<div class="featli"><span class="e">📅</span><div><b>${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}</b></div></div>`
    +`<div class="featli"><span class="e">📍</span><div>${esc(ev.place)}</div></div>`
@@ -1592,20 +1598,179 @@ function showGymEventPopup(force){try{
   w.querySelector('.featok').onclick=()=>{close();openGymEvent(ev.id);};
   return true;
 }catch(e){return false;}}
+/* ============ 子どもの人数で数えるイベント（男子新体操 体験会など）2026-11-15 ============
+   gym_events.cap_unit='kids'：無料・子どもの名前と年齢だけ（保護者は書かない）・先着（超えたらキャンセル待ち→空きが出たら自動で繰り上げ）
+   前日（と当日の開始前）は出欠確認ポップアップ。gym_only=true は体操教室アプリだけに表示（SQL: supabase/20261115_rg_taiken_kids_event.sql） */
+let gkCount={},gkDraft=null;
+const GK_AGES=Array.from({length:16},(_,i)=>i+3); /* 3〜18歳 */
+function gkIs(ev){return !!ev&&ev.cap_unit==='kids';}
+function gkN(e){return ((e&&e.kids)||[]).length+((e&&e.guests)||[]).length;}
+function gkUsed(ev){return (gkCount[ev.id]&&gkCount[ev.id].kids)||0;}
+function gkWaiting(ev){return (gkCount[ev.id]&&gkCount[ev.id].waiting)||0;}
+function gkKidAge(c){return c&&c.birth?ageYears(c.birth):null;}
+function gkAgeTxt(a){return a===null||a===undefined||a===''?'':String(a)+'歳';}
+function gkAttr(s){return esc(String(s==null?'':s)).replace(/"/g,'&quot;');}
+function gkKidsText(e){return (e.kids||[]).concat(e.guests||[]).map(k=>esc(k.name)+(gkAgeTxt(k.age)?'（'+gkAgeTxt(k.age)+'）':'')).join('、');}
+function gkByCreated(a,b){return (a.created_at||'').localeCompare(b.created_at||'');}
+function gkEveKey(ev){const d=new Date(ev.date+'T00:00:00');d.setDate(d.getDate()-1);return dateKey(d.getFullYear(),d.getMonth(),d.getDate());}
+function gkAttendDue(ev){const t=todayYmdJST();return (t===gkEveKey(ev)||t===ev.date)&&gevIsOpen(ev);}
+function gkDayWord(ev){return todayYmdJST()===ev.date?'今日':'明日';}
+function gkCapText(ev){return gevShowLeft(ev)?`残り <span class="gevleft">${gevLeft(ev)}名</span>（先着${ev.capacity}名）`:`先着${ev.capacity}名`;}
+function gkTag(ev){const mine=gevMine[ev.id];
+  if(mine)return mine.waitlist?'<span class="gevtag n">キャンセル待ち</span>':'<span class="gevtag g">申込済み</span>'+(mine.attend==='yes'?'<span class="gevtag g">出欠OK</span>':'');
+  if(!gevIsOpen(ev))return '<span class="gevtag n">受付終了</span>';
+  return gevLeft(ev)?'<span class="gevtag">受付中</span>':'<span class="gevtag n">満員・キャンセル待ち受付中</span>';}
+function gkDateBox(ev){const d=new Date(ev.date+'T00:00:00');return `<div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div>`;}
+function gkHomeCard(ev){
+  return `<div class="gevcard" onclick="openGymEvent('${ev.id}')">${gkDateBox(ev)}<div class="gevmain">${gkTag(ev)}<div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">⏰ ${esc(ev.start_time)}〜${esc(ev.end_time)}　📍 ${esc(ev.place)}</div><div class="gevsub">${gkCapText(ev)}　参加費 無料</div></div><div class="gevgo">›</div></div>`;}
+function gkInfoHtml(ev){
+  return `<div class="gevhero"><div class="e">${ev.emoji||'🎪'}</div><div class="t">${esc(ev.title)}</div></div>`
+   +`<div class="gevrow"><div class="k">日時</div><div class="v"><b>${gevDateLabel(ev)}</b><br>${esc(ev.start_time)}ごろ〜${esc(ev.end_time)}ごろ</div></div>`
+   +`<div class="gevrow"><div class="k">場所</div><div class="v">${esc(ev.place)}</div></div>`
+   +(ev.target?`<div class="gevrow"><div class="k">対象</div><div class="v">${esc(ev.target)}<br><span class="muted" style="font-size:12px">保護者の方も一緒に参加できます（申し込みは不要です）</span></div></div>`:'')
+   +`<div class="gevrow"><div class="k">参加費</div><div class="v"><b>無料</b></div></div>`
+   +`<div class="gevrow"><div class="k">定員</div><div class="v">${gkCapText(ev)}<br><span class="muted" style="font-size:12px">いっぱいの時はキャンセル待ちで申し込めます。空きが出たら順番に繰り上がります</span></div></div>`
+   +(ev.bring?`<div class="gevrow"><div class="k">持ち物</div><div class="v">${esc(ev.bring)}</div></div>`:'')
+   +`<div class="gevrow" style="border-bottom:none"><div class="k">締め切り</div><div class="v">当日 ${esc(ev.start_time)} まで（取り消しも同じ）</div></div>`
+   +(ev.body?`<div class="gevdesc">${esc(ev.body)}</div>`:'');}
+function gkPopupHtml(ev){
+  return `<div class="featc"><div class="feath" style="background:linear-gradient(135deg,#ff8a3d,#ffb36b)"><div class="featbadge">体験会のお知らせ</div><div class="featmc">${ev.emoji||'🎪'}</div><div class="feattt">${esc(ev.title)}</div></div><div class="featb">`
+   +`<div class="featli"><span class="e">📅</span><div><b>${gevDateLabel(ev)} ${esc(ev.start_time)}ごろ〜${esc(ev.end_time)}ごろ</b></div></div>`
+   +`<div class="featli"><span class="e">📍</span><div>${esc(ev.place)}</div></div>`
+   +(ev.target?`<div class="featli"><span class="e">👧</span><div>${esc(ev.target)}<br><span class="muted" style="font-size:12px">保護者の方もどうぞ</span></div></div>`:'')
+   +`<div class="featli"><span class="e">🎟️</span><div>参加費 <b>無料</b>・<b>先着${ev.capacity}名</b></div></div>`
+   +(ev.bring?`<div class="featli"><span class="e">🎒</span><div>${esc(ev.bring)}</div></div>`:'')
+   +(ev.body?`<div class="featli" style="background:#fff7ec;border-radius:12px;padding:10px"><span class="e">💡</span><div>${esc(ev.body)}</div></div>`:'')
+   +`<div class="featbtns"><button class="featclose">あとで</button><button class="featok" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)">申し込む</button></div></div></div>`;}
+function gkOpen(id){const ev=gevById(id);if(!ev)return;const mine=gevMine[id];const open=gevIsOpen(ev);let h=gkInfoHtml(ev);
+  if(mine){
+    if(mine.waitlist)h+=`<div class="note" style="margin-bottom:10px"><b>⏳ キャンセル待ちで受け付けています</b><br>👧 ${gkKidsText(mine)}<br>空きが出たら自動で参加が決まり、アプリを開いたときにお知らせします。</div>`;
+    else h+=`<div class="note" style="background:#e9f8f0;border-color:#bfe8d2;color:#0f6b45;margin-bottom:10px"><b>✅ 申し込み済みです</b><br>👧 ${gkKidsText(mine)}${mine.attend==='yes'?'<br>📋 出欠確認：参加します':''}${mine.note?'<br>📝 '+esc(mine.note):''}</div>`;
+    if(open){
+      if(!mine.waitlist&&mine.attend!=='yes'&&gkAttendDue(ev))h+=`<button class="btn" style="background:var(--accent)" onclick="gkAttend('${id}')">${gkDayWord(ev)}、参加します</button>`;
+      h+=`<button class="btn gray" style="margin-top:8px" onclick="gkStartForm('${id}')">内容を変更する</button><button class="btn gray" style="margin-top:8px;color:var(--red)" onclick="gkCancel('${id}')">申し込みを取り消す</button>`;}
+    else h+=`<p class="muted" style="font-size:12.5px">受付時間を過ぎたため、変更・取り消しは教室へご連絡ください。</p>`;}
+  else if(!open)h+=`<button class="btn gray" disabled>受付は終了しました</button>`;
+  else h+=`<button class="btn" style="background:var(--accent);box-shadow:0 8px 20px rgba(255,138,61,.35)" onclick="gkStartForm('${id}')">${gevLeft(ev)?'参加する':'キャンセル待ちで申し込む'}</button>`;
+  h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  openSheet(h);}
+function gkStartForm(id){const ev=gevById(id);const mine=gevMine[id];const ages={};
+  ((mine&&mine.kids)||[]).forEach(k=>{ages[k.id]=k.age;});
+  gkDraft=mine?{id,kids:(mine.kids||[]).map(k=>k.id),ages,guests:JSON.parse(JSON.stringify(mine.guests||[])),note:mine.note||''}
+    :{id,kids:activeKids().filter(c=>metaOf(c.classroom).r===ev.region).map(c=>c.id),ages,guests:[],note:''};
+  gkRender(true);}
+function gkAgeSel(val,onchg){return `<select onchange="${onchg}"><option value="">年齢</option>${GK_AGES.map(x=>`<option value="${x}"${String(val)===String(x)?' selected':''}>${x}歳</option>`).join('')}</select>`;}
+function gkRender(top){const d=gkDraft;const ev=gevById(d.id);const mine=gevMine[d.id];
+  const ks=activeKids().filter(c=>d.kids.includes(c.id));const n=ks.length+d.guests.length;
+  const room=gevLeft(ev)+(mine&&!mine.waitlist?gkN(mine):0);const willWait=n>0&&n>room&&!(mine&&!mine.waitlist);
+  const ages=ks.map(c=>{const a=gkKidAge(c);return a!=null?a:(d.ages[c.id]===''||d.ages[c.id]==null?null:Number(d.ages[c.id]));}).concat(d.guests.map(g=>g.age===''||g.age==null?null:Number(g.age)));
+  const young=ks.some(c=>c.birth&&calcGrade(c.birth)==='未就学')||ages.some(a=>a!=null&&a<6);
+  let h=`<h3>${ev.emoji||'🎪'} ${esc(ev.title)}に申し込む</h3><div class="muted" style="margin-bottom:6px">${gevDateLabel(ev)} ${esc(ev.start_time)}〜・${esc(ev.place)}・無料</div><div class="gevf">`;
+  h+=`<h4>① 参加するお子さま</h4><div class="hint">名前と年齢は登録内容から自動で入っています。参加しない子はチェックを外してください</div>`;
+  activeKids().forEach(c=>{const on=d.kids.includes(c.id);const a=gkKidAge(c);
+    h+=`<label class="gevchk${on?' on':''}"><input type="checkbox" ${on?'checked':''} onchange="gkToggle('${c.id}')"><span><b>${esc(c.name)}</b>${a!=null?`　<b>${a}歳</b>`:''}<br><span class="muted" style="font-size:12px">${esc(c.classroom)}・${esc(c.class_name||'')}</span></span></label>`;
+    if(on&&a==null)h+=`<div class="gevguest" style="margin:-4px 0 10px 34px"><span class="muted" style="flex:1;font-size:12.5px">生年月日が未登録のため、年齢を選んでください</span>${gkAgeSel(d.ages[c.id],`gkDraft.ages['${c.id}']=this.value;gkRender()`)}</div>`;});
+  h+=`<h4>② 教室に通っていないきょうだい</h4><div class="hint">いる場合だけ、名前と年齢を入れてください（保護者の方は書かなくて大丈夫です）</div>`;
+  d.guests.forEach((g,i)=>{h+=`<div class="gevguest"><input placeholder="なまえ（例：たなか ゆい）" value="${gkAttr(g.name)}" oninput="gkDraft.guests[${i}].name=this.value">${gkAgeSel(g.age,`gkDraft.guests[${i}].age=this.value;gkRender()`)}<button class="x" onclick="gkDelGuest(${i})">✕</button></div>`;});
+  if(d.guests.length<6)h+=`<button class="btn gray" style="padding:10px;font-size:14px" onclick="gkAddGuest()">＋ きょうだいを追加</button>`;
+  h+=`<h4>③ 連絡事項（任意）</h4><textarea placeholder="例：体操は初めてです" oninput="gkDraft.note=this.value">${(d.note||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')}</textarea>`;
+  if(young)h+=`<div class="note" style="margin-top:10px">小学生からがおすすめの内容です。未就学のお子さまも申し込めます。</div>`;
+  if(willWait)h+=`<div class="note" style="margin-top:10px;background:#fff1f2;border-color:#fecdd3;color:#9f1239">定員に達しているため、<b>キャンセル待ち</b>での申し込みになります。空きが出たら順番に繰り上がります。</div>`;
+  h+=`<div class="gevfee"><div class="sum"><span>参加するお子さま ${n}人</span><b>無料</b></div><button class="btn" style="background:var(--accent)" onclick="gkSubmit()">${mine?'この内容に変更する':willWait?'キャンセル待ちで申し込む':'この内容で申し込む'}</button><button class="btn gray" style="margin-top:8px" onclick="gkOpen('${ev.id}')">戻る</button></div></div>`;
+  const sc=document.getElementById('sheet');const st=sc?sc.scrollTop:0;openSheet(h);if(sc)sc.scrollTop=top===true?0:st;}
+function gkToggle(id){const k=gkDraft.kids;const i=k.indexOf(id);if(i>=0)k.splice(i,1);else k.push(id);gkRender();}
+function gkAddGuest(){gkDraft.guests.push({name:'',age:''});gkRender();}
+function gkDelGuest(i){gkDraft.guests.splice(i,1);gkRender();}
+async function gkSubmit(){if(previewGuard())return;const d=gkDraft;
+  d.guests=d.guests.map(g=>({name:(g.name||'').trim(),age:g.age===''||g.age==null?'':Number(g.age)}));
+  if(d.guests.some(g=>!g.name)){toast('追加したお子さまの名前を入れてください');return;}
+  if(d.guests.some(g=>g.age==='')){toast('追加したお子さまの年齢を選んでください');return;}
+  const ks=activeKids().filter(c=>d.kids.includes(c.id));const noAge=ks.find(c=>gkKidAge(c)==null&&!d.ages[c.id]);
+  if(noAge){toast(noAge.name+'さんの年齢を選んでください');return;}
+  if(ks.length+d.guests.length<1){toast('参加するお子さまを選んでください');return;}
+  showLoad(true);
+  const {data,error}=await db.rpc('gym_event_apply_kids_v1',{p_event_id:d.id,p_kids:ks.map(c=>({id:c.id,age:d.ages[c.id]==null?'':String(d.ages[c.id])})),p_guests:d.guests,p_note:d.note||''});
+  if(error){showLoad(false);toast((error.message||'申し込みに失敗しました').replace(/^.*?ERROR:\s*/,''));return;}
+  const row=Array.isArray(data)?data[0]:data;await gevLoad();showLoad(false);renderHomeAnn();renderCal();
+  toast(row&&row.waitlist?'キャンセル待ちで受け付けました':'申し込みました');gkOpen(d.id);}
+async function gkCancel(id){if(previewGuard())return;if(!confirm('申し込みを取り消しますか？'))return;showLoad(true);
+  /* まず従来の取り消し（管理者へのキャンセル通知つき）を試し、残っていれば直接取り消す */
+  try{const {data:{session}}=await db.auth.getSession();if(session)await fetch(SUPABASE_URL+'/functions/v1/gym-event',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session.access_token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'cancel',event_id:id})});}catch(_){}
+  await gevLoad();
+  if(gevMine[id]){const {error}=await db.rpc('gym_event_cancel_kids_v1',{p_event_id:id});if(error){showLoad(false);toast('取り消せませんでした');return;}await gevLoad();}
+  showLoad(false);renderHomeAnn();renderCal();toast('取り消しました');gkOpen(id);}
+async function gkAttend(id){if(previewGuard())return;showLoad(true);const {error}=await db.rpc('gym_event_attend_v1',{p_event_id:id});await gevLoad();showLoad(false);
+  if(error){toast('送信できませんでした');return;}renderHomeAnn();toast('ありがとうございます。当日お待ちしています');gkOpen(id);}
+/* 起動時：①キャンセル待ちから繰り上がった ②前日・当日の出欠確認 */
+function gkBootPopups(){try{
+  if(!me||!profile||profile.role!=='parent')return;
+  if(document.querySelector('.featp')||document.getElementById('mask').classList.contains('show')){window.__gkRetry=(window.__gkRetry||0)+1;if(window.__gkRetry<=8)setTimeout(gkBootPopups,2500);return;}
+  const seen=k=>{try{return localStorage.getItem(k)==='1';}catch(e){return false;}};
+  const mark=k=>{if(_pv.on)return;try{localStorage.setItem(k,'1');}catch(e){}};
+  for(const ev of gevVisible().filter(gkIs)){const m=gevMine[ev.id];if(!m)continue;
+    if(m.promoted_at&&!m.waitlist){const k='sowers_gym_gkpromo_'+m.id+'_'+m.promoted_at;
+      if(!seen(k)){mark(k);gkPop(ev,'🎉','参加が決まりました',`キャンセル待ちから繰り上がりました。<br>👧 ${gkKidsText(m)}<br>📅 ${gevDateLabel(ev)} ${esc(ev.start_time)}〜<br>📍 ${esc(ev.place)}`,false);return;}}
+    if(!m.waitlist&&m.attend!=='yes'&&gkAttendDue(ev)){const k='sowers_gym_gkatt_'+m.id+'_'+todayYmdJST();
+      if(!seen(k)){mark(k);gkPop(ev,'📋',`${gkDayWord(ev)}の体験会、参加できますか？`,`📅 ${gevDateLabel(ev)} ${esc(ev.start_time)}〜<br>📍 ${esc(ev.place)}<br>👧 ${gkKidsText(m)}`+(ev.bring?`<br>🎒 ${esc(ev.bring)}`:''),true);return;}}
+  }}catch(e){}}
+function gkPop(ev,emo,title,body,attend){const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc"><div class="feath" style="background:linear-gradient(135deg,#ff8a3d,#ffb36b)"><div class="featbadge">${esc(ev.title)}</div><div class="featmc">${emo}</div><div class="feattt">${title}</div></div><div class="featb"><div class="featli" style="display:block;line-height:1.9">${body}</div>`
+   +(attend?`<div class="featbtns" style="flex-direction:column"><button class="featok" data-a="yes" style="background:var(--accent)">参加します</button><button class="featclose" data-a="no" style="color:var(--red)">行けなくなった（取り消す）</button><button class="featclose" data-a="later">あとで答える</button></div>`
+           :`<div class="featbtns"><button class="featclose" data-a="later">閉じる</button><button class="featok" data-a="open" style="background:var(--accent)">内容を見る</button></div>`)+`</div></div>`;
+  document.body.appendChild(w);const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelectorAll('button').forEach(b=>{b.onclick=()=>{const a=b.dataset.a;close();if(a==='yes')gkAttend(ev.id);else if(a==='no')gkCancel(ev.id);else if(a==='open')gkOpen(ev.id);};});}
+/* --- スタッフ・管理者 --- */
+function gkStaffCard(ev){const act=gevAll.filter(x=>x.event_id===ev.id&&x.status==='active');const conf=act.filter(x=>!x.waitlist);
+  const att=conf.filter(x=>x.attend==='yes').reduce((a,x)=>a+gkN(x),0);
+  return `<div class="gevcard" onclick="openGevAdmin('${ev.id}')">${gkDateBox(ev)}<div class="gevmain"><div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">参加 <b style="color:var(--ink)">${gkUsed(ev)}</b> / ${ev.capacity}名${gkWaiting(ev)?`・キャンセル待ち ${gkWaiting(ev)}名`:''}</div><div class="gevsub">${conf.length?`出欠確認「参加します」${att}名`:'まだ申し込みはありません'}</div></div><div class="gevgo">›</div></div>`;}
+function gkEntryHtml(x,canAdmin){const kidRows=(x.kids||[]).map(k=>`<div class="kid">${gevRoomChip(k.classroom||'')}<span>${esc(k.name)}</span><b style="font-size:12.5px">${gkAgeTxt(k.age)}</b></div>`).join('')
+   +(x.guests||[]).map(g=>`<div class="kid">${gevRoomChip('教室外')}<span>${esc(g.name)}</span><b style="font-size:12.5px">${gkAgeTxt(g.age)}</b></div>`).join('');
+  const att=x.waitlist?'<span class="gevtag n">キャンセル待ち</span>':x.attend==='yes'?'<span class="gevtag g">出欠OK</span>':'<span class="gevtag">出欠 未回答</span>';
+  return `<div class="geventry"><div class="hd"><span class="nm">${esc(x.parent_name||'（名前未登録）')} 様</span>${att}</div>${kidRows}`+(x.note?`<div>📝 ${esc(x.note)}</div>`:'')
+   +(canAdmin?`<div class="acts"><button class="btn gray" style="color:var(--red)" onclick="gkAdminCancel('${x.id}')">取り消す</button></div>`:'')+`</div>`;}
+function gkAdmin(id){const ev=gevById(id);if(!ev)return;const all=gevAll.filter(x=>x.event_id===id);const act=all.filter(x=>x.status==='active');
+  const conf=act.filter(x=>!x.waitlist).sort(gkByCreated),wait=act.filter(x=>x.waitlist).sort(gkByCreated),can=all.filter(x=>x.status==='cancelled');
+  const nConf=conf.reduce((a,x)=>a+gkN(x),0),nWait=wait.reduce((a,x)=>a+gkN(x),0),nAtt=conf.filter(x=>x.attend==='yes').reduce((a,x)=>a+gkN(x),0);
+  const rooms={};conf.forEach(x=>{(x.kids||[]).forEach(k=>{const r=k.classroom||'教室外';rooms[r]=(rooms[r]||0)+1;});(x.guests||[]).forEach(()=>{rooms['教室外']=(rooms['教室外']||0)+1;});});
+  let h=`<h3>${ev.emoji||'🎪'} ${esc(ev.title)}</h3><div class="muted">${gevDateLabel(ev)} ${esc(ev.start_time)}〜${esc(ev.end_time)}・${esc(ev.place)}・無料</div>`;
+  h+=`<div class="gevstat"><div><b>${nConf}<small style="font-size:12px">/${ev.capacity}</small></b><span>参加（名）</span></div><div><b>${nWait}</b><span>キャンセル待ち</span></div><div><b>${nAtt}</b><span>出欠OK</span></div></div>`;
+  h+=`<div style="font-size:12.5px;font-weight:800;margin:4px 0 6px">どの教室から（人数）</div><div class="gevroom">${Object.keys(rooms).map(r=>`<span style="background:${gevChipBg(r)}">${esc(r)} ${rooms[r]}名</span>`).join('')||'<span class="muted">まだありません</span>'}</div>`;
+  if(conf.length||wait.length)h+=`<button class="btn soft" style="margin:6px 0 10px" onclick="gkCopy('${id}')">📋 名前と年齢の一覧をコピー（LINEに貼れます）</button>`;
+  conf.forEach(x=>{h+=gkEntryHtml(x,staffRole==='admin');});
+  if(!conf.length)h+=`<p class="muted">まだ申し込みはありません。</p>`;
+  if(wait.length)h+=`<div style="font-size:13px;font-weight:800;margin:14px 0 6px">⏳ キャンセル待ち（申し込み順）</div>`+wait.map(x=>gkEntryHtml(x,staffRole==='admin')).join('');
+  if(can.length)h+=`<details style="margin-top:8px"><summary class="muted" style="cursor:pointer">取り消し済み ${can.length}件</summary>${can.map(x=>`<div class="geventry" style="opacity:.7"><div class="hd"><span class="nm">${esc(x.parent_name||'')} 様</span></div><div>${gkKidsText(x)}</div><div class="muted" style="font-size:11.5px">取り消し ${x.cancelled_at?new Date(x.cancelled_at).toLocaleString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</div></div>`).join('')}</details>`;
+  h+=`<button class="btn gray" style="margin-top:8px" onclick="closeSheet()">閉じる</button>`;
+  const sc=document.getElementById('sheet');const st=sc&&document.getElementById('mask').classList.contains('show')?sc.scrollTop:0;openSheet(h);if(sc)sc.scrollTop=st;}
+function gkCopyText(id){const ev=gevById(id);const act=gevAll.filter(x=>x.event_id===id&&x.status==='active');
+  const line=k=>`${k.name}（${gkAgeTxt(k.age)||'年齢不明'}）`;let i=0;
+  const conf=act.filter(x=>!x.waitlist).sort(gkByCreated).flatMap(x=>(x.kids||[]).concat(x.guests||[]));
+  const wait=act.filter(x=>x.waitlist).sort(gkByCreated).flatMap(x=>(x.kids||[]).concat(x.guests||[]));
+  const d=new Date(ev.date+'T00:00:00');
+  let t=`${ev.title} ${d.getMonth()+1}/${d.getDate()}（${DOW[d.getDay()]}）参加者 ${conf.length}名\n`+conf.map(k=>`${++i}. ${line(k)}`).join('\n');
+  if(wait.length){i=0;t+=`\n\nキャンセル待ち ${wait.length}名\n`+wait.map(k=>`${++i}. ${line(k)}`).join('\n');}
+  return t;}
+async function gkCopy(id){const t=gkCopyText(id);
+  try{await navigator.clipboard.writeText(t);toast('コピーしました');return;}catch(_){}
+  try{const a=document.createElement('textarea');a.value=t;a.style.position='fixed';a.style.opacity='0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();toast('コピーしました');}catch(_){toast('コピーできませんでした');}}
+async function gkAdminCancel(entryId){if(previewGuard())return;const x=gevAll.find(e=>e.id===entryId);if(!x)return;
+  if(!confirm(`${x.parent_name||''} 様の申し込みを取り消しますか？\n（キャンセル待ちの人がいれば自動で繰り上がります）`))return;
+  showLoad(true);const {error}=await db.rpc('gym_event_cancel_entry_v1',{p_entry_id:entryId});showLoad(false);
+  if(error){toast('取り消せませんでした');return;}toast('取り消しました');gevRefreshStaff(x.event_id);}
 /* --- スタッフ・管理者: 申し込み一覧（どの教室から参加か） --- */
 function gevStaffEvents(){const t=todayYmdJST();let list=gymEvents.filter(ev=>ev.date>=t);if(staffRole==='staff')list=list.filter(ev=>ev.region===staffScope().r);return list.sort((a,b)=>gevStartStr(a).localeCompare(gevStartStr(b)));}
 const GEV_SRC={club:'クラブ',circle:'サークル'};
 function gevRoomsOf(e){const r=[...new Set((e.kids||[]).map(k=>k.classroom).filter(Boolean))];return r.length?r:[GEV_SRC[e.source]||'教室外'];}
 function gevStaffHtml(){if(staffRole==='roster')return '';const list=gevStaffEvents();if(!list.length)return '';
   let h=`<div class="sech"><h2 class="title">🎪 イベントの申し込み</h2><span class="muted" style="font-size:11.5px">タップで一覧</span></div>`;
-  list.forEach(ev=>{const act=gevAll.filter(x=>x.event_id===ev.id&&x.status==='active');const d=new Date(ev.date+'T00:00:00');const ppl=act.reduce((a,x)=>a+(x.people||0),0);
+  list.forEach(ev=>{if(gkIs(ev)){h+=gkStaffCard(ev);return;}const act=gevAll.filter(x=>x.event_id===ev.id&&x.status==='active');const d=new Date(ev.date+'T00:00:00');const ppl=act.reduce((a,x)=>a+(x.people||0),0);
     const rooms={};act.forEach(x=>gevRoomsOf(x).forEach(r=>{rooms[r]=(rooms[r]||0)+1;}));
     h+=`<div class="gevcard" onclick="openGevAdmin('${ev.id}')"><div class="gevdate"><small>${d.getMonth()+1}月</small><b>${d.getDate()}</b><small>${DOW[d.getDay()]}</small></div><div class="gevmain"><div class="gevtt">${ev.emoji||'🎪'} ${esc(ev.title)}</div><div class="gevsub">申込 <b style="color:var(--ink)">${act.length}</b> / ${ev.capacity}組・${ppl}人</div><div class="gevsub">${Object.keys(rooms).map(r=>esc(r)+' '+rooms[r]).join('　')||'まだ申し込みはありません'}</div></div><div class="gevgo">›</div></div>`;});
   if(staffRole==='admin'&&pushSupported()&&!window.__pushOn)h+=`<button class="btn soft sm" style="margin:-4px 0 12px" onclick="pushSubscribe(false)">🔔 キャンセルが出たら通知を受け取る</button>`;
   return h;}
 function gevChipBg(r){return r==='教室外'?'#9aa3b8':r==='クラブ'?'#16a34a':r==='サークル'?'#0ea5e9':scolor(r).bg;}
 function gevRoomChip(r){return `<span class="rc" style="background:${gevChipBg(r)}">${esc(r)}</span>`;}
-function openGevAdmin(id){const ev=gevById(id);if(!ev)return;
+function openGevAdmin(id){const ev=gevById(id);if(!ev)return;if(gkIs(ev)){gkAdmin(id);return;}
   const all=gevAll.filter(x=>x.event_id===id);const act=all.filter(x=>x.status==='active');const can=all.filter(x=>x.status==='cancelled');
   const kidsN=act.reduce((a,x)=>a+(x.kids||[]).length+(x.guests||[]).length,0),adN=act.reduce((a,x)=>a+(x.adults||0),0),fee=act.reduce((a,x)=>a+(x.fee||0),0);
   const appPaid=act.filter(x=>x.pay_method==='app'&&x.pay_status==='paid').reduce((a,x)=>a+x.fee,0);const cash=act.filter(x=>x.pay_method==='cash').reduce((a,x)=>a+x.fee,0);
@@ -1771,7 +1936,7 @@ function renderCal(){
 function openDay(y,m,d,schools){
   const wd=new Date(y,m,d).getDay();const key=dateKey(y,m,d);
   let html=`<h3>${m+1}月${d}日（${DOW[wd]}）の活動</h3>`;
-  gevOn(key).forEach(g=>{html+=`<div class="gevcard" style="margin-top:10px" onclick="openGymEvent('${g.id}')"><div class="gevmain"><span class="gevtag">イベント</span>${gevMine[g.id]?'<span class="gevtag g">申込済み</span>':''}<div class="gevtt">${g.emoji||'🎪'} ${esc(g.title)}</div><div class="gevsub">⏰ ${esc(g.start_time)}〜${esc(g.end_time)}　📍 ${esc(g.place)}</div></div><div class="gevgo">›</div></div>`;});
+  gevOn(key).forEach(g=>{html+=`<div class="gevcard" style="margin-top:10px" onclick="openGymEvent('${g.id}')"><div class="gevmain"><span class="gevtag">イベント</span>${gevMine[g.id]?(gevMine[g.id].waitlist?'<span class="gevtag n">キャンセル待ち</span>':'<span class="gevtag g">申込済み</span>'):''}<div class="gevtt">${g.emoji||'🎪'} ${esc(g.title)}</div><div class="gevsub">⏰ ${esc(g.start_time)}〜${esc(g.end_time)}　📍 ${esc(g.place)}</div></div><div class="gevgo">›</div></div>`;});
   schools.forEach(s=>{const inf=SCHOOL_INFO[s];const ct=contentOn(s,key,wd);
     html+=`<div class="roomhead" style="margin:14px 0 4px;color:${scolor(s).bg}"><span class="roomdot" style="background:${scolor(s).bg}"></span>${inf.full}</div><div class="muted" style="margin-bottom:8px">📍 ${ct.place||inf.place}<br>${teacherLine(s,key)||('👨‍🏫 メインスタッフ：'+inf.teachers+'先生')}</div>`;
     if(isCancelled(s,key)){html+=`<div class="note" style="background:#f1f3f8;border-color:#dfe4ee;color:#6b7280">この日は<b>休講（お休み）</b>です。</div>`;return;}
@@ -3288,7 +3453,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261106-keep-msgs';
+const APP_BUILD='20261115-rg-taiken';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
