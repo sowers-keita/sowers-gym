@@ -1449,7 +1449,47 @@ function enterApp(){
   setTimeout(pushIntroAnnounce,1700);
   gevLoad().then(()=>{renderHomeAnn();renderCal();gevBootReturn();setTimeout(showGymEventPopup,new URLSearchParams(location.search).get('gev')?4000:1300);setTimeout(gkBootPopups,2200);}); // 特別イベント（その県の教室の家庭のみ・イベントごとに1回）
   setTimeout(showMonthSchedulePopup,2600); // 徳島限定・月初の練習予定（担当者が確定した教室のみ・月1回）
+  setTimeout(showDayChangePopup,3200); // この日だけ会場が変わる日のお知らせ（今日〜6日後・1回だけ）
 }
+/* ============ この日だけ会場が変わる日のお知らせ（保護者・起動時ポップアップ）2026-11-20 メイ ============
+   毎週教室で events に「この日だけ」の会場が入っていて、いつもの会場と違う日（今日〜6日後）を、その教室に通う家庭に1回だけ案内する */
+function dayChangeTargets(){
+  const t=todayYmdJST(),end=new Date(t+'T00:00:00');end.setDate(end.getDate()+6);const endKey=dateKey(end.getFullYear(),end.getMonth(),end.getDate());
+  const rooms=[...new Set(activeKids().map(c=>c.classroom))].filter(r=>WEEKLY_ROOMS.has(r));const out=[];
+  rooms.forEach(room=>{const evs=events[room]||{};Object.keys(evs).sort().forEach(key=>{if(key<t||key>endKey)return;
+    const wd=new Date(key+'T00:00:00').getDay();const base=(SCHOOL_INFO[room]||{}).place||'';const ov=evs[key];
+    if(!ov||!ov.place||ov.place===base)return;if(isCancelled(room,key))return;
+    const cls=(Array.isArray(ov.classes)&&ov.classes.length)?ov.classes:((SCHEDULE[room]&&SCHEDULE[room][wd])||[]);
+    const kidsIn=activeKids().filter(c=>c.classroom===room).map(c=>{const it=cls.find(x=>x.c===c.class_name);return it?{name:c.name,cls:c.class_name,t:it.t}:null;}).filter(Boolean);
+    if(kidsIn.length)out.push({room,key,wd,base,place:ov.place,kids:kidsIn});});});
+  return out;}
+/* 地図で正しい場所が出るよう、住所が分かっている会場は住所つきで検索する */
+const DAYCHG_MAP_Q=[[/小松島市立武道館/,'小松島市立武道館 徳島県小松島市立江町字赤石74-2']];
+function dayChangeMapQuery(place){const hit=DAYCHG_MAP_Q.find(([re])=>re.test(place));return hit?hit[1]:'徳島県 '+place;}
+function dayChangeWord(key){const t=todayYmdJST();const d=new Date(t+'T00:00:00');d.setDate(d.getDate()+1);const tm=dateKey(d.getFullYear(),d.getMonth(),d.getDate());return key===t?'今日':key===tm?'明日':'';}
+function showDayChangePopup(){try{
+  if(!me||!profile||profile.role!=='parent')return;
+  const who=profile.id||me.id,seen=k=>{try{return localStorage.getItem(k)==='1';}catch(e){return false;}};
+  const kOf=x=>'sowers_gym_daychg_'+who+'_'+x.room+'_'+x.key+'_'+x.place;
+  const x=dayChangeTargets().find(x=>!seen(kOf(x)));if(!x)return;
+  if(document.querySelector('.featp')||document.querySelector('.month-dialog,#month-parent-pop')||document.getElementById('mask').classList.contains('show')){window.__dchgRetry=(window.__dchgRetry||0)+1;if(window.__dchgRetry<=8)setTimeout(showDayChangePopup,2500);return;}
+  if(!_pv.on){try{localStorage.setItem(kOf(x),'1');}catch(e){}}
+  const d=new Date(x.key+'T00:00:00'),dl=`${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`,rel=dayChangeWord(x.key);
+  const map='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(dayChangeMapQuery(x.place));
+  const kidsH=x.kids.map(k=>`<div>${esc(k.name)}さん（${esc(k.cls)}）<b>${esc(k.t)}</b></div>`).join('');
+  const w=document.createElement('div');w.className='featp';
+  w.innerHTML=`<div class="featc"><div class="feath" style="background:linear-gradient(135deg,#8b5cf6,#b794f6)"><div class="featbadge">会場変更のお知らせ</div><div class="featmc">📍</div><div class="feattt">${dl}の${esc(x.room)}教室は<br>会場が変わります</div></div><div class="featb">`
+   +`<div class="featli" style="display:block;line-height:1.85;font-size:13.5px">${rel?rel+'（'+(d.getMonth()+1)+'/'+d.getDate()+'）':dl}の${esc(x.room)}教室は、<b>${esc(x.place)}</b> で行います🤸<br>時間はいつもどおりです😊<br>お間違えのないよう、お気をつけてお越しください！</div>`
+   +`<div style="border:1.5px solid #e4dcfa;border-radius:14px;padding:10px 12px;margin-bottom:12px;font-size:13px;line-height:1.7">`
+   +`<div style="color:#8a90a2;font-size:11.5px;font-weight:800">いつもの会場</div><div style="color:#8a90a2;text-decoration:line-through">${esc(x.base)}</div>`
+   +`<div style="text-align:center;color:#8b5cf6;font-weight:900;margin:2px 0">↓</div>`
+   +`<div style="color:#6d3fd6;font-size:11.5px;font-weight:800">${rel?rel+'の':'この日の'}会場</div><div style="font-weight:900;font-size:15px;color:#2a2f45">${esc(x.place)}</div>`
+   +`<div style="border-top:1px dashed #e4dcfa;margin:8px 0 6px"></div><div style="color:#6d3fd6;font-size:11.5px;font-weight:800">⏰ 時間（変わりません）</div>${kidsH}</div>`
+   +`<div class="featbtns"><button class="featclose" data-m style="background:#f1edfd;color:#6d3fd6">🗺️ 地図をひらく</button><button class="featok" data-x style="background:#8b5cf6">わかりました</button></div></div></div>`;
+  document.body.appendChild(w);const close=()=>{w.style.opacity='0';setTimeout(()=>w.remove(),250);};
+  w.querySelector('[data-x]').onclick=close;w.querySelector('[data-m]').onclick=()=>{window.open(map,'_blank');};
+}catch(e){}}
+
 
 /* ============ お知らせ ============ */
 function withdrawStatusHtml(){let h='';
@@ -3453,7 +3493,7 @@ async function refreshApp(){
 /* ============ アプリ本体の自動更新（新しい版が公開されたら自動で読み直す・2026-09-10） ============
    iPhoneのホーム画面アプリは古いHTMLをしばらく使い続けるため、起動時と復帰時に最新版の番号を確認し、
    違えば1回だけ再読み込みする（入力中・シート表示中は行わない） */
-const APP_BUILD='20261115-rg-taiken';
+const APP_BUILD='20261120-daychg1';
 (function setupAppUpdate(){
   let _last=0;
   async function check(){try{
